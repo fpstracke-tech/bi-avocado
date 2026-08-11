@@ -3,3 +3,6 @@ pandas
 openpyxl
 beautifulsoup4
 lxml
+xlrd
+pdfplumber
+yfinance

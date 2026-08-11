@@ -1,0 +1,121 @@
+name: ETL Preços Origem — Chile, Argentina, Uruguai
+
+# Substitui os coletores palta_santiago / palta_buenosaires / palta_montevideo,
+# que não coletavam preço de verdade (Chile e Uruguai eram constante fixa no
+# código; Argentina raspava qualquer "$" da página). Ver a auditoria de
+# 11/08/2026 nos docstrings de cada etl_*.py.
+#
+# Os três jobs são independentes de propósito: se a ODEPA cair, Argentina e
+# Uruguai continuam gravando. Nada aqui depende do outro.
+
+on:
+  schedule:
+    # 13:00 UTC = 10:00 BRT, de segunda a sábado.
+    # ODEPA e Mercado Central publicam em dia útil. O boletim da UAM sai
+    # segunda e quinta, mas rodar todo dia não custa nada e pega publicação
+    # atrasada — o upsert é idempotente.
+    - cron: '0 13 * * 1-6'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Só mostrar o que faria, sem gravar no Supabase'
+        type: boolean
+        required: false
+        default: false
+
+concurrency:
+  group: etl-origens
+  cancel-in-progress: false
+
+jobs:
+  origens:
+    name: ${{ matrix.nome }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      issues: write
+      contents: read
+
+    strategy:
+      fail-fast: false          # a falha de um país não cancela os outros
+      matrix:
+        include:
+          - nome: Chile (ODEPA)
+            script: etl_chile_odepa.py
+          - nome: Argentina (Mercado Central BA)
+            script: etl_argentina_mcba.py
+          - nome: Uruguai (UAM)
+            script: etl_uruguai_uam.py
+
+    env:
+      SUPABASE_URL:     ${{ secrets.SUPABASE_URL }}
+      SUPABASE_KEY:     ${{ secrets.SUPABASE_KEY }}
+      PYTHONIOENCODING: utf-8
+      PYTHONUNBUFFERED: '1'     # sem isso o log só aparece no fim
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Instalar dependências
+        run: pip install --upgrade pip && pip install -r requirements.txt
+
+      - name: Conferir secrets
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_KEY" ]; then
+            echo "::error::SUPABASE_URL ou SUPABASE_KEY não configurados nos secrets."
+            exit 1
+          fi
+
+      - name: ETL ${{ matrix.nome }}
+        id: etl
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            python ${{ matrix.script }} --dry-run
+          else
+            python ${{ matrix.script }}
+          fi
+
+      - name: Resumo
+        if: always()
+        run: |
+          echo "### ${{ matrix.nome }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Resultado: \`${{ steps.etl.outcome }}\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Abrir issue em caso de falha
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pais = ${{ toJSON(matrix.nome) }};
+            const script = ${{ toJSON(matrix.script) }};
+            const titulo = `Falha ETL ${pais} — ${new Date().toISOString().slice(0,16).replace('T',' ')} UTC`;
+            const corpo = [
+              `**ETL:** ${pais} → Supabase \`precos_origem\``,
+              `**Script:** \`${script}\``,
+              `**Run:** https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              '',
+              'Causas mais comuns, em ordem de probabilidade:',
+              '1. A fonte mudou de layout — o parser devolve 0 registros e o script sai com erro.',
+              '2. A URL de download mudou de nome. Chile e Argentina leem os links da página,',
+              '   mas se a própria página mudar de estrutura o scraper não acha nada.',
+              '3. Câmbio fora do ar. Os três ABORTAM sem câmbio em vez de usar taxa fixa —',
+              '   isso é intencional, era o defeito dos coletores antigos.',
+              '4. Secret `SUPABASE_KEY` expirado ou rotacionado.',
+              '',
+              `Para reproduzir local: \`python ${script} --dry-run\``,
+            ].join('\n');
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: titulo,
+              body: corpo,
+              labels: ['etl-falha', 'precos'],
+            });

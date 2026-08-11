@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>BI Avocado &mdash; TFruits</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+
+  /* ── RESET & TOKENS ──────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    /* ── TFruits brand colors ── */
+    --green:        #8DC63F;   /* verde do T quadrado */
+    --green-light:  #A5D95C;
+    --green-dim:    rgba(141,198,63,.13);
+    --green-border: rgba(141,198,63,.28);
+    --orange:       #F47C20;   /* laranja Fruits */
+    --orange-dim:   rgba(244,124,32,.13);
+    --orange-border:rgba(244,124,32,.30);
+    /* ── backgrounds ── */
+    --bg:           #000000;
+    --bg2:          #0A0A0A;
+    --surface:      #111111;
+    --surface2:     #1A1A1A;
+    --border:       rgba(255,255,255,.11);
+    --border-green: rgba(141,198,63,.18);
+    /* Hierarquia de texto — contraste sobre --bg (mín. 4,5:1 para texto pequeno) */
+    --text:         #FFFFFF;  /* 17,3:1 — títulos e valores */
+    --text-2:       #ADADAD;  /* 6,6:1  — descrições e apoio */
+    --text-3:       #909090;  /* 5,7:1  — rótulos, metadados, cabeçalhos de tabela */
+    --radius-card:  1.5rem;
+    --radius-inner: calc(1.5rem - 4px);
+    --font:         'Plus Jakarta Sans', sans-serif;
+    --ease-spring:  cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  html { font-size: 90%; } /* visual compacto (equivalente a zoom 90%) sem usar CSS zoom — zoom quebra clique de legenda no Chart.js */
+  html, body { height: 100%; font-family: var(--font); background: var(--bg); color: var(--text); overflow-x: hidden; }
+
+  /* ── SCROLLBAR ───────────────────────────────────────────────── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+  /* ── LAYOUT ──────────────────────────────────────────────────── */
+  .app { display: flex; min-height: 100dvh; }
+
+  /* ── SIDEBAR ─────────────────────────────────────────────────── */
+  .sidebar {
+    width: 198px; min-width: 198px;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    padding: 1.5rem 1rem;
+    position: sticky; top: 0; height: 100dvh;
+    transition: transform .4s var(--ease-spring);
+    z-index: 100;
+  }
+
+  .sidebar-logo {
+    display: flex; align-items: center; gap: .6rem;
+    padding: .6rem .75rem 1.5rem;
+  }
+  .logo-dot {
+    width: 25px; height: 25px; border-radius: 8px;
+    background: var(--green);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; color: #0A0D0A;
+    flex-shrink: 0;
+  }
+  .logo-text { font-size: .8rem; font-weight: 700; letter-spacing: .05em; color: var(--text); line-height: 1.2; }
+  .logo-sub  { font-size: .65rem; color: var(--text-2); font-weight: 400; }
+
+  .nav-section { font-size: .6rem; font-weight: 600; letter-spacing: .15em; color: var(--text-3); text-transform: uppercase; padding: 0 .75rem .5rem; margin-top: .25rem; }
+
+  .nav-item {
+    display: flex; align-items: center; gap: .6rem;
+    padding: .55rem .75rem; border-radius: .75rem; cursor: pointer;
+    font-size: .78rem; font-weight: 500; color: var(--text-2);
+    transition: all .25s var(--ease-spring);
+    margin-bottom: .1rem; user-select: none;
+  }
+  .nav-item:hover { background: var(--green-dim); color: var(--green-light); }
+  .nav-item.active { background: var(--green-dim); color: var(--green); border: 1px solid var(--green-border); }
+  .nav-icon { width: 14px; height: 14px; opacity: .7; flex-shrink: 0; }
+  .nav-item.active .nav-icon { opacity: 1; }
+
+  .sidebar-footer { margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--border); }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); display: inline-block; margin-right: .4rem; box-shadow: 0 0 6px var(--green); animation: pulse 2s infinite; }
+  .status-label { font-size: .65rem; color: var(--text-2); }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  /* ── MAIN ────────────────────────────────────────────────────── */
+  .main { flex: 1; overflow-y: auto; padding: 2rem 2rem 3rem; min-width: 0; }
+
+  /* ── PAGE HEADER ─────────────────────────────────────────────── */
+  .page-header { margin-bottom: 2rem; opacity: 0; transform: translateY(12px); animation: fadeUp .5s var(--ease-spring) .05s forwards; }
+  .page-eyebrow {
+    display: inline-flex; align-items: center; gap: .4rem;
+    font-size: .6rem; font-weight: 600; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--green); background: var(--green-dim); border: 1px solid var(--green-border);
+    padding: .25rem .65rem; border-radius: 99px; margin-bottom: .75rem;
+  }
+  .page-title { font-size: 1.6rem; font-weight: 700; color: var(--text); line-height: 1.2; }
+  .page-sub   { font-size: .8rem; color: var(--text-2); margin-top: .3rem; }
+  .region-title { font-size: .78rem; font-weight: 700; color: var(--green); text-transform: uppercase; letter-spacing: .08em; margin: 1.5rem 0 .6rem; }
+  .region-title:first-of-type { margin-top: .5rem; }
+
+  @keyframes fadeUp { to { opacity:1; transform:translateY(0); } }
+
+  /* ── CARDS GRID ──────────────────────────────────────────────── */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(162px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+
+  /* ── CARD (double-bezel) ─────────────────────────────────────── */
+  .card-shell {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    padding: 3px;
+    transition: border-color .3s var(--ease-spring), transform .3s var(--ease-spring);
+    opacity: 0; transform: translateY(16px);
+    animation: fadeUp .5s var(--ease-spring) forwards;
+  }
+  .card-shell:hover { border-color: var(--border-green); transform: translateY(-2px); }
+
+  .card-inner {
+    background: var(--surface2);
+    border-radius: var(--radius-inner);
+    padding: 1.25rem 1.4rem;
+    box-shadow: inset 0 1px 1px rgba(255,255,255,.04);
+    height: 100%;
+  }
+
+  .kpi-label  { font-size: .65rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); margin-bottom: .5rem; }
+  .kpi-value  { font-size: 1.6rem; font-weight: 700; color: var(--text); line-height: 1; word-break: break-word; }
+  .kpi-value-sm { font-size: 1rem !important; line-height: 1.3; }
+  /* Códigos (NCM, etc.): nunca quebram linha — "0805.50.00" partido em duas
+     linhas deixa de ser um código legível. */
+  .kpi-value-code { font-size: 1.25rem !important; white-space: nowrap; word-break: normal; letter-spacing: .01em; font-variant-numeric: tabular-nums; }
+  .kpi-unit   { font-size: .7rem; color: var(--text-2); margin-top: .2rem; }
+  .kpi-trend  { display: inline-flex; align-items: center; gap: .2rem; font-size: .65rem; font-weight: 600; margin-top: .4rem; padding: .15rem .4rem; border-radius: 99px; }
+  .kpi-trend.up   { color: var(--green); background: var(--green-dim); }
+  .kpi-trend.down { color: #EF5350; background: rgba(239,83,80,.12); }
+
+  /* ── CHART CARD ──────────────────────────────────────────────── */
+  .chart-card { margin-bottom: 1.5rem; }
+  .chart-card .card-inner { padding: 1.4rem; }
+  .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.2rem; flex-wrap: wrap; gap: .5rem; }
+  .chart-title { font-size: .9rem; font-weight: 600; color: var(--text); }
+  .chart-wrap  { position: relative; height: 234px; }
+
+  /* ── FILTER BAR ──────────────────────────────────────────────── */
+  .filter-bar { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+  .filter-chip {
+    font-size: .7rem; font-weight: 500; padding: .3rem .7rem; border-radius: 99px; cursor: pointer;
+    border: 1px solid var(--border); color: var(--text-2); background: transparent;
+    transition: all .2s var(--ease-spring);
+  }
+  .filter-chip:hover  { border-color: var(--orange-border); color: var(--orange); }
+  .filter-chip.active { border-color: var(--orange); color: var(--orange); background: var(--orange-dim); }
+
+  /* ── SELECT ──────────────────────────────────────────────────── */
+  .styled-select {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text-2);
+    font-family: var(--font); font-size: .72rem; padding: .3rem .6rem; border-radius: .5rem;
+    cursor: pointer; outline: none;
+    transition: border-color .2s;
+  }
+  .styled-select:focus { border-color: var(--green-border); }
+  .styled-select option { background: var(--surface2); }
+
+  /* ── TABLE ───────────────────────────────────────────────────── */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: .75rem; }
+  th { padding: .6rem .9rem; text-align: left; font-size: .6rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--text-3); border-bottom: 1px solid var(--border); white-space: nowrap; }
+  td { padding: .55rem .9rem; border-bottom: 1px solid rgba(255,255,255,.03); color: var(--text-2); white-space: nowrap; }
+  tr:hover td { background: var(--green-dim); color: var(--text); }
+
+  /* Tabela país × mês (Share Brasil): cada mês tem que ser lido sem ambiguidade.
+     Números à direita, régua vertical entre meses, coluna País ancorada na
+     rolagem horizontal e coluna Total destacada como fechamento da linha. */
+  table.table-mes td, table.table-mes th { border-right: 1px solid rgba(255,255,255,.05); }
+  table.table-mes .col-mes, table.table-mes .col-num { text-align: right; font-variant-numeric: tabular-nums; padding-left: .55rem; padding-right: .8rem; }
+  table.table-mes .col-mes-vazio { color: var(--text-3); }
+  /* Diferenciação das colunas de dado (mês na aba Share, ano na Containers):
+     1. faixa zebrada vertical alternada (a coluna vira um bloco);
+     2. divisor mais forte marcando fim de trimestre (Mar/Jun/Set/Dez).
+     O destaque da semana de referência fica em `tr.linha-ref`, mais abaixo. */
+  table.table-mes .col-zebra { background: rgba(255,255,255,.032); }
+  table.table-mes thead .col-zebra { background: rgba(255,255,255,.05); }
+  table.table-mes .col-tri { border-right: 1px solid rgba(255,255,255,.16); }
+  /* O hover da linha tem que vencer a zebra, senão a leitura horizontal some. */
+  table.table-mes tr:hover td.col-mes,
+  table.table-mes tr:hover td.col-num,
+  table.table-mes tr:hover td.col-total { background: var(--green-dim); color: var(--text); }
+  /* Mês em foco: passar o mouse no número acende a coluna inteira. */
+  table.table-mes th.col-mes, table.table-mes th.col-num { cursor: default; transition: color .15s, background .15s; }
+  table.table-mes th.col-mes.mes-on, table.table-mes th.col-num.mes-on { color: var(--green); background: var(--green-dim); }
+  table.table-mes td.col-mes.mes-on, table.table-mes td.col-num.mes-on { background: var(--green-dim); color: var(--text); }
+  table.table-mes .col-pais {
+    position: sticky; left: 0; z-index: 2; background: var(--surface2);
+    font-weight: 500; color: var(--text); max-width: 190px; overflow: hidden; text-overflow: ellipsis;
+  }
+  table.table-mes thead .col-pais { background: var(--surface2); }
+  table.table-mes tr:hover .col-pais { background: var(--green-dim); }
+  table.table-mes .col-total { text-align: right; border-right: none; background: rgba(255,255,255,.02); }
+  /* Posição vive dentro da célula do país: assim a coluna ancorada na rolagem
+     é uma só (duas colunas sticky lado a lado se sobrepõem). */
+  table.table-mes .pais-rank {
+    display: inline-block; width: 1.1rem; margin-right: .45rem;
+    color: var(--text-3); font-variant-numeric: tabular-nums; font-weight: 400;
+  }
+  .chart-note { font-size: .65rem; color: var(--text-3); margin-top: .7rem; line-height: 1.5; }
+
+  /* Tabela que abraça o conteúdo em vez de esticar até a borda do card.
+     Com 4 colunas curtas, `width: 100%` gerava colunas enormes e vazias. */
+  table.table-compacta th, table.table-compacta td { padding-left: 1rem; padding-right: 1rem; }
+
+  /* Containers: tabela à esquerda no tamanho que precisa, resumo da temporada
+     ocupando o espaço que sobra — mesmo arranjo do relatório da fonte. */
+  /* Resumo em cima, tabela embaixo, MESMA largura. Cards de larguras
+     diferentes empilhados ficam desproporcionais; a coluna é estreita o
+     suficiente para as 5 colunas da tabela não virarem faixas vazias. */
+  .cont-layout { display: flex; flex-direction: column; gap: 1rem; max-width: 900px; }
+  .cont-layout > .card-shell { width: 100%; }
+
+  /* Semana de referência: a mesma que o resumo está usando. Linha inteira
+     destacada, como no relatório da fonte. */
+  table.table-mes tr.linha-ref td { background: var(--green-dim); color: var(--text); }
+  table.table-mes tr.linha-ref .col-pais { background: rgba(141,198,63,.18); color: var(--green); font-weight: 600; }
+  /* Resumo como tabela, e não como cards soltos: os anos precisam ficar
+     alinhados em coluna para comparar de bater o olho, igual ao relatório. */
+  table.resumo { width: 100%; border-collapse: collapse; }
+  table.resumo th { padding: .35rem .5rem .5rem; text-align: right; }
+  table.resumo th:first-child { text-align: left; }
+  table.resumo td { padding: .85rem .5rem; border-bottom: 1px solid rgba(255,255,255,.05); text-align: right; font-variant-numeric: tabular-nums; }
+  table.resumo tr:last-child td { border-bottom: none; }
+  table.resumo tr:hover td { background: transparent; }
+  table.resumo .resumo-rot { text-align: left; color: var(--text-2); white-space: normal; max-width: 190px; line-height: 1.35; }
+  table.resumo .resumo-num { font-size: 1.15rem; font-weight: 600; color: var(--text); }
+  table.resumo .resumo-var { font-size: .68rem; padding-left: 0; }
+  table.resumo .resumo-zebra { background: rgba(255,255,255,.022); }
+  table.table-mes tfoot td {
+    border-top: 1px solid var(--border); border-bottom: none;
+    color: var(--text); font-weight: 600; background: rgba(255,255,255,.02);
+  }
+  /* A célula sticky não pode ser translúcida (as colunas passariam por baixo);
+     #1D221D = --surface2 já com o clareamento de 2% do rodapé aplicado. */
+  table.table-mes tfoot .col-pais { background: #1D221D; }
+
+  /* ── TABS (page navigation) ──────────────────────────────────── */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── LOADING ─────────────────────────────────────────────────── */
+  .loading { display: flex; align-items: center; justify-content: center; height: 144px; color: var(--text-3); font-size: .8rem; gap: .5rem; }
+  .spinner { width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin .6s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── CLIMA GRID ──────────────────────────────────────────────── */
+  .clima-grid, .cidades-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
+  .cidade-card .card-inner { display: flex; flex-direction: column; gap: .3rem; }
+  .cidade-nome { font-size: .8rem; font-weight: 600; color: var(--text); }
+  .cidade-temp { font-size: 2rem; font-weight: 700; color: var(--green); line-height: 1; }
+  .cidade-desc { font-size: .7rem; color: var(--text-2); }
+  .cidade-extra { display: flex; gap: .8rem; margin-top: .4rem; }
+  .cidade-extra span { font-size: .65rem; color: var(--text-2); }
+  .cidade-medicao { font-size: .62rem; color: var(--text-2); margin-top: .45rem; }
+  .rain-badge { display:inline-block; margin-top:.4rem; padding:.2rem .5rem; border-radius:4px; font-size:.65rem; font-weight:600; }
+  .rain-badge.warn   { background:rgba(245,131,78,.15); color:#F5834E; border:1px solid rgba(245,131,78,.4); }
+  .rain-badge.critic { background:rgba(239,83,80,.15);  color:#EF5350; border:1px solid rgba(239,83,80,.4); animation: pulse-rain 1.5s ease-in-out infinite; }
+  .cold-badge { display:inline-block; margin-top:.2rem; padding:.2rem .5rem; border-radius:4px; font-size:.65rem; font-weight:600; }
+  .cold-badge.warn   { background:rgba(56,189,248,.12); color:#38BDF8; border:1px solid rgba(56,189,248,.35); }
+  .cold-badge.critic { background:rgba(129,140,248,.2); color:#818CF8; border:1px solid rgba(129,140,248,.5); animation:pulse-rain 1.5s ease-in-out infinite; }
+  .fungal-badge { display:inline-block; margin-top:.2rem; padding:.2rem .5rem; border-radius:4px; font-size:.65rem; font-weight:600; background:rgba(167,139,250,.12); color:#A78BFA; border:1px solid rgba(167,139,250,.4); }
+  @keyframes pulse-rain { 0%,100%{opacity:1} 50%{opacity:.6} }
+
+  /* ── MOBILE NAV ──────────────────────────────────────────────── */
+  .mobile-bar {
+    display: none; position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%);
+    background: rgba(20,25,20,.92); backdrop-filter: blur(20px);
+    border: 1px solid var(--border); border-radius: 99px;
+    padding: .5rem .75rem; gap: .25rem; z-index: 200;
+    box-shadow: 0 8px 32px rgba(0,0,0,.4);
+  }
+  .mb-item {
+    display: flex; flex-direction: column; align-items: center; gap: .15rem;
+    padding: .4rem .6rem; border-radius: 99px; cursor: pointer;
+    font-size: .55rem; color: var(--text-3); transition: all .2s;
+  }
+  .mb-item.active { color: var(--green); background: var(--green-dim); }
+  .mb-icon { width: 18px; height: 18px; }
+
+  /* ── RESPONSIVE ──────────────────────────────────────────────── */
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .mobile-bar { display: flex; }
+    .main { padding: 1.25rem 1rem 5rem; }
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .chart-wrap { height: 200px; }
+    .page-title { font-size: 1.2rem; }
+    .clima-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* ── STAGGER DELAYS ──────────────────────────────────────────── */
+  .card-shell:nth-child(1){animation-delay:.05s}
+  .card-shell:nth-child(2){animation-delay:.1s}
+  .card-shell:nth-child(3){animation-delay:.15s}
+  .card-shell:nth-child(4){animation-delay:.2s}
+  .card-shell:nth-child(5){animation-delay:.25s}
+  .card-shell:nth-child(6){animation-delay:.3s}
+
+  /* ── BADGE ───────────────────────────────────────────────────── */
+  .badge {
+    display: inline-flex; align-items: center;
+    font-size: .6rem; font-weight: 600; padding: .15rem .45rem; border-radius: 99px;
+    background: var(--green-dim); color: var(--green); border: 1px solid var(--green-border);
+  }
+
+  /* ── TWO-COL GRID ────────────────────────────────────────────── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+
+  /* ── UPDATE TAG ──────────────────────────────────────────────── */
+  #last-update { font-size: .65rem; color: var(--text-3); }
+
+  /* ══ BI AVOCADO — componentes adicionais ══════════════════════ */
+
+  /* MATRIZ / HEATMAP */
+  .mtx-wrap { overflow-x: auto; }
+  table.mtx { border-collapse: separate; border-spacing: 3px; width: auto; }
+  table.mtx th { padding: .3rem .45rem .5rem; text-align: center; border-bottom: none; font-size: .58rem; }
+  table.mtx th.rowh { text-align: left; color: var(--text); font-size: .72rem; font-weight: 500; text-transform: none; letter-spacing: 0; padding-right: 1rem; }
+  table.mtx td { padding: 0; border-bottom: none; text-align: center; white-space: nowrap; }
+  table.mtx tr:hover td { background: transparent; }
+  .mcell { border-radius: .45rem; padding: .5rem .3rem; font-size: .7rem; font-weight: 600; font-variant-numeric: tabular-nums; min-width: 2.6rem; }
+  .mcell.vazio { background: rgba(255,255,255,.025); color: var(--text-3); }
+  .mcell.neutra { background: rgba(255,255,255,.05); color: var(--green); }
+  .mlegend { display: flex; align-items: center; gap: 1.1rem; flex-wrap: wrap; margin-top: 1rem; font-size: .65rem; color: var(--text-3); }
+  .mlegend .it { display: flex; align-items: center; gap: .4rem; }
+  .mlegend .sw { width: 1.4rem; height: .7rem; border-radius: .2rem; }
+
+  /* TAGS de noticia */
+  .ntag { display: inline-flex; align-items: center; font-size: .58rem; font-weight: 600; padding: .12rem .45rem; border-radius: 99px; white-space: nowrap;
+          background: var(--green-dim); color: var(--green); border: 1px solid var(--green-border); }
+  .ntag.alto  { background: rgba(239,83,80,.12);  color: #EF5350; border-color: rgba(239,83,80,.35); }
+  .ntag.medio { background: rgba(245,166,35,.12); color: #F5A623; border-color: rgba(245,166,35,.35); }
+  .ntag.baixo { background: rgba(255,255,255,.04); color: var(--text-3); border-color: var(--border); }
+  .ntag.orange{ background: var(--orange-dim); color: var(--orange); border-color: var(--orange-border); }
+  .ntag.val   { background: var(--green-dim); color: var(--green); border-color: var(--green-border); }
+  td.txt { white-space: normal; min-width: 22rem; line-height: 1.5; color: var(--text-2); }
+  td.fonte-cel { text-align: center; }
+  a.src { color: var(--green); opacity:.8; }
+  a.src:hover { opacity: 1; }
+  a.src svg { width: 13px; height: 13px; vertical-align: middle; }
+
+  /* CIRAD */
+  .cirad-sec { margin-bottom: 1.1rem; }
+  .cirad-sec:last-child { margin-bottom: 0; }
+  .cirad-sec h4 { font-size: .72rem; font-weight: 700; color: var(--green); margin-bottom: .35rem; letter-spacing: .02em; }
+  .cirad-sec p, .cirad-sec li { font-size: .78rem; line-height: 1.65; color: var(--text-2); }
+  .cirad-sec ul { list-style: none; }
+  .cirad-sec li { padding-left: .85rem; position: relative; }
+  .cirad-sec li::before { content: ''; position: absolute; left: .15rem; top: .62rem; width: 4px; height: 4px; border-radius: 50%; background: var(--green); }
+
+  /* CHUVA */
+  .rain-row { display: flex; align-items: center; gap: .8rem; padding: .55rem 0; border-bottom: 1px solid rgba(255,255,255,.03); }
+  .rain-row:last-child { border-bottom: none; }
+  .rain-row .rr-pais { font-size: .65rem; color: var(--text-3); min-width: 4.6rem; }
+  .rain-row .rr-cty  { font-size: .78rem; font-weight: 500; color: var(--text); min-width: 8.5rem; }
+  .rain-row .rr-mm   { font-size: .8rem;  font-weight: 700; color: var(--green); font-variant-numeric: tabular-nums; min-width: 4.4rem; text-align: right; }
+  .rain-row .rr-dsc  { font-size: .68rem; color: var(--text-2); margin-left: auto; text-align: right; }
+  .bar-track { background: rgba(255,255,255,.05); border-radius: 99px; height: 4px; overflow: hidden; margin-top: .3rem; }
+  .bar-fill  { height: 100%; border-radius: 99px; background: var(--green); }
+
+  /* CAMBIO */
+  .fx-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(6.4rem, 1fr)); gap: .55rem; }
+  .fx { background: rgba(255,255,255,.022); border: 1px solid var(--border); border-radius: .7rem; padding: .55rem .65rem; }
+  .fx .fx-par { font-size: .58rem; font-weight: 600; letter-spacing: .08em; color: var(--text-3); display: flex; align-items: center; gap: .3rem; }
+  .fx .fx-val { font-size: .95rem; font-weight: 700; color: var(--text); margin-top: .2rem; font-variant-numeric: tabular-nums; }
+  .fx .fx-dt  { font-size: .58rem; color: var(--text-3); margin-top: .1rem; }
+  .fx .dot-live { width: 5px; height: 5px; border-radius: 50%; background: var(--green); box-shadow: 0 0 5px var(--green); animation: pulse 2s infinite; }
+  .fx .dot-snap { width: 5px; height: 5px; border-radius: 50%; background: var(--text-3); }
+
+  /* AVISO / NOTA */
+  .aviso { display: flex; gap: .6rem; align-items: flex-start; background: rgba(245,166,35,.06); border-left: 2px solid #F5A623;
+           border-radius: 0 .6rem .6rem 0; padding: .65rem .85rem; margin-top: .9rem; font-size: .7rem; line-height: 1.6; color: var(--text-2); }
+  .aviso.ok { background: var(--green-dim); border-left-color: var(--green); }
+  .aviso b { color: var(--text); font-weight: 600; }
+  .aviso code { font-size: .66rem; background: rgba(255,255,255,.05); padding: .05rem .3rem; border-radius: .25rem; }
+  .aviso svg { width: 14px; height: 14px; flex-shrink: 0; margin-top: .1rem; color: #F5A623; }
+  .aviso.ok svg { color: var(--green); }
+
+  .vazio-box { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2.2rem 1rem; color: var(--text-3); gap: .5rem; text-align: center; }
+  .vazio-box svg { width: 22px; height: 22px; opacity: .5; }
+  .vazio-box span { font-size: .72rem; max-width: 30rem; line-height: 1.5; }
+
+  .scroll-y { max-height: 22rem; overflow-y: auto; }
+  .scroll-y-lg { max-height: 30rem; overflow-y: auto; }
+  .tres-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+  @media (max-width: 1100px) { .tres-col { grid-template-columns: 1fr; } }
+  .col-2-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; align-items: start; }
+  .col-1-2 { display: grid; grid-template-columns: 1fr 2fr; gap: 1rem; align-items: start; }
+  @media (max-width: 1100px) { .col-2-1, .col-1-2 { grid-template-columns: 1fr; } }
+  .chip-row { margin-bottom: 1.2rem; }
+  .fontes-list { font-size: .7rem; color: var(--text-2); line-height: 1.9; }
+  .fontes-list code { font-size: .68rem; color: var(--green); }
+
+
+  /* ══ VERDE SO ONDE COMUNICA ESTADO ═══════════════════════════
+     Sobrescreve o uso difuso de verde herdado do BI Limao. O verde fica
+     reservado para: nav ativo, eyebrow da pagina, tendencia positiva,
+     dot de status e as series do ano corrente nos graficos. Todo o resto
+     vira cinza neutro, para a tela nao ficar monocromatica. */
+
+  .region-title { color: var(--text); }
+  .cirad-sec h4 { color: var(--text); }
+  .cirad-sec li::before { background: var(--text-3); }
+  .rain-row .rr-mm { color: var(--text); }
+  .fontes-list code { color: var(--text-2); }
+  .mcell.neutra { background: rgba(255,255,255,.05); color: var(--text-2); }
+  .fx .dot-live { background: var(--green); box-shadow: 0 0 5px var(--green); }
+
+  /* tags neutras por padrao */
+  .ntag { background: rgba(255,255,255,.045); color: var(--text-2); border-color: var(--border); }
+  .badge { background: rgba(255,255,255,.045); color: var(--text-2); border-color: var(--border); }
+
+  /* hover de linha: clareamento neutro, nao tingimento verde */
+  tr:hover td { background: rgba(255,255,255,.035); color: var(--text); }
+  table.table-mes tr:hover td.col-mes,
+  table.table-mes tr:hover td.col-num,
+  table.table-mes tr:hover td.col-total { background: rgba(255,255,255,.035); color: var(--text); }
+  table.table-mes tr:hover .col-pais { background: rgba(255,255,255,.05); }
+  table.table-mes th.col-mes.mes-on, table.table-mes th.col-num.mes-on { color: var(--text); background: rgba(255,255,255,.06); }
+  table.table-mes td.col-mes.mes-on, table.table-mes td.col-num.mes-on { background: rgba(255,255,255,.05); color: var(--text); }
+  table.table-mes tr.linha-ref td { background: rgba(255,255,255,.05); color: var(--text); }
+  table.table-mes tr.linha-ref .col-pais { background: rgba(255,255,255,.08); color: var(--text); font-weight: 600; }
+
+  /* card hover: borda neutra */
+  .card-shell:hover { border-color: rgba(255,255,255,.13); }
+
+  /* links de fonte discretos, verde so no hover */
+  a.src { color: var(--text-3); opacity: 1; }
+  a.src:hover { color: var(--green); }
+
+  /* chips de filtro: acento da marca */
+  .filter-chip:hover  { border-color: var(--orange-border); color: var(--orange); }
+  .filter-chip.active { border-color: var(--orange); color: var(--orange); background: var(--orange-dim); }
+
+  /* identidade do produto: logo no verde institucional da marca TFruits */
+  :root { --brand-green: #4CAE4F; }
+  .logo-dot { background: var(--brand-green) !important; }
+  .status-dot { background: var(--green) !important; box-shadow: 0 0 6px var(--green) !important; }
+
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-dot">T</div>
+      <div>
+        <div class="logo-text"><span style="color:var(--text)">T</span><span style="color:var(--orange)">Fruits</span></div>
+        <div class="logo-sub">BI Avocado</div>
+      </div>
+    </div>
+
+    <div class="nav-section">MERCADOS</div>
+    <div class="nav-item active" data-page="precos"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16l4-4 4 4 4-4"/></svg>Preços</div>
+    <div class="nav-item" data-page="news"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h13a2 2 0 0 1 2 2v12a2 2 0 0 0 2-2V8"/><path d="M4 4v14a2 2 0 0 0 2 2h13"/><line x1="8" y1="9" x2="14" y2="9"/><line x1="8" y1="13" x2="14" y2="13"/></svg>Newsletters</div>
+    <div class="nav-section" style="margin-top:.75rem">LOGÍSTICA</div>
+    <div class="nav-item" data-page="logistica"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15l2-6h14l2 6"/><path d="M4 15c2 3 4 4 8 4s6-1 8-4"/><line x1="12" y1="3" x2="12" y2="9"/></svg>Transit Time</div>
+    <div class="nav-item" data-page="share"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 21H3V3"/><rect x="7" y="10" width="4" height="11"/><rect x="13" y="6" width="4" height="15"/></svg>Share Brasil</div>
+    <div class="nav-section" style="margin-top:.75rem">PRODUÇÃO</div>
+    <div class="nav-item" data-page="producao"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="6"/><line x1="16" y1="3" x2="16" y2="6"/></svg>Janela Global</div>
+    <div class="nav-section" style="margin-top:.75rem">SISTEMA</div>
+    <div class="nav-item" data-page="fontes"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>Fontes & Lacunas</div>
+
+    <div class="sidebar-footer">
+      <span class="status-dot"></span>
+      <span class="status-label" id="last-update">Carregando&hellip;</span>
+    </div>
+  </aside>
+
+  <main class="main">
+    <section class="page active" id="page-precos"></section>
+    <section class="page" id="page-news"></section>
+    <section class="page" id="page-logistica"></section>
+    <section class="page" id="page-share"></section>
+    <section class="page" id="page-producao"></section>
+    <section class="page" id="page-fontes"></section>
+  </main>
+</div>
+
+<div class="mobile-bar">
+    <div class="mb-item active" data-page="precos"><svg class="mb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16l4-4 4 4 4-4"/></svg><span>Preços</span></div>
+    <div class="mb-item" data-page="news"><svg class="mb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h13a2 2 0 0 1 2 2v12a2 2 0 0 0 2-2V8"/><path d="M4 4v14a2 2 0 0 0 2 2h13"/><line x1="8" y1="9" x2="14" y2="9"/><line x1="8" y1="13" x2="14" y2="13"/></svg><span>Newsletters</span></div>
+    <div class="mb-item" data-page="logistica"><svg class="mb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15l2-6h14l2 6"/><path d="M4 15c2 3 4 4 8 4s6-1 8-4"/><line x1="12" y1="3" x2="12" y2="9"/></svg><span>Transit</span></div>
+    <div class="mb-item" data-page="share"><svg class="mb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 21H3V3"/><rect x="7" y="10" width="4" height="11"/><rect x="13" y="6" width="4" height="15"/></svg><span>Share</span></div>
+    <div class="mb-item" data-page="producao"><svg class="mb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="6"/><line x1="16" y1="3" x2="16" y2="6"/></svg><span>Janela</span></div>
+    <div class="mb-item" data-page="fontes"><svg class="mb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg><span>Fontes</span></div>
+</div>
+<script>
+/* ══════════════════════════════════════════════════════════════
+   BI AVOCADO — TFruits
+   Padrao visual: design-system.md (BI Limao)
+   Dados: planilhas (2026-08-10) + snapshot PBI 2026-06-15 · paleta Papaya neutro + abacate vivo
+   ══════════════════════════════════════════════════════════════ */
+const DATA = {"meta":{"gerado_em":"2026-08-10T19:23:34.847463+00:00","fontes":{"precos.brasil":["Brasil_historico.xlsx (2024-2025)","abacate_preco_brasil_agrolink.csv (2026)"],"precos.chile":["Preco_historico.xlsx (2023-2025)","palta_santiago_precos.csv (2026)"],"precos.uruguai":["Consolidado_forecast.xlsx"],"precos.argentina":["Consolidado_forecast.xlsx (2024-2025)","palta_buenosaires_precos.csv (2026)"],"precos.europa":["Consolidado_forecast.xlsx"],"logistica.global":["TFRUITS_Estudo_de_rotas.xlsx"],"logistica.brasil":["TFRUITS_Estudo_de_rotas__Brasil_v2.xlsx"],"producao_global":["janela_avocado_ordenada_producao_ordempais.csv"],"news.brasil":["news_brasil.csv","news_brasil_cambio.csv"],"news.chile":["news_chile.csv","regulacao_chile.csv","logistica_chile.csv","news_chile_cambio.csv"]}},"precos":{"brasil":{"unidade":"R$/kg","series":{"2024":[{"semana":1,"valor":6.54},{"semana":2,"valor":5.83},{"semana":3,"valor":5.83},{"semana":4,"valor":5.92},{"semana":5,"valor":5.42},{"semana":6,"valor":5.81},{"semana":7,"valor":4.98},{"semana":8,"valor":5.92},{"semana":9,"valor":5.59},{"semana":10,"valor":5.59},{"semana":11,"valor":6.0},{"semana":12,"valor":5.06},{"semana":13,"valor":5.68},{"semana":14,"valor":5.81},{"semana":15,"valor":5.7},{"semana":16,"valor":5.89},{"semana":17,"valor":5.7},{"semana":18,"valor":5.89},{"semana":19,"valor":5.7},{"semana":20,"valor":5.65},{"semana":21,"valor":5.65},{"semana":22,"valor":4.72},{"semana":23,"valor":5.31},{"semana":24,"valor":5.05},{"semana":25,"valor":5.31},{"semana":26,"valor":5.58},{"semana":27,"valor":5.67},{"semana":28,"valor":6.69},{"semana":29,"valor":6.19},{"semana":30,"valor":7.33},{"semana":31,"valor":6.67},{"semana":32,"valor":6.41},{"semana":33,"valor":7.03},{"semana":34,"valor":7.03},{"semana":35,"valor":8.39},{"semana":36,"valor":7.89},{"semana":37,"valor":7.46},{"semana":38,"valor":7.78},{"semana":39,"valor":8.97},{"semana":40,"valor":10.0},{"semana":41,"valor":10.5},{"semana":42,"valor":11.25},{"semana":43,"valor":14.03},{"semana":44,"valor":16.67},{"semana":45,"valor":16.98},{"semana":46,"valor":23.33},{"semana":47,"valor":21.66},{"semana":48,"valor":18.56},{"semana":49,"valor":18.57},{"semana":50,"valor":16.81},{"semana":51,"valor":14.24},{"semana":52,"valor":11.11},{"semana":53,"valor":11.22}],"2025":[{"semana":1,"valor":13.8},{"semana":2,"valor":10.21},{"semana":3,"valor":8.85},{"semana":4,"valor":10.09},{"semana":5,"valor":7.61},{"semana":6,"valor":6.83},{"semana":7,"valor":7.11},{"semana":8,"valor":6.09},{"semana":9,"valor":6.21},{"semana":10,"valor":6.82},{"semana":11,"valor":5.91},{"semana":12,"valor":6.61},{"semana":13,"valor":5.92},{"semana":14,"valor":6.73},{"semana":15,"valor":21.64},{"semana":16,"valor":6.11},{"semana":17,"valor":5.32},{"semana":18,"valor":6.05},{"semana":19,"valor":6.33},{"semana":20,"valor":6.67},{"semana":21,"valor":6.55},{"semana":22,"valor":6.55},{"semana":23,"valor":6.11},{"semana":24,"valor":6.11},{"semana":25,"valor":7.08},{"semana":26,"valor":7.08},{"semana":27,"valor":6.53},{"semana":28,"valor":6.53},{"semana":29,"valor":7.55},{"semana":30,"valor":6.11},{"semana":31,"valor":6.7},{"semana":32,"valor":6.83},{"semana":33,"valor":6.67},{"semana":34,"valor":7.86},{"semana":35,"valor":7.58},{"semana":36,"valor":7.3},{"semana":37,"valor":7.58},{"semana":38,"valor":7.22},{"semana":39,"valor":7.99},{"semana":40,"valor":7.78},{"semana":41,"valor":7.85},{"semana":42,"valor":7.58},{"semana":43,"valor":7.66},{"semana":44,"valor":7.94},{"semana":45,"valor":7.89},{"semana":46,"valor":8.92},{"semana":47,"valor":10.59},{"semana":48,"valor":12.78},{"semana":49,"valor":11.11},{"semana":50,"valor":10.44},{"semana":51,"valor":10.09},{"semana":52,"valor":10.56},{"semana":53,"valor":9.0}],"2026":[{"semana":6,"valor":12.51},{"semana":7,"valor":12.62},{"semana":8,"valor":13.14},{"semana":9,"valor":13.59},{"semana":10,"valor":12.76},{"semana":11,"valor":10.07},{"semana":12,"valor":10.1},{"semana":13,"valor":9.97},{"semana":14,"valor":9.83},{"semana":15,"valor":9.08},{"semana":16,"valor":9.02},{"semana":17,"valor":8.72},{"semana":18,"valor":8.7},{"semana":19,"valor":7.35},{"semana":20,"valor":7.4},{"semana":21,"valor":6.46},{"semana":22,"valor":6.31},{"semana":23,"valor":6.6},{"semana":24,"valor":7.89},{"semana":25,"valor":6.18},{"semana":26,"valor":6.24},{"semana":27,"valor":4.97},{"semana":28,"valor":5.84},{"semana":29,"valor":5.62},{"semana":30,"valor":5.95},{"semana":31,"valor":5.95},{"semana":32,"valor":5.8}]}},"chile":{"unidade":"USD/kg","series":{"2023":[{"semana":1,"valor":3.32},{"semana":2,"valor":3.26},{"semana":3,"valor":3.39},{"semana":4,"valor":3.44},{"semana":5,"valor":3.47},{"semana":6,"valor":3.28},{"semana":7,"valor":3.45},{"semana":8,"valor":3.36},{"semana":9,"valor":3.94},{"semana":10,"valor":4.39},{"semana":11,"valor":3.51},{"semana":12,"valor":3.37},{"semana":13,"valor":3.04},{"semana":14,"valor":3.02},{"semana":15,"valor":2.78},{"semana":16,"valor":2.92},{"semana":17,"valor":2.96},{"semana":18,"valor":3.05},{"semana":19,"valor":3.14},{"semana":20,"valor":3.03},{"semana":21,"valor":2.98},{"semana":22,"valor":2.87},{"semana":23,"valor":2.92},{"semana":24,"valor":2.79},{"semana":25,"valor":2.92},{"semana":26,"valor":2.76},{"semana":27,"valor":2.43},{"semana":28,"valor":2.52},{"semana":29,"valor":2.49},{"semana":30,"valor":2.54},{"semana":31,"valor":2.55},{"semana":32,"valor":2.51},{"semana":33,"valor":2.62},{"semana":34,"valor":2.66},{"semana":35,"valor":2.82},{"semana":36,"valor":2.73},{"semana":37,"valor":2.54},{"semana":38,"valor":2.78},{"semana":39,"valor":2.68},{"semana":40,"valor":2.7},{"semana":41,"valor":2.71},{"semana":42,"valor":2.67},{"semana":43,"valor":2.76},{"semana":44,"valor":2.69},{"semana":45,"valor":1.96},{"semana":46,"valor":2.9},{"semana":47,"valor":3.15},{"semana":48,"valor":3.07},{"semana":49,"valor":3.44},{"semana":50,"valor":2.16},{"semana":51,"valor":3.38},{"semana":52,"valor":3.71}],"2024":[{"semana":1,"valor":3.75},{"semana":2,"valor":5.37},{"semana":3,"valor":5.53},{"semana":4,"valor":0.55},{"semana":5,"valor":4.08},{"semana":6,"valor":4.76},{"semana":7,"valor":4.18},{"semana":8,"valor":3.3},{"semana":9,"valor":3.53},{"semana":10,"valor":4.4},{"semana":11,"valor":4.83},{"semana":12,"valor":4.33},{"semana":13,"valor":4.18},{"semana":14,"valor":3.95},{"semana":15,"valor":3.75},{"semana":16,"valor":3.88},{"semana":17,"valor":3.84},{"semana":18,"valor":3.85},{"semana":19,"valor":3.87},{"semana":20,"valor":4.02},{"semana":21,"valor":3.88},{"semana":22,"valor":3.88},{"semana":23,"valor":3.88},{"semana":24,"valor":4.0},{"semana":25,"valor":3.94},{"semana":26,"valor":3.78},{"semana":27,"valor":3.82},{"semana":28,"valor":3.81},{"semana":29,"valor":3.63},{"semana":30,"valor":3.83},{"semana":31,"valor":3.79},{"semana":32,"valor":3.8},{"semana":33,"valor":3.72},{"semana":34,"valor":3.82},{"semana":35,"valor":3.93},{"semana":36,"valor":3.91},{"semana":37,"valor":3.85},{"semana":38,"valor":3.84},{"semana":39,"valor":3.84},{"semana":40,"valor":3.9},{"semana":41,"valor":4.01},{"semana":42,"valor":3.28},{"semana":43,"valor":3.32},{"semana":44,"valor":3.45},{"semana":45,"valor":3.62},{"semana":46,"valor":3.37},{"semana":47,"valor":3.62},{"semana":48,"valor":3.56},{"semana":49,"valor":3.46},{"semana":50,"valor":3.39},{"semana":51,"valor":3.36},{"semana":52,"valor":3.48}],"2025":[{"semana":2,"valor":3.68},{"semana":3,"valor":3.75},{"semana":4,"valor":3.84},{"semana":5,"valor":3.72},{"semana":6,"valor":3.05},{"semana":7,"valor":3.48},{"semana":8,"valor":3.45},{"semana":9,"valor":3.37},{"semana":10,"valor":3.51},{"semana":11,"valor":3.44},{"semana":12,"valor":3.49},{"semana":13,"valor":3.45},{"semana":14,"valor":3.44},{"semana":15,"valor":3.26},{"semana":16,"valor":2.94},{"semana":17,"valor":2.78},{"semana":18,"valor":2.62},{"semana":19,"valor":2.56},{"semana":20,"valor":2.8},{"semana":21,"valor":2.59},{"semana":22,"valor":2.73},{"semana":23,"valor":2.72},{"semana":24,"valor":2.82},{"semana":25,"valor":2.59},{"semana":26,"valor":2.56},{"semana":27,"valor":2.57},{"semana":28,"valor":2.9},{"semana":29,"valor":2.85},{"semana":30,"valor":2.83},{"semana":31,"valor":2.73},{"semana":32,"valor":2.59},{"semana":33,"valor":2.65},{"semana":34,"valor":2.62},{"semana":35,"valor":2.58},{"semana":36,"valor":2.71},{"semana":37,"valor":2.65},{"semana":38,"valor":2.62},{"semana":39,"valor":2.72},{"semana":40,"valor":3.16},{"semana":41,"valor":3.28},{"semana":42,"valor":3.31},{"semana":43,"valor":3.29},{"semana":44,"valor":3.37},{"semana":45,"valor":3.47},{"semana":46,"valor":2.29},{"semana":47,"valor":2.23},{"semana":48,"valor":2.12},{"semana":49,"valor":2.39},{"semana":50,"valor":2.87}],"2026":[{"semana":2,"valor":4.54},{"semana":3,"valor":4.21},{"semana":4,"valor":5.88},{"semana":5,"valor":5.98},{"semana":6,"valor":3.65},{"semana":7,"valor":3.93},{"semana":8,"valor":3.81},{"semana":9,"valor":4.0},{"semana":10,"valor":3.8},{"semana":11,"valor":3.79},{"semana":12,"valor":3.74},{"semana":13,"valor":3.63},{"semana":14,"valor":3.74},{"semana":15,"valor":3.86},{"semana":16,"valor":3.94},{"semana":17,"valor":3.85},{"semana":18,"valor":3.82},{"semana":19,"valor":3.87},{"semana":20,"valor":3.81},{"semana":21,"valor":3.63},{"semana":22,"valor":3.87},{"semana":23,"valor":3.79},{"semana":24,"valor":3.84},{"semana":25,"valor":3.63},{"semana":26,"valor":3.76},{"semana":27,"valor":3.63},{"semana":28,"valor":3.73},{"semana":29,"valor":3.69},{"semana":30,"valor":3.63},{"semana":32,"valor":3.67}]}},"uruguai":{"unidade":"USD/kg","series":{"2023":[{"semana":1,"valor":3.75},{"semana":2,"valor":3.66},{"semana":3,"valor":3.8},{"semana":4,"valor":3.59},{"semana":5,"valor":3.69},{"semana":6,"valor":3.41},{"semana":7,"valor":3.32},{"semana":8,"valor":3.48},{"semana":9,"valor":3.29},{"semana":10,"valor":3.06},{"semana":11,"valor":2.95},{"semana":12,"valor":3.11},{"semana":13,"valor":2.9},{"semana":14,"valor":2.8},{"semana":15,"valor":2.69},{"semana":16,"valor":2.83},{"semana":17,"valor":2.64},{"semana":18,"valor":2.74},{"semana":19,"valor":3.19},{"semana":20,"valor":3.08},{"semana":21,"valor":3.22},{"semana":22,"valor":3.05},{"semana":23,"valor":2.54},{"semana":24,"valor":2.43},{"semana":25,"valor":2.57},{"semana":26,"valor":2.43},{"semana":27,"valor":1.85},{"semana":28,"valor":1.76},{"semana":29,"valor":1.88},{"semana":30,"valor":1.74},{"semana":31,"valor":1.81},{"semana":32,"valor":1.1},{"semana":33,"valor":1.04},{"semana":34,"valor":1.12},{"semana":35,"valor":1.04},{"semana":36,"valor":0.97},{"semana":37,"valor":0.91},{"semana":38,"valor":1.0},{"semana":39,"valor":0.93},{"semana":40,"valor":0.8},{"semana":41,"valor":0.76},{"semana":42,"valor":0.82},{"semana":43,"valor":0.73},{"semana":44,"valor":0.78},{"semana":45,"valor":0.99},{"semana":46,"valor":0.91},{"semana":47,"valor":1.02},{"semana":48,"valor":0.86},{"semana":49,"valor":1.54},{"semana":50,"valor":1.45},{"semana":51,"valor":1.58},{"semana":52,"valor":1.41},{"semana":53,"valor":1.51}],"2024":[{"semana":2,"valor":3.16},{"semana":3,"valor":3.04},{"semana":4,"valor":3.21},{"semana":5,"valor":2.97},{"semana":6,"valor":2.88},{"semana":7,"valor":2.77},{"semana":8,"valor":2.93},{"semana":9,"valor":2.73},{"semana":10,"valor":2.43},{"semana":11,"valor":2.28},{"semana":12,"valor":2.49},{"semana":13,"valor":2.2},{"semana":14,"valor":2.35},{"semana":15,"valor":2.2},{"semana":16,"valor":2.1},{"semana":17,"valor":2.23},{"semana":18,"valor":2.09},{"semana":19,"valor":2.24},{"semana":20,"valor":2.1},{"semana":21,"valor":2.28},{"semana":22,"valor":2.05},{"semana":23,"valor":2.72},{"semana":24,"valor":2.56},{"semana":25,"valor":2.8},{"semana":26,"valor":2.46},{"semana":27,"valor":2.64},{"semana":28,"valor":1.54},{"semana":29,"valor":1.43},{"semana":30,"valor":1.56},{"semana":31,"valor":1.37},{"semana":32,"valor":1.37},{"semana":33,"valor":1.28},{"semana":34,"valor":1.41},{"semana":35,"valor":1.19},{"semana":36,"valor":1.1},{"semana":37,"valor":1.04},{"semana":38,"valor":1.12},{"semana":39,"valor":1.04},{"semana":40,"valor":1.06},{"semana":41,"valor":0.86},{"semana":42,"valor":0.8},{"semana":43,"valor":0.89},{"semana":44,"valor":0.78},{"semana":45,"valor":1.1},{"semana":46,"valor":1.04},{"semana":47,"valor":1.15},{"semana":48,"valor":0.99},{"semana":49,"valor":1.64},{"semana":50,"valor":1.5},{"semana":51,"valor":1.68},{"semana":52,"valor":1.42},{"semana":53,"valor":1.56}],"2025":[{"semana":2,"valor":3.75},{"semana":3,"valor":3.66},{"semana":4,"valor":3.8},{"semana":5,"valor":3.59},{"semana":6,"valor":3.41},{"semana":7,"valor":3.32},{"semana":8,"valor":3.48},{"semana":9,"valor":3.29},{"semana":10,"valor":3.06},{"semana":11,"valor":2.95},{"semana":12,"valor":3.11},{"semana":13,"valor":2.9},{"semana":14,"valor":3.0},{"semana":15,"valor":2.8},{"semana":16,"valor":2.69},{"semana":17,"valor":2.83},{"semana":18,"valor":2.64},{"semana":19,"valor":3.19},{"semana":20,"valor":3.08},{"semana":21,"valor":3.22},{"semana":22,"valor":3.05},{"semana":23,"valor":2.54},{"semana":24,"valor":2.43},{"semana":25,"valor":2.57},{"semana":26,"valor":2.43},{"semana":27,"valor":2.49},{"semana":28,"valor":1.85},{"semana":29,"valor":1.76},{"semana":30,"valor":1.88},{"semana":31,"valor":1.74},{"semana":32,"valor":1.1},{"semana":33,"valor":1.04},{"semana":34,"valor":1.12},{"semana":35,"valor":1.04},{"semana":36,"valor":1.07},{"semana":37,"valor":0.97},{"semana":38,"valor":0.91},{"semana":39,"valor":1.0},{"semana":40,"valor":0.93},{"semana":41,"valor":0.8},{"semana":42,"valor":0.76},{"semana":43,"valor":0.82},{"semana":44,"valor":0.73},{"semana":45,"valor":0.99},{"semana":46,"valor":0.91},{"semana":47,"valor":1.02},{"semana":48,"valor":0.86},{"semana":49,"valor":0.95},{"semana":50,"valor":1.54},{"semana":51,"valor":1.45},{"semana":52,"valor":1.58},{"semana":53,"valor":1.41}]}},"argentina":{"unidade":"USD/kg","series":{"2024":[{"semana":1,"valor":4.5},{"semana":2,"valor":4.55},{"semana":3,"valor":4.6},{"semana":4,"valor":4.65},{"semana":5,"valor":4.72},{"semana":6,"valor":4.85},{"semana":7,"valor":4.98},{"semana":8,"valor":5.15},{"semana":9,"valor":5.3},{"semana":10,"valor":5.45},{"semana":11,"valor":5.55},{"semana":12,"valor":5.65},{"semana":13,"valor":5.7},{"semana":14,"valor":5.5},{"semana":15,"valor":5.2},{"semana":16,"valor":4.9},{"semana":17,"valor":4.55},{"semana":18,"valor":4.1},{"semana":19,"valor":3.85},{"semana":20,"valor":3.6},{"semana":21,"valor":3.35},{"semana":22,"valor":3.1},{"semana":23,"valor":2.9},{"semana":24,"valor":2.75},{"semana":25,"valor":2.6},{"semana":26,"valor":2.5},{"semana":27,"valor":2.5},{"semana":28,"valor":2.52},{"semana":29,"valor":2.55},{"semana":30,"valor":2.6},{"semana":31,"valor":2.8},{"semana":32,"valor":3.0},{"semana":33,"valor":3.2},{"semana":34,"valor":3.35},{"semana":35,"valor":3.5},{"semana":36,"valor":3.65},{"semana":37,"valor":3.8},{"semana":38,"valor":3.95},{"semana":39,"valor":4.1},{"semana":40,"valor":4.2},{"semana":41,"valor":4.3},{"semana":42,"valor":4.4},{"semana":43,"valor":4.45},{"semana":44,"valor":4.5},{"semana":45,"valor":4.55},{"semana":46,"valor":4.6},{"semana":47,"valor":4.65},{"semana":48,"valor":4.7},{"semana":49,"valor":4.72},{"semana":50,"valor":4.75},{"semana":51,"valor":4.78},{"semana":52,"valor":4.8}],"2025":[{"semana":1,"valor":4.6},{"semana":2,"valor":4.65},{"semana":3,"valor":4.7},{"semana":4,"valor":4.78},{"semana":5,"valor":4.88},{"semana":6,"valor":5.05},{"semana":7,"valor":5.2},{"semana":8,"valor":5.4},{"semana":9,"valor":5.55},{"semana":10,"valor":5.68},{"semana":11,"valor":5.75},{"semana":12,"valor":5.85},{"semana":13,"valor":5.9},{"semana":14,"valor":5.7},{"semana":15,"valor":5.4},{"semana":16,"valor":5.1},{"semana":17,"valor":4.7},{"semana":18,"valor":4.3},{"semana":19,"valor":4.0},{"semana":20,"valor":3.75},{"semana":21,"valor":3.45},{"semana":22,"valor":3.2},{"semana":23,"valor":3.0},{"semana":24,"valor":2.85},{"semana":25,"valor":2.75},{"semana":26,"valor":2.65},{"semana":27,"valor":2.65},{"semana":28,"valor":2.68},{"semana":29,"valor":2.75},{"semana":30,"valor":2.85},{"semana":31,"valor":3.05},{"semana":32,"valor":3.25},{"semana":33,"valor":3.45},{"semana":34,"valor":3.6},{"semana":35,"valor":3.75},{"semana":36,"valor":3.9},{"semana":37,"valor":4.05},{"semana":38,"valor":4.2},{"semana":39,"valor":4.35},{"semana":40,"valor":4.45},{"semana":41,"valor":4.55},{"semana":42,"valor":4.65},{"semana":43,"valor":4.7},{"semana":44,"valor":4.75},{"semana":45,"valor":4.8},{"semana":46,"valor":4.85},{"semana":47,"valor":4.9},{"semana":48,"valor":4.92},{"semana":49,"valor":4.95},{"semana":50,"valor":4.98},{"semana":51,"valor":5.0},{"semana":52,"valor":5.05}],"2026":[{"semana":2,"valor":4.58},{"semana":3,"valor":4.64},{"semana":4,"valor":5.4},{"semana":5,"valor":5.29},{"semana":6,"valor":5.35},{"semana":7,"valor":3.62},{"semana":8,"valor":3.44},{"semana":9,"valor":4.88},{"semana":10,"valor":4.63},{"semana":11,"valor":5.21},{"semana":12,"valor":5.19},{"semana":13,"valor":4.84},{"semana":14,"valor":4.88},{"semana":15,"valor":4.04},{"semana":16,"valor":4.02},{"semana":17,"valor":4.15},{"semana":18,"valor":4.29},{"semana":19,"valor":4.57},{"semana":20,"valor":4.66},{"semana":21,"valor":4.63},{"semana":22,"valor":4.58},{"semana":23,"valor":4.74},{"semana":24,"valor":4.48},{"semana":25,"valor":4.42},{"semana":26,"valor":4.38},{"semana":27,"valor":4.56},{"semana":28,"valor":4.73},{"semana":29,"valor":5.16},{"semana":30,"valor":3.85},{"semana":32,"valor":4.04}]}},"europa":{"unidade":"USD/kg","paises":{"Espanha":{"2025":[{"semana":3,"valor":59729.8},{"semana":4,"valor":33800.9},{"semana":5,"valor":54785.4},{"semana":6,"valor":44569.69},{"semana":7,"valor":40641.45},{"semana":8,"valor":43994.15},{"semana":9,"valor":43914.33},{"semana":10,"valor":45249.53},{"semana":11,"valor":42826.97},{"semana":12,"valor":45253.63},{"semana":13,"valor":39505.41},{"semana":14,"valor":39701.78},{"semana":15,"valor":44008.28},{"semana":16,"valor":43926.84},{"semana":17,"valor":38309.27},{"semana":18,"valor":39583.62},{"semana":19,"valor":41289.16},{"semana":20,"valor":39152.57},{"semana":21,"valor":35202.82},{"semana":22,"valor":36810.55},{"semana":23,"valor":33856.45},{"semana":24,"valor":34465.98},{"semana":25,"valor":33713.63},{"semana":26,"valor":34582.35},{"semana":27,"valor":31620.16},{"semana":28,"valor":30789.83},{"semana":29,"valor":31662.01},{"semana":30,"valor":29091.77},{"semana":31,"valor":31882.96},{"semana":32,"valor":34400.44},{"semana":33,"valor":34446.88},{"semana":34,"valor":36817.26},{"semana":35,"valor":38169.25},{"semana":36,"valor":36447.05},{"semana":37,"valor":38898.01},{"semana":38,"valor":41852.06},{"semana":39,"valor":35565.42},{"semana":40,"valor":39238.83},{"semana":41,"valor":34021.62},{"semana":42,"valor":46484.0},{"semana":43,"valor":30668.06},{"semana":48,"valor":46310.4},{"semana":51,"valor":52512.0}]},"França":{"2025":[{"semana":17,"valor":63443.8},{"semana":18,"valor":54355.16},{"semana":19,"valor":55928.84},{"semana":20,"valor":35374.1},{"semana":21,"valor":45930.12},{"semana":22,"valor":38724.37},{"semana":23,"valor":45963.79},{"semana":24,"valor":31230.89},{"semana":25,"valor":33428.08},{"semana":26,"valor":31783.62},{"semana":27,"valor":16967.49},{"semana":28,"valor":24548.12},{"semana":29,"valor":20595.38},{"semana":30,"valor":20765.89},{"semana":31,"valor":21012.95},{"semana":32,"valor":25365.94},{"semana":33,"valor":14034.64}]},"Holanda":{"2025":[{"semana":1,"valor":35268.39},{"semana":2,"valor":49356.0},{"semana":3,"valor":37184.81},{"semana":4,"valor":33062.1},{"semana":5,"valor":29665.01},{"semana":6,"valor":30329.26},{"semana":7,"valor":32805.62},{"semana":8,"valor":33929.93},{"semana":9,"valor":31875.21},{"semana":10,"valor":31840.95},{"semana":11,"valor":31460.93},{"semana":12,"valor":36053.98},{"semana":13,"valor":38117.09},{"semana":14,"valor":36363.73},{"semana":15,"valor":36677.2},{"semana":16,"valor":38828.82},{"semana":17,"valor":35818.61},{"semana":18,"valor":35073.34},{"semana":19,"valor":34571.5},{"semana":20,"valor":30905.45},{"semana":21,"valor":29326.17},{"semana":22,"valor":26282.65},{"semana":23,"valor":29315.08},{"semana":24,"valor":28228.91},{"semana":25,"valor":25455.68},{"semana":26,"valor":25351.78},{"semana":27,"valor":23498.88},{"semana":28,"valor":22492.8},{"semana":29,"valor":22609.6},{"semana":30,"valor":23680.58},{"semana":31,"valor":28000.2},{"semana":32,"valor":27659.9},{"semana":33,"valor":28570.11},{"semana":34,"valor":30902.91},{"semana":35,"valor":33560.19},{"semana":36,"valor":35887.84},{"semana":37,"valor":39279.84},{"semana":38,"valor":41914.01},{"semana":39,"valor":43197.26},{"semana":40,"valor":40274.98},{"semana":41,"valor":22015.01},{"semana":42,"valor":31799.37},{"semana":43,"valor":38765.44},{"semana":44,"valor":49975.0},{"semana":45,"valor":31204.73},{"semana":46,"valor":26718.15},{"semana":47,"valor":20509.1},{"semana":48,"valor":31898.8},{"semana":49,"valor":46411.2},{"semana":50,"valor":42997.6},{"semana":51,"valor":41220.0},{"semana":52,"valor":37750.44}],"2026":[{"semana":1,"valor":37838.75},{"semana":2,"valor":24913.25},{"semana":3,"valor":46112.54},{"semana":4,"valor":51586.56},{"semana":5,"valor":48197.9}]},"Itália":{"2025":[{"semana":6,"valor":26307.53},{"semana":9,"valor":55775.82},{"semana":10,"valor":50167.51},{"semana":11,"valor":53828.19},{"semana":12,"valor":52862.51},{"semana":13,"valor":52062.89},{"semana":14,"valor":46111.07},{"semana":15,"valor":53637.42},{"semana":16,"valor":41452.5},{"semana":17,"valor":41502.25},{"semana":18,"valor":46593.57},{"semana":19,"valor":49286.58},{"semana":20,"valor":43222.94},{"semana":21,"valor":42886.98},{"semana":22,"valor":47150.98},{"semana":23,"valor":34586.18},{"semana":24,"valor":39603.49},{"semana":25,"valor":42025.58},{"semana":26,"valor":36510.69},{"semana":27,"valor":33030.28},{"semana":28,"valor":37302.8},{"semana":29,"valor":36998.72},{"semana":30,"valor":34745.55},{"semana":31,"valor":35008.48},{"semana":32,"valor":33965.43},{"semana":33,"valor":25646.49},{"semana":34,"valor":37977.35},{"semana":35,"valor":36798.3},{"semana":36,"valor":38414.08},{"semana":37,"valor":39480.62},{"semana":38,"valor":38372.77},{"semana":39,"valor":47889.52},{"semana":40,"valor":51201.26}]},"Uk":{"2024":[{"semana":1,"valor":6.21},{"semana":2,"valor":6.24},{"semana":3,"valor":6.28},{"semana":4,"valor":6.31},{"semana":5,"valor":6.35},{"semana":6,"valor":6.37},{"semana":7,"valor":6.39},{"semana":8,"valor":6.4},{"semana":9,"valor":6.42},{"semana":10,"valor":6.43},{"semana":11,"valor":6.45},{"semana":12,"valor":6.46},{"semana":13,"valor":6.48},{"semana":14,"valor":6.48},{"semana":15,"valor":6.46},{"semana":16,"valor":6.45},{"semana":17,"valor":6.43},{"semana":18,"valor":6.42},{"semana":19,"valor":6.4},{"semana":20,"valor":6.38},{"semana":21,"valor":6.37},{"semana":22,"valor":6.35},{"semana":23,"valor":6.31},{"semana":24,"valor":6.28},{"semana":25,"valor":6.24},{"semana":26,"valor":6.21},{"semana":27,"valor":6.21},{"semana":28,"valor":6.24},{"semana":29,"valor":6.28},{"semana":30,"valor":3.31},{"semana":31,"valor":6.35},{"semana":32,"valor":6.33},{"semana":33,"valor":6.31},{"semana":34,"valor":6.3},{"semana":35,"valor":6.28},{"semana":36,"valor":6.28},{"semana":37,"valor":6.3},{"semana":38,"valor":6.32},{"semana":39,"valor":6.33},{"semana":40,"valor":6.35},{"semana":41,"valor":6.33},{"semana":42,"valor":6.31},{"semana":43,"valor":6.3},{"semana":44,"valor":6.28},{"semana":45,"valor":6.28},{"semana":46,"valor":6.28},{"semana":47,"valor":6.28},{"semana":48,"valor":6.28},{"semana":49,"valor":6.28},{"semana":50,"valor":6.28},{"semana":51,"valor":6.28},{"semana":52,"valor":6.28}],"2025":[{"semana":1,"valor":6.28},{"semana":2,"valor":6.3},{"semana":3,"valor":6.32},{"semana":4,"valor":6.33},{"semana":5,"valor":6.35},{"semana":6,"valor":6.37},{"semana":7,"valor":6.39},{"semana":8,"valor":6.4},{"semana":9,"valor":6.42},{"semana":10,"valor":6.43},{"semana":11,"valor":6.45},{"semana":12,"valor":6.46},{"semana":13,"valor":6.48},{"semana":14,"valor":6.48},{"semana":15,"valor":6.46},{"semana":16,"valor":6.45},{"semana":17,"valor":6.43},{"semana":18,"valor":6.42},{"semana":19,"valor":6.4},{"semana":20,"valor":6.38},{"semana":21,"valor":6.37},{"semana":22,"valor":6.35},{"semana":23,"valor":6.31},{"semana":24,"valor":6.28},{"semana":25,"valor":6.24},{"semana":26,"valor":6.21},{"semana":27,"valor":6.21},{"semana":28,"valor":6.24},{"semana":29,"valor":6.28},{"semana":30,"valor":6.31},{"semana":31,"valor":6.35},{"semana":32,"valor":6.33},{"semana":33,"valor":6.31},{"semana":34,"valor":6.3},{"semana":35,"valor":6.28},{"semana":36,"valor":6.28},{"semana":37,"valor":6.3},{"semana":38,"valor":6.32},{"semana":39,"valor":6.33},{"semana":40,"valor":6.35},{"semana":41,"valor":6.33},{"semana":42,"valor":6.31},{"semana":43,"valor":6.3},{"semana":44,"valor":6.28},{"semana":45,"valor":6.28},{"semana":46,"valor":6.28},{"semana":47,"valor":6.28},{"semana":48,"valor":6.28},{"semana":49,"valor":6.28},{"semana":50,"valor":6.28},{"semana":51,"valor":6.28},{"semana":52,"valor":6.28}]}}}},"logistica":{"global":{"rotas":[{"pais":"Peru","porto_origem":"Callao","rota":"Direto","pais_destino":"Holanda","porto_destino":"Rotterdam","transit_time":19,"fornecedor":"CMA CGM"},{"pais":"Peru","porto_origem":"Callao","rota":"Direto","pais_destino":"Bélgica","porto_destino":"Antwerp","transit_time":28,"fornecedor":"CMA CGM"},{"pais":"Peru","porto_origem":"Callao","rota":null,"pais_destino":"UK","porto_destino":"Felixstowe","transit_time":null,"fornecedor":null},{"pais":"Peru","porto_origem":"Callao","rota":"Direto","pais_destino":"UK","porto_destino":"London","transit_time":23,"fornecedor":"CMA CGM"},{"pais":"Peru","porto_origem":"Paita","rota":"Direto","pais_destino":"Holanda","porto_destino":"Rotterdam","transit_time":20,"fornecedor":"MSC"},{"pais":"Peru","porto_origem":"Paita","rota":"Direto","pais_destino":"Bélgica","porto_destino":"Antwerp","transit_time":21,"fornecedor":"MSC"},{"pais":"Peru","porto_origem":"Paita","rota":null,"pais_destino":"UK","porto_destino":"Felixstowe","transit_time":null,"fornecedor":null},{"pais":"Peru","porto_origem":"Paita","rota":"Direto","pais_destino":"UK","porto_destino":"London","transit_time":19,"fornecedor":"MSC"},{"pais":"Peru","porto_origem":"Callao","rota":"Direto","pais_destino":"Chile","porto_destino":"San Antonio","transit_time":5,"fornecedor":"MSC"},{"pais":"Peru","porto_origem":"Callao","rota":"Cartagena","pais_destino":"Argentina","porto_destino":"Buenos Aires","transit_time":29,"fornecedor":"CMA CGM"},{"pais":"Peru","porto_origem":"Callao","rota":null,"pais_destino":"Costa Rica","porto_destino":null,"transit_time":12,"fornecedor":"MAERSK"},{"pais":"Colômbia","porto_origem":"Cartagena","rota":"Direto","pais_destino":"Holanda","porto_destino":"Rotterdam","transit_time":12,"fornecedor":"CMA CGM"},{"pais":"Colômbia","porto_origem":"Cartagena","rota":"Direto","pais_destino":"Alemanha","porto_destino":"Hamburg","transit_time":17,"fornecedor":"CMA CGM"},{"pais":"Colômbia","porto_origem":"Cartagena","rota":"Direto","pais_destino":"UK","porto_destino":"London","transit_time":15,"fornecedor":"CMA CGM"},{"pais":"Colômbia","porto_origem":"Buenaventura","rota":"Posorja","pais_destino":"Holanda","porto_destino":"Rotterdam","transit_time":26,"fornecedor":"Hapag"},{"pais":"Colômbia","porto_origem":"Buenaventura","rota":"Posorja","pais_destino":"Alemanha","porto_destino":"Hamburg","transit_time":29,"fornecedor":"Hapag"},{"pais":"Colômbia","porto_origem":"Buenaventura","rota":"Posorja","pais_destino":"UK","porto_destino":"London","transit_time":27,"fornecedor":"Hapag"},{"pais":"Colômbia","porto_origem":"Cartagena","rota":"Direto","pais_destino":"Chile","porto_destino":"San Antonio","transit_time":16,"fornecedor":"Hapag"},{"pais":"Colômbia","porto_origem":"Buenaventura","rota":"Direto","pais_destino":"Chile","porto_destino":"San Antonio","transit_time":8,"fornecedor":"Hapag"},{"pais":"Colômbia","porto_origem":"Cartagena","rota":"Direto","pais_destino":"Argentina","porto_destino":"Buenos Aires","transit_time":23,"fornecedor":"Hapag"},{"pais":"Colômbia","porto_origem":"Buenaventura","rota":"Cartagena","pais_destino":"Argentina","porto_destino":"Buenos Aires","transit_time":39,"fornecedor":"CMA CGM"},{"pais":"Chile","porto_origem":"San Antono","rota":"Santos","pais_destino":"Argentina","porto_destino":"Buenos Aires","transit_time":26,"fornecedor":"Hapag"},{"pais":"Chile","porto_origem":"Valparaiso","rota":"San Antonio/Santos","pais_destino":"Argentina","porto_destino":"Buenos Aires","transit_time":37,"fornecedor":"Hapag"},{"pais":"Chile","porto_origem":"San Antono","rota":"Direto","pais_destino":"Holanda","porto_destino":"Rotterdam","transit_time":25,"fornecedor":"Hapag"},{"pais":"Chile","porto_origem":"San Antono","rota":"Direto","pais_destino":"Alemanha","porto_destino":"Hamburg","transit_time":30,"fornecedor":"Hapag"},{"pais":"Chile","porto_origem":"San Antono","rota":"Direto","pais_destino":"UK","porto_destino":"London","transit_time":28,"fornecedor":"Hapag"},{"pais":"Chile","porto_origem":"San Antono","rota":"Direto","pais_destino":"Argentina","porto_destino":"Buenos Aires","transit_time":3,"fornecedor":"Hapag"},{"pais":"Israel","porto_origem":"Haifa","rota":"Direto","pais_destino":"Itália","porto_destino":"Genoa","transit_time":6,"fornecedor":"ZIM"},{"pais":"Israel","porto_origem":"Haifa","rota":"Direto","pais_destino":"França","porto_destino":"Le Havre","transit_time":20,"fornecedor":"ZIM"},{"pais":"Israel","porto_origem":"Haifa","rota":"Direto","pais_destino":"Holanda","porto_destino":"Rotterdam","transit_time":15,"fornecedor":"ZIM"},{"pais":"Israel","porto_origem":"Haifa","rota":"Direto","pais_destino":"UK","porto_destino":"London","transit_time":12,"fornecedor":"ZIM"},{"pais":"Israel","porto_origem":"Ashdod","rota":"Direto","pais_destino":"Itália","porto_destino":"Genoa","transit_time":7,"fornecedor":"ZIM"},{"pais":"Israel","porto_origem":"Ashdod","rota":"Direto","pais_destino":"França","porto_destino":"Le Havre","transit_time":10,"fornecedor":"ZIM"},{"pais":"Israel","porto_origem":"Ashdod","rota":"Direto","pais_destino":"Holanda","porto_destino":"Rotterdam","transit_time":17,"fornecedor":"ZIM"},{"pais":"Israel","porto_origem":"Ashdod","rota":"Direto","pais_destino":"UK","porto_destino":"London","transit_time":14,"fornecedor":"ZIM"},{"pais":"Marrocos","porto_origem":"Casablanca","rota":"Valência","pais_destino":"Itália","porto_destino":"Genoa","transit_time":17,"fornecedor":"MSC"},{"pais":"Marrocos","porto_origem":"Casablanca","rota":"Sines","pais_destino":"França","porto_destino":"Le Havre","transit_time":8,"fornecedor":"MSC"},{"pais":"Marrocos","porto_origem":"Casablanca","rota":"Las Palmas","pais_destino":"Holanda","porto_destino":"Rotterdam","transit_time":15,"fornecedor":"MSC"},{"pais":"Marrocos","porto_origem":"Casablanca","rota":"Las Palmas","pais_destino":"UK","porto_destino":"London","transit_time":19,"fornecedor":"MSC"},{"pais":"Marrocos","porto_origem":"Agadir","rota":"Antwerp","pais_destino":"Itália","porto_destino":"Gioaia Tauro","transit_time":19,"fornecedor":"MSC"},{"pais":"Marrocos","porto_origem":"Agadir","rota":"Antwerp","pais_destino":"França","porto_destino":"Le Havre","transit_time":10,"fornecedor":"MSC"},{"pais":"Marrocos","porto_origem":"Agadir","rota":"Antwerp","pais_destino":"Holanda","porto_destino":"Rotterdam","transit_time":9,"fornecedor":"MSC"},{"pais":"Marrocos","porto_origem":"Agadir","rota":"Antwerp","pais_destino":"UK","porto_destino":"London","transit_time":11,"fornecedor":"MSC"},{"pais":"Espanha","porto_origem":"Valência","rota":"Direto","pais_destino":"Holanda","porto_destino":"Rotterdam","transit_time":7,"fornecedor":"MSC"},{"pais":"Espanha","porto_origem":"Valência","rota":"Direto","pais_destino":"Bélgica","porto_destino":"Antwerp","transit_time":11,"fornecedor":"MSC"},{"pais":"Espanha","porto_origem":"Algeciras","rota":"Direto","pais_destino":"Holanda","porto_destino":"Rotterdam","transit_time":4,"fornecedor":"MSC"},{"pais":"Espanha","porto_origem":"Algeciras","rota":"Direto","pais_destino":"Bélgica","porto_destino":"Antwerp","transit_time":5,"fornecedor":"CMA CGM"},{"pais":"Portugal","porto_origem":"Lisboa","rota":"Tanger","pais_destino":"Holanda","porto_destino":"Rotterdam","transit_time":12,"fornecedor":"Hapag"},{"pais":"Portugal","porto_origem":"Lisboa","rota":"Tanger","pais_destino":"Bélgica","porto_destino":"Antwerp","transit_time":13,"fornecedor":"Hapag"},{"pais":"Portugal","porto_origem":"Leixões","rota":"Direto","pais_destino":"Holanda","porto_destino":"Rotterdam","transit_time":8,"fornecedor":"MSC"},{"pais":"Portugal","porto_origem":"Leixões","rota":"Direto","pais_destino":"Bélgica","porto_destino":"Antwerp","transit_time":9,"fornecedor":"MSC"}],"matriz":{"paises_origem":["Chile","Colômbia","Espanha","Israel","Marrocos","Peru","Portugal"],"paises_destino":["Alemanha","Argentina","Bélgica","Chile","Costa Rica","França","Holanda","Itália","UK"],"valores":{"Chile":{"Alemanha":30,"Argentina":26,"Holanda":25,"UK":28},"Colômbia":{"Alemanha":23,"Argentina":31,"Chile":12,"Holanda":19,"UK":21},"Espanha":{"Bélgica":8,"Holanda":5.5},"Israel":{"França":15,"Holanda":16,"Itália":6.5,"UK":13},"Marrocos":{"França":9,"Holanda":12,"Itália":18,"UK":15},"Peru":{"Argentina":29,"Bélgica":24.5,"Chile":5,"Costa Rica":12,"Holanda":19.5,"UK":21},"Portugal":{"Bélgica":11,"Holanda":10}}},"ranking":[{"pais":"Espanha","portos":[{"porto":"Algeciras","tt":4.5},{"porto":"Valência","tt":9.0}]},{"pais":"Portugal","portos":[{"porto":"Leixões","tt":8.5},{"porto":"Lisboa","tt":12.5}]},{"pais":"Israel","portos":[{"porto":"Ashdod","tt":12.0},{"porto":"Haifa","tt":13.25}]},{"pais":"Marrocos","portos":[{"porto":"Agadir","tt":12.25},{"porto":"Casablanca","tt":14.75}]},{"pais":"Colômbia","portos":[{"porto":"Cartagena","tt":16.6},{"porto":"Buenaventura","tt":25.8}]},{"pais":"Peru","portos":[{"porto":"Callao","tt":19.33},{"porto":"Paita","tt":20.0}]},{"pais":"Chile","portos":[{"porto":"San Antono","tt":22.4},{"porto":"Valparaiso","tt":37.0}]}],"cards":{"tt_menor":3.0,"tt_medio":16.63,"tt_maior":39.0}},"brasil":{"rotas":[{"pais":"Brasil","porto_origem":"Santos","porto_destino":"London Gateway","pais_destino":"Reino Unido","transit_time":29,"fornecedor":null,"modal":"Marítimo","obs":"Considerando saída porto de Santos. London Gateway é um porto que anda complicado (MAERSK nem estava atendendo devido ao congestionamento). Estão descarregando Southampton e, pelo que vi, voltam a aceitar reserva ETD 09/02 mas com esse TT longo."},{"pais":"Brasil","porto_origem":"Santos","porto_destino":"Southampton","pais_destino":"Reino Unido","transit_time":16,"fornecedor":null,"modal":"Marítimo","obs":"Considerando saída porto de Santos. Os transits têm excedido muitas vezes (baixa confiabilidade em transbordo)."},{"pais":"Brasil","porto_origem":"Santos","porto_destino":"Rotterdam","pais_destino":"Holanda","transit_time":18,"fornecedor":null,"modal":"Marítimo","obs":"Considerando saída porto de Santos. Os transits têm excedido muitas vezes."},{"pais":"Brasil","porto_origem":"Santos","porto_destino":"Algeciras","pais_destino":"Espanha","transit_time":16,"fornecedor":null,"modal":"Marítimo","obs":"Considerando saída porto de Santos."},{"pais":"Brasil","porto_origem":"Santos","porto_destino":"Toronto (via Philadelphia e NY)","pais_destino":"Canadá","transit_time":27,"fornecedor":null,"modal":"Marítimo","obs":"Considerando saída porto de Santos. Portos no Rio de Janeiro têm histórico de sofrer com omissões."},{"pais":"Brasil","porto_origem":"Santos","porto_destino":"Toronto / Montreal (via Philadelphia e NY)","pais_destino":"Canadá","transit_time":25,"fornecedor":null,"modal":"Marítimo","obs":"Considerando saída porto do Rio de Janeiro (com histórico de omissões) e Santos."},{"pais":"Brasil","porto_origem":"Santos","porto_destino":"Chile (Hama e Libertadores)","pais_destino":"Chile","transit_time":12,"fornecedor":null,"modal":"Rodoviario","obs":"Considerando as liberações em fronteiras."},{"pais":"Brasil","porto_origem":"Santos","porto_destino":"Buenos Aires, Mendoza, Córdoba","pais_destino":"Argentina","transit_time":7,"fornecedor":null,"modal":"Rodoviario","obs":"Considerando tempo de liberação."},{"pais":"Brasil","porto_origem":"Santos","porto_destino":"Costa Rica","pais_destino":"Costa Rica","transit_time":33,"fornecedor":null,"modal":"Marítimo","obs":"Considerando saída porto de Santos para Puerto Limón (26 dias) MAERSK. Moín: armadores atendem, porém há muito atraso nos navios (MSC e ONE: 18 a 33 dias)."},{"pais":"Brasil","porto_origem":"Santos","porto_destino":"Índia","pais_destino":"Índia","transit_time":38,"fornecedor":null,"modal":"Marítimo","obs":"Bastante possibilidade de atraso (pois há transbordo)."},{"pais":"Brasil","porto_origem":null,"porto_destino":null,"pais_destino":"Uruguai","transit_time":4,"fornecedor":null,"modal":"Rodoviario","obs":null}],"matriz":{"Argentina":7.0,"Canadá":26.0,"Chile":12.0,"Costa Rica":33.0,"Espanha":16.0,"Holanda":18.0,"Reino Unido":22.5,"Uruguai":4.0,"Índia":38.0},"ranking":[{"porto_origem":"Santos","pais_destino":"Reino Unido","maritimo":29,"rodoviario":null},{"porto_origem":"Santos","pais_destino":"Reino Unido","maritimo":16,"rodoviario":null},{"porto_origem":"Santos","pais_destino":"Holanda","maritimo":18,"rodoviario":null},{"porto_origem":"Santos","pais_destino":"Espanha","maritimo":16,"rodoviario":null},{"porto_origem":"Santos","pais_destino":"Canadá","maritimo":27,"rodoviario":null},{"porto_origem":"Santos","pais_destino":"Canadá","maritimo":25,"rodoviario":null},{"porto_origem":"Santos","pais_destino":"Chile","maritimo":null,"rodoviario":12},{"porto_origem":"Santos","pais_destino":"Argentina","maritimo":null,"rodoviario":7},{"porto_origem":"Santos","pais_destino":"Costa Rica","maritimo":33,"rodoviario":null},{"porto_origem":"Santos","pais_destino":"Índia","maritimo":38,"rodoviario":null},{"porto_origem":null,"pais_destino":"Uruguai","maritimo":null,"rodoviario":4}]}},"producao_global":{"meses":["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"],"paises":[{"pais":"México","ordem":1,"niveis":[3,3,3,3,3,2,2,2,2,3,3,3]},{"pais":"Espanha","ordem":2,"niveis":[3,3,3,3,3,0,0,0,0,0,0,3]},{"pais":"Marrocos","ordem":3,"niveis":[3,3,3,3,0,0,0,0,0,0,3,3]},{"pais":"Israel","ordem":4,"niveis":[3,3,3,3,0,0,0,0,0,3,3,3]},{"pais":"Portugal","ordem":6,"niveis":[1,1,1,1,0,0,0,0,0,0,1,1]},{"pais":"Quênia","ordem":7,"niveis":[2,2,3,3,3,3,3,3,3,0,2,2]},{"pais":"República Dominicana","ordem":8,"niveis":[2,2,2,2,2,2,2,3,3,3,3,2]},{"pais":"Colômbia","ordem":9,"niveis":[0,0,3,3,3,3,0,0,3,3,3,3]},{"pais":"Brasil","ordem":10,"niveis":[0,3,3,3,3,2,2,2,2,0,0,0]},{"pais":"África do Sul","ordem":11,"niveis":[0,0,3,3,3,3,3,3,3,0,0,0]},{"pais":"Tanzânia","ordem":12,"niveis":[0,0,3,3,3,3,0,0,0,0,0,0]},{"pais":"Peru","ordem":13,"niveis":[0,0,0,2,3,3,3,3,3,2,0,0]},{"pais":"Argentina","ordem":14,"niveis":[0,0,1,1,1,1,0,0,0,0,0,0]}]},"news":{"brasil":{"cambio":{"par":"USD/BRL","valor":5.0891,"data":"2026-08-10"},"geral":[{"data":"2026-08-10","tag":"geral","impacto":"Médio","texto":"Mídia dos EUA Em choque: Boom da Carne Bovina do Deserto da China, Surge do Abacate [geral]","fonte":"https://www.bastillepost.com/global/article/6062659-us-media-shocked-chinas-desert-beef-boom-avocado-surge"},{"data":"2026-08-10","tag":"mercado","impacto":"Médio","texto":"Brasil vê oportunidades apesar de queda nos preços do abacate Hass. [mercado]","fonte":"https://www.freshplaza.com/north-america/article/9853637/brazil-sees-opportunities-despite-lower-hass-avocado-prices/"},{"data":"2026-08-10","tag":"geral","impacto":"Médio","texto":"Óleo de Abacate: Hass Comercial versus Outras Variedades—Perfil de Ácidos Graxos e Qualidade [geral]","fonte":"https://onlinelibrary.wiley.com/doi/full/10.1002/ejlt.70125"},{"data":"2026-08-10","tag":"mercado","impacto":"Médio","texto":"Tamanho, Participação e Tendências do Mercado de Óleo de Abacate da América Latina, 2034. [mercado]","fonte":"https://www.marketdataforecast.com/market-reports/latin-america-avocado-oil-market"},{"data":"2026-08-10","tag":"mercado","impacto":"Médio","texto":"Produtores brasileiros miram o promissor mercado de importação da Índia. [mercado]","fonte":"https://www.fruitnet.com/eurofruit/brazilian-producers-target-indias-booming-import-market/271742.article"},{"data":"2026-08-10","tag":"geral","impacto":"Médio","texto":"Brasil Mira Boom do Abacate à Medida que Oferta Global Encolhe [geral]","fonte":"https://www.theagribiz.com/international/brazil-eyes-avocado-boom-as-global-supply-tightens/"}],"regulacao":[],"logistica":[]},"chile":{"cambio":{"par":"USD/CLP","valor":915.62,"data":"2026-08-10"},"geral":[{"data":"2026-08-10","tag":"mercado","impacto":"Médio","texto":"Uma marca está fazendo o melhor guacamole de supermercado [mercado]","fonte":"https://sporked.com/article/best-guacamole/"},{"data":"2026-08-10","tag":"mercado","impacto":"Médio","texto":"Produção chilena de abacate ultrapassa expectativas [mercado]","fonte":"https://www.fruitnet.com/eurofruit/chilean-avocado-output-exceeds-expectations/271670.article"},{"data":"2026-08-10","tag":"mercado","impacto":"Médio","texto":"Receita de Carne Adovada (Porco ao Estilo Novo México com Pimentões Vermelhos) [mercado]","fonte":"https://www.seriouseats.com/carne-adovada-adobada-chili-braised-pork-recipe"},{"data":"2026-08-10","tag":"mercado","impacto":"Médio","texto":"Safra chilena de abacate registra alta de 10% na produção e supera recorde anterior [mercado]","fonte":"https://www.freshfruitportal.com/news/2026/06/01/chilean-avocado-uptick/"},{"data":"2026-08-10","tag":"mercado","impacto":"Médio","texto":"Nova unidade de embalagem na Colômbia melhora a rastreabilidade do abacate para os principais mercados [mercado]","fonte":"https://www.freshplaza.com/north-america/article/9856910/a-new-packing-facility-in-colombia-enhances-avocado-traceability-to-major-markets/"},{"data":"2026-08-10","tag":"mercado","impacto":"Médio","texto":"Tamanho, Participação e Tendências do Mercado de Óleo de Abacate na América Latina até 2034 [mercado]","fonte":"https://www.marketdataforecast.com/market-reports/latin-america-avocado-oil-market"}],"regulacao":[{"data":"2026-08-10","tag":"regulação","impacto":"Alto","texto":"Entrada de Produtos Agrícolas nos Estados Unidos [regulação]","fonte":"https://www.cbp.gov/travel/clearing-cbp/bringing-agricultural-products-united-states"},{"data":"2026-08-10","tag":"regulação","impacto":"Alto","texto":"Evolução das relações entre a UE e o Chile [regulação]","fonte":"https://www.agroberichtenbuitenland.nl/actueel/nieuws/2026/06/10/free-trade-to-strategic-partnership-how-the-eu-chile-relationship-evolved"},{"data":"2026-08-10","tag":"regulação","impacto":"Alto","texto":"Peru se aproxima do Chile nas exportações agrícolas em 2025 [regulação]","fonte":"https://datamarnews.com/noticias/peru-closes-in-on-chile-in-2025-agricultural-exports/"},{"data":"2026-08-10","tag":"regulação","impacto":"Alto","texto":"Chile Acusado de Tolerar Trabalho Forçado nos Setores de Exportação de Salmão e Frutas: Fundação Libera Registra Queixa em Agência Comercial dos EUA [regulação]","fonte":"https://www.elciudadano.com/actualidad/chile-accused-of-tolerating-forced-labor-in-salmon-and-fruit-export-sectors-libera-foundation-files-complaint-with-u-s-trade-agency/04/25/"},{"data":"2026-08-10","tag":"regulação","impacto":"Alto","texto":"Peru reduz distância para o Chile nas exportações agrícolas de 2025 [regulação]","fonte":"https://www.freshplaza.com/latin-america/article/9839215/peru-narrows-gap-with-chile-in-2025-agricultural-exports/"},{"data":"2026-08-10","tag":"regulação","impacto":"Alto","texto":"Vietnã e Chile trabalham para remover barreiras ao comércio de frutas e carnes [regulação]","fonte":"https://vir.com.vn/vietnam-and-chile-work-to-remove-barriers-to-fruit-and-meat-trade-154960.html"}],"logistica":[{"data":"2026-08-10","tag":"logística","impacto":"Alto","texto":"Porto Participa de Programa-Piloto de Uvas no Chile e Adiciona Capacidade de Tratamento [logística]","fonte":"https://www.wilmingtonbiz.com/maritime/2026/08/06/port_takes_part_in_chilean_grape_pilot_program_adds_treatment_capability/27720"},{"data":"2026-08-10","tag":"logística","impacto":"Alto","texto":"Chile aprova construção do “porto externo” de San Antonio de US$ 4,45 bilhões [logística]","fonte":"https://www.seatrade-maritime.com/ports-logistics/chile-approves-4-45-bn-san-antonio-outer-port-construction"},{"data":"2026-08-10","tag":"logística","impacto":"Alto","texto":"Chile aprova projeto de US$ 4,45 bilhões para triplicar capacidade do maior porto do país [logística]","fonte":"https://www.upi.com/Top_News/World-News/2026/05/29/latam-Chile-triple-port-capacity/7921780071484/"},{"data":"2026-08-10","tag":"logística","impacto":"Alto","texto":"Portos de Cruzeiros no Chile: Mudanças na Logística Oceânica [logística]","fonte":"https://www.nomadlawyer.org/chile-cruise-ports-ocean-logistics-shifts-2026"},{"data":"2026-08-10","tag":"logística","impacto":"Alto","texto":"ZEAL vê potencial para replicar seu modelo nos portos do norte do Chile [logística]","fonte":"https://www.bnamericas.com/en/interviews/zeal-sees-potential-to-replicate-its-model-in-northern-chiles-ports"},{"data":"2026-08-10","tag":"logística","impacto":"Alto","texto":"Maersk desenvolve cadeia fria nos EUA para importação de uvas chilenas [logística]","fonte":"https://www.freshplaza.com/north-america/article/9860644/maersk-develops-u-s-cold-chain-for-chilean-grape-imports/"}]}}};
+const SNAP = {"meta":{"fonte":"Reporte Avocado_vfinal.pdf","paginas":16,"semana_referencia":24,"ano_referencia":2026,"exportado_em":"2026-06-15"},"avisos":["europa_cirad: pagina 5 nao possui camada de texto (dois prints do CIRAD como imagem). Valores do box (7.93 / 0.00 / -26 %) e titulos obtidos via OCR (tesseract) do render 300dpi; series anuais do grafico e rotulos do eixo X (w15..w29) nao sao legiveis -> series=null. As semanas w15..w29 e os anos 2023-2026 vem do enunciado/legenda OCR (legenda OCR mostrou 2026, 2025, 2024, 2023).","newsletters/Brasil: tabela 'Acumulado 7 dias (mm)' ausente na pagina 9 do PDF","newsletters/Brasil: series numericas de 'Temp ºC' e 'Precipitacao (mm)' nao extraidas (rotulos de dados do PBI nao carregam cor/serie no PDF; nao ha como associar valor->cidade com seguranca) -> temp_series/chuva_series=null","newsletters/Marrocos: series numericas de 'Temp ºC' e 'Precipitacao (mm)' nao extraidas (rotulos de dados do PBI nao carregam cor/serie no PDF; nao ha como associar valor->cidade com seguranca) -> temp_series/chuva_series=null","newsletters/Israel: series numericas de 'Temp ºC' e 'Precipitacao (mm)' nao extraidas (rotulos de dados do PBI nao carregam cor/serie no PDF; nao ha como associar valor->cidade com seguranca) -> temp_series/chuva_series=null","newsletters/Colômbia: series numericas de 'Temp ºC' e 'Precipitacao (mm)' nao extraidas (rotulos de dados do PBI nao carregam cor/serie no PDF; nao ha como associar valor->cidade com seguranca) -> temp_series/chuva_series=null","newsletters/Espanha: series numericas de 'Temp ºC' e 'Precipitacao (mm)' nao extraidas (rotulos de dados do PBI nao carregam cor/serie no PDF; nao ha como associar valor->cidade com seguranca) -> temp_series/chuva_series=null","newsletters/Peru: series numericas de 'Temp ºC' e 'Precipitacao (mm)' nao extraidas (rotulos de dados do PBI nao carregam cor/serie no PDF; nao ha como associar valor->cidade com seguranca) -> temp_series/chuva_series=null","newsletters/Chile: series numericas de 'Temp ºC' e 'Precipitacao (mm)' nao extraidas (rotulos de dados do PBI nao carregam cor/serie no PDF; nao ha como associar valor->cidade com seguranca) -> temp_series/chuva_series=null","share_brasil: a matriz e a tabela '% Mês Anterior' aparecem roladas no export do PBI; so as linhas visiveis no PDF foram capturadas (matriz vai de 'Países Baixos (Holanda)' ate 'Áustria' + Total; '% Mês Anterior' vai de 'Uruguai' ate 'Brasil'). A linha 'Áustria' teve o separador decimal perdido no PDF ('0 00') e foi lida como 0,00. O painel esquerdo (slicers País/Mês) foi ignorado.","newsletters/Peru e newsletters/Chile: a ultima linha da tabela 'Visão geral' esta corrompida no proprio PDF (caracteres faltando, ex. 'C i ã P d Ab t h i B d L'); foi mantida como veio. Uma linha residual corrompida em Colômbia/Regulação ('ú fé ô á') foi descartada.","Textos de noticia truncados pela largura da celula no proprio export do PBI (nao ha texto adicional no PDF para recuperar): Israel/Visão geral: \"Sob pressão e com falta de mão de obra, fazendas israelenses...\" | Colômbia/Visão geral: \"Projeto colombiano busca prevenir corrosão de metais usando ...\" | Espanha/Visão geral: \"A frequência de compra de abacate na França e na Espanha aum...\" | Espanha/Logística: \"Porto de Santander avança com planos para transporte ferrovi...\" | Espanha/Regulação: \"Relatório sobre o Tamanho, Participação e Crescimento do Mer...\" | Chile/Regulação: \"Trabalho Forçado na Agroindústria e na Salmonicultura do Chi...\""],"ultimas_4_semanas":{"Brasil":{"unidade":"R$","valores":[{"ano":2026,"semana":21,"valor":6.46},{"ano":2026,"semana":22,"valor":6.31},{"ano":2026,"semana":23,"valor":6.52},{"ano":2026,"semana":24,"valor":7.89}]},"Chile":{"unidade":"USD","valores":[{"ano":2026,"semana":21,"valor":3.63},{"ano":2026,"semana":22,"valor":3.87},{"ano":2026,"semana":23,"valor":3.79},{"ano":2026,"semana":24,"valor":3.84}]},"Uruguai":{"unidade":"USD","valores":[{"ano":2026,"semana":21,"valor":3.78},{"ano":2026,"semana":22,"valor":3.81},{"ano":2026,"semana":23,"valor":3.77},{"ano":2026,"semana":24,"valor":3.76}]},"Argentina":{"unidade":"USD","valores":[{"ano":2026,"semana":21,"valor":4.63},{"ano":2026,"semana":22,"valor":4.58},{"ano":2026,"semana":23,"valor":4.74},{"ano":2026,"semana":24,"valor":4.48}]}},"europa_cirad":{"referencia":{"grade":"Hass grade 18","titulo_box":"EU Reference Price—Hass grade 18","week_atual":24,"valor_atual_eur":7.93,"week_anterior":23,"valor_anterior_eur":0.0,"variacao_vs_media_23_24":"-26 %","nota":"Prices weighted by weekly arrivals","origem":"OCR (conteudo da pagina 5 e imagem, sem camada de texto)"},"grafico":{"titulo":"Avocado - EU - Weekly reference price HASS grade 18 (€/4-kg box | source: CIRAD)","unidade":"€/4-kg box","fonte":"CIRAD","semanas":["w15","w16","w17","w18","w19","w20","w21","w22","w23","w24","w25","w26","w27","w28","w29"],"anos":[2023,2024,2025,2026],"series":null}},"cirad":{"titulo":"Resumo de Preços – Abacate Hass (CIRAD / Tropisens)","semana":24,"ano":2026,"secoes":[{"titulo":"Panorama Geral (Europa)","texto":"Mercado europeu continua pressionado pelo excesso de oferta do Peru, que domina 90%+ dos embarques. Estoques altos para frutas grandes, e oferta limitada dos calibres menores. Demanda firme no Norte da Europa, especialmente Alemanha, mas vendas mais lentas na França."},{"titulo":"Preços – Mercado Europeu (€/caixa 4kg)","itens":["Calibres grandes (12/14): 6,50 € (-35% vs. 2025)","Calibre 16/18/20: 7,30 € (-25% vs. 2025)","Calibres pequenos (22/24): 8,00 – 9,00 €, tendência de alta","Calibre 26: 1,80 €/kg (+13%)"]},{"titulo":"Origens – Destaques","itens":["Peru praticamente monopoliza o mercado europeu, com embarques estáveis (4,6-4,8 mi caixas/semana).","África do Sul e Quênia entregando volumes reduzidos.","Temporada do Brasil praticamente encerrada, menos de 100 mil caixas esperadas na semana."]},{"titulo":"Estados Unidos","texto":"Mercado volátil, com volumes irregulares do México e Peru ainda com embarques menores. Preços oscilaram, caindo após semanas de alta. Califórnia segue bem ativa."},{"titulo":"Leitura para o Produtor Brasileiro","texto":"Europa segue superofertada pelo Peru, principalmente frutas grandes. Preços caíram para calibres maiores e estabilizaram nos médios, com firmeza nos pequenos. Queda de oferta brasileira não influenciou valores. Foco do mercado é calibragem e qualidade.\nVale planejar a próxima safra mirando nichos de fruta menor e ajuste de janela!"}]},"newsletters":{"Brasil":{"titulo_pbi":"HASS | Brasil Overview","cambio":{"par":"USD/BRL","valor":5.06},"tabelas":[{"titulo":"Visão geral","colunas":["Data","Tag","Impacto","Descrição","Fonte"],"linhas":[{"data":"15/06/26","tag":"exportação","impacto":"Médio","texto":"As exportações de abacate do Brasil crescem mais de 400% em uma década. [exportação]","fonte":null},{"data":"15/06/26","tag":"exportação","impacto":"Médio","texto":"As exportações de abacate do Brasil crescem mais de 400% na última década. [exportação]","fonte":null},{"data":"15/06/26","tag":"exportação","impacto":"Médio","texto":"Brasil mira crescimento nas exportações de abacate à medida que a oferta diminui. [exportação]","fonte":null},{"data":"15/06/26","tag":"geral","impacto":"Médio","texto":"Brasil Mira Boom do Abacate à Medida que a Oferta Global Encolhe [geral]","fonte":null},{"data":"15/06/26","tag":"mercado","impacto":"Médio","texto":"Brasil irá importar abacates do México, abrindo um mercado de mais de 200 milhões. [mercado]","fonte":null},{"data":"15/06/26","tag":"mercado","impacto":"Médio","texto":"Tamanho, Participação e Tendências do Mercado de Óleo de Abacate da América Latina, 2034 [mercado]","fonte":null}]}],"chuva7d":null,"clima":{"dias":["15/06","16/06","17/06","18/06","19/06","20/06","21/06","22/06","23/06","24/06","25/06","26/06","27/06","28/06","29/06"],"cidades":["Bauru","Bernardino de Campos","Ibiá","Matão","São Gotardo","Sete Lagoas"],"temp_series":null,"chuva_series":null}},"Marrocos":{"titulo_pbi":"HASS | Marrocos Overview","cambio":{"par":"USD/MAD","valor":9.25},"tabelas":[{"titulo":"Visão geral","colunas":["Dia","Tag","Impacto","Descrição","Fonte"],"linhas":[{"data":"15","tag":"mercado","impacto":"Médio","texto":"África: Como o Marrocos Está Redesenhando o Mapa Comercial do Abacate no Continente [mercado]","fonte":null},{"data":"15","tag":"mercado","impacto":"Médio","texto":"Agronegócio de Israel e a Fronteira Verde do Marrocos [mercado]","fonte":null},{"data":"15","tag":"mercado","impacto":"Médio","texto":"Exportações marroquinas de abacate dobram em 2025 [mercado]","fonte":null},{"data":"15","tag":"mercado","impacto":"Médio","texto":"O boom do abacate no Marrocos: exportações dobram na safra 2024/25 [mercado]","fonte":null},{"data":"15","tag":"volume↑","impacto":"Médio","texto":"O desafio do abacate no Marrocos: crescimento sem água? [volume↑]","fonte":null},{"data":"15","tag":"mercado","impacto":"Médio","texto":"Pesadas perdas em frutas e árvores para a indústria marroquina de abacate [mercado]","fonte":null}]},{"titulo":"Logística","colunas":["Dia","Tag","Impacto","Texto","Fonte"],"linhas":[{"data":"15","tag":"logística","impacto":"Alto","texto":"A.P. Moller Capital investe US$ 240 milhões no setor de transportes do Marrocos [logística]","fonte":null},{"data":"15","tag":"logística","impacto":"Alto","texto":"Estratégia portuária do Marrocos ganha nova relevância com fragmentação geopolítica que redefine o comércio global [logística]","fonte":null},{"data":"15","tag":"logística","impacto":"Alto","texto":"Marrocos acelera expansão portuária em busca da dominância logística global [logística]","fonte":null},{"data":"15","tag":"logística","impacto":"Alto","texto":"Marrocos fortalece rede logística para ampliar comércio e exportações [logística]","fonte":null},{"data":"15","tag":"logística","impacto":"Alto","texto":"Marrocos reforça papel logístico com novos portos e digitalização do comércio [logística]","fonte":null},{"data":"15","tag":"logística","impacto":"Alto","texto":"Marrocos tem condições para desenvolver ambição marítima soberana moderna, diz Kayouh [logística]","fonte":null}]},{"titulo":"Regulação","colunas":["Dia","Tag","Impacto","Texto","Fonte"],"linhas":[{"data":"15","tag":"regulação","impacto":"Alto","texto":"África: Como o Marrocos Está Redefinindo o Mapa do Comércio de Abacate na África [regulação]","fonte":null},{"data":"15","tag":"regulação","impacto":"Alto","texto":"Alertas da UE expõem imagem enganosa defendida pelo Makhzen [regulação]","fonte":null},{"data":"15","tag":"regulação","impacto":"Alto","texto":"Espanha afirma que parceria com Marrocos em agricultura e pesca é estratégica, não apenas comercial [regulação]","fonte":null},{"data":"15","tag":"regulação","impacto":"Alto","texto":"FAO/BERD e Morocco Foodex promovem evento online sobre diversificação das exportações de produtos frescos na próxima semana, 27 de abril [regulação]","fonte":null},{"data":"15","tag":"regulação","impacto":"Alto","texto":"Marrocos Lança Ajuda de MAD 750 para Exportações de Tomate Fora da UE [regulação]","fonte":null}]}],"chuva7d":[{"cidade":"Gharb","acumulado_mm":1.36,"descricao":"Sem chuva relevante"},{"cidade":"Loukkos","acumulado_mm":0.87,"descricao":"Sem chuva relevante"},{"cidade":"Souss-Massa","acumulado_mm":0.0,"descricao":"Sem chuva relevante"}],"clima":{"dias":["15","16","17","18","19","20"],"cidades":["Gharb","Loukkos","Souss-Massa"],"temp_series":null,"chuva_series":null,"mes_eixo":"junho"}},"Israel":{"titulo_pbi":"HASS | Israel Overview","cambio":{"par":"USD/ILS","valor":2.91},"tabelas":[{"titulo":"Visão geral","colunas":["Data","Tag","Impacto","Descrição","Fonte"],"linhas":[{"data":"15/06/26","tag":"mercado","impacto":"Médio","texto":"Como Israel apostou no abacate e transformou a fruta em uma história de sucesso agrícola [mercado]","fonte":null},{"data":"15/06/26","tag":"mercado","impacto":"Médio","texto":"Homem morto em ataque de foguete em Misgav Am é identificado como oavocado Ofer Moskovitz [mercado]","fonte":null},{"data":"15/06/26","tag":"mercado","impacto":"Médio","texto":"Mudas de porta-enxerto em cultura de tecidos avançam no cultivo de abacate em Israel [mercado]","fonte":null},{"data":"15/06/26","tag":"mercado","impacto":"Médio","texto":"Óleo de Abacate Caseiro // Homemade Avocado Oil (DXsI3stzjk) [mercado]","fonte":null},{"data":"15/06/26","tag":"mercado","impacto":"Médio","texto":"Produtores israelenses pedem ajuda urgente do governo [mercado]","fonte":null},{"data":"15/06/26","tag":"mercado","impacto":"Médio","texto":"Sob pressão e com falta de mão de obra, fazendas israelenses recorrem à polinização por IA para salvar","fonte":null}]},{"titulo":"Logística","colunas":["Data","Tag","Impacto","Descrição","Fonte"],"linhas":[{"data":"15/06/26","tag":"logística","impacto":"Alto","texto":"Contornando os Estreitos: O Corredor Índia-Oriente Médio-Europa Precisa de uma Reformulação em Tempo de Guerra – Análise [logística]","fonte":null},{"data":"15/06/26","tag":"logística","impacto":"Alto","texto":"Empresa Portos de Israel lança licitação para área logística no Porto da Baía de Haifa [logística]","fonte":null},{"data":"15/06/26","tag":"logística","impacto":"Alto","texto":"EUA enviam 6,500 toneladas de equipamentos e munições para Israel em 24 horas [logística]","fonte":null},{"data":"15/06/26","tag":"logística","impacto":"Alto","texto":"Israel aprova portos secos para reduzir congestionamento e fortalecer cadeias de abastecimento [logística]","fonte":null},{"data":"15/06/26","tag":"logística","impacto":"Alto","texto":"Licitação do IPC para 18 Dúnuns de Terreno Logístico na Área Portuária de Haifa | 2026 - Notícias e Estatísticas [logística]","fonte":null}]},{"titulo":"Regulação","colunas":["Data","Tag","Impacto","Descrição","Fonte"],"linhas":[{"data":"15/06/26","tag":"regulação","impacto":"Alto","texto":"Agricultura em Israel: Sinais de Mercado em Insumos Agrícolas, Capital e Tecnologia [regulação]","fonte":null},{"data":"15/06/26","tag":"regulação","impacto":"Alto","texto":"Cúpula de expansão: Por que a visita de Modi deve transformar a confiança bilateral em uma potência estratégica - editorial [regulação]","fonte":null},{"data":"15/06/26","tag":"regulação","impacto":"Alto","texto":"Israel e União Europeia renovam colaboração agrícola [regulação]","fonte":null},{"data":"15/06/26","tag":"regulação","impacto":"Alto","texto":"Relatório: Ministros da Economia e Agricultura de Israel se opõem à aquisição da Zim [regulação]","fonte":null},{"data":"15/06/26","tag":"regulação","impacto":"Alto","texto":"Sistemas Alimentares Resilientes Além da Dependência de Fertilizantes Inorgânicos [regulação]","fonte":null},{"data":"15/06/26","tag":"regulação","impacto":"Alto","texto":"Vietnã vê Israel como mercado promissor de arroz sob acordo de livre comércio [regulação]","fonte":null}]}],"chuva7d":[{"cidade":"Beit Shean","acumulado_mm":0.0,"descricao":"Sem chuva relevante"},{"cidade":"Sharon Plain","acumulado_mm":0.0,"descricao":"Sem chuva relevante"},{"cidade":"Western Galilee","acumulado_mm":0.0,"descricao":"Sem chuva relevante"},{"cidade":"Zikhron Yaakov","acumulado_mm":0.0,"descricao":"Sem chuva relevante"}],"clima":{"dias":["15","16","17","18","19","20"],"cidades":["Beit Shean","Sharon Plain","Western Galilee","Zikhron Yaakov"],"temp_series":null,"chuva_series":null,"mes_eixo":"junho"}},"Colômbia":{"titulo_pbi":"HASS | Colômbia Overview","cambio":{"par":"USD/COP","valor":3450.0,"valor_texto":"3,45 Mil"},"tabelas":[{"titulo":"Visão geral","colunas":["Data","Tag","Impacto","Texto","Fonte"],"linhas":[{"data":"15/06/26","tag":"mercado","impacto":"Médio","texto":"Abacates colombianos ganham espaço nos EUA apesar de tarifas [mercado]","fonte":null},{"data":"15/06/26","tag":"mercado","impacto":"Médio","texto":"Conselho Colombiano de Abacate Busca Crescimento Exponencial no Mercado dos EUA [mercado]","fonte":null},{"data":"15/06/26","tag":"mercado","impacto":"Médio","texto":"Florescimento fraco leva exportações colombianas de abacate a nível recorde mínimo [mercado]","fonte":null},{"data":"15/06/26","tag":"mercado","impacto":"Médio","texto":"Melhorando a qualidade e reduzindo perdas na cadeia produtiva do abacate na Colômbia [mercado]","fonte":null},{"data":"15/06/26","tag":"mercado","impacto":"Médio","texto":"Projeto colombiano busca prevenir corrosão de metais usando resíduos de abacate e café","fonte":null}]},{"titulo":"Logística","colunas":["Data","Tag","Impacto","Texto","Fonte"],"linhas":[{"data":"15/06/26","tag":"logística","impacto":"Alto","texto":"Algeciras reúne especialistas da Espanha, Panamá e Colômbia para analisar a eletrificação da logística portuária [logística]","fonte":null},{"data":"15/06/26","tag":"logística","impacto":"Alto","texto":"CMA CGM Recebe Primeiro Portacontêiner no Porto de Antioquia [logística]","fonte":null},{"data":"15/06/26","tag":"logística","impacto":"Alto","texto":"Gana e Colômbia assinam acordo para conectar os portos de Tema e Cartagena [logística]","fonte":null},{"data":"15/06/26","tag":"logística","impacto":"Alto","texto":"Grupo CMA CGM recebe primeiro grande porta-contêiner no Porto Antioquia [logística]","fonte":null},{"data":"15/06/26","tag":"logística","impacto":"Alto","texto":"Novo porto abre novas oportunidades para exportação de flores colombianas [logística]","fonte":null},{"data":"15/06/26","tag":"logística","impacto":"Alto","texto":"Portos do Meio-Colúmbia farão parceria com Seattle e Tacoma em hub logístico [logística]","fonte":null}]},{"titulo":"Regulação","colunas":["Data","Tag","Impacto","Descrição","Fonte"],"linhas":[{"data":"15/06/26","tag":"regulação","impacto":"Alto","texto":"Agricultura e alimentos venezuelanos podem representar oportunidades para os EUA [regulação]","fonte":null},{"data":"15/06/26","tag":"regulação","impacto":"Alto","texto":"América Latina em 2025: Promessas de conservação enfrentam crime e exploração [regulação]","fonte":null},{"data":"15/06/26","tag":"regulação","impacto":"Alto","texto":"Como as Regiões de Fronteira da Amazônia Podem Impulsionar o Crescimento Sustentável [regulação]","fonte":null},{"data":"15/06/26","tag":"regulação","impacto":"Alto","texto":"Exportações de óleo de palma da Colômbia crescem 44% no primeiro trimestre de 2026, impulsionando o setor [regulação]","fonte":null}]}],"chuva7d":[{"cidade":"Antioquia","acumulado_mm":67.16,"descricao":"⚠ Chuva significativa prevista"},{"cidade":"Caldas","acumulado_mm":39.21,"descricao":"⚠ Chuva significativa prevista"},{"cidade":"Tolima","acumulado_mm":21.86,"descricao":"⚠ Chuva significativa prevista"},{"cidade":"Santander","acumulado_mm":3.79,"descricao":"Sem chuva relevante"}],"clima":{"dias":["15","16","17","18","19","20"],"cidades":["Antioquia","Caldas","Santander","Tolima"],"temp_series":null,"chuva_series":null,"mes_eixo":"junho"}},"Espanha":{"titulo_pbi":"HASS | Espanha Overview","cambio":{"par":"USD/EUR","valor":0.86},"tabelas":[{"titulo":"Visão geral","colunas":["Data","Tag","Impacto","Descrição","Fonte"],"linhas":[{"data":"15/06/26","tag":"mercado","impacto":"Médio","texto":"Estudo espanhol associa solos de abacate orgânico à resistência à seca [mercado]","fonte":null},{"data":"15/06/26","tag":"mercado","impacto":"Médio","texto":"Nova campanha para promover abacates e mangas europeus [mercado]","fonte":null},{"data":"15/06/26","tag":"mercado","impacto":"Médio","texto":"Produção espanhola de abacate deve crescer até 30% nesta temporada [mercado]","fonte":null},{"data":"15/06/26","tag":"mercado","impacto":"Médio","texto":"Relatório do Mercado de Abacate da Espanha 2026 - Preços, Tamanhos, Previsões e Empresas [mercado]","fonte":null},{"data":"15/06/26","tag":"mercado","impacto":"Médio","texto":"Tempestade Marta causa danos graves na Andaluzia e reduz ainda mais o abastecimento de frutas vermelhas, legumes, abacates e frutas cítricas [mercado]","fonte":null},{"data":"15/06/26","tag":"volume↑","impacto":"Médio","texto":"A frequência de compra de abacate na França e na Espanha aumentou, mas ainda há um enorme","fonte":null}]},{"titulo":"Logística","colunas":["Data","Tag","Impacto","Descrição","Fonte"],"linhas":[{"data":"15/06/26","tag":"logística","impacto":"Alto","texto":"AD Ports Group expande operações europeias de transporte de cargas pesadas com aquisição de estaleiro espanhol [logística]","fonte":null},{"data":"15/06/26","tag":"logística","impacto":"Alto","texto":"AD Ports mira logística de energia eólica offshore europeia com aquisição do estaleiro espanhol Balenciaga Astilleros [logística]","fonte":null},{"data":"15/06/26","tag":"logística","impacto":"Alto","texto":"Algeciras reúne especialistas da Espanha, Panamá e Colômbia para analisar a eletrificação da logística portuária. [logística]","fonte":null},{"data":"15/06/26","tag":"logística","impacto":"Alto","texto":"Atrasos logísticos e congestionamento nos portos retardam importações no Marrocos [logística]","fonte":null},{"data":"15/06/26","tag":"logística","impacto":"Alto","texto":"Porto de Santander avança com planos para transporte ferroviário de semirreboques para Madri","fonte":null}]},{"titulo":"Regulação","colunas":["Data","Tag","Impacto","Descrição","Fonte"],"linhas":[{"data":"15/06/26","tag":"regulação","impacto":"Alto","texto":"África do Sul ultrapassa Espanha e se torna maior exportadora mundial de frutas cítricas [regulação]","fonte":null},{"data":"15/06/26","tag":"regulação","impacto":"Alto","texto":"Agricultores bloqueiam rodovias na Europa contra acordo Mercosul [regulação]","fonte":null},{"data":"15/06/26","tag":"regulação","impacto":"Alto","texto":"Certificações Alimentares para Supermercados Espanhóis [regulação]","fonte":null},{"data":"15/06/26","tag":"regulação","impacto":"Alto","texto":"Levar um animal de estimação dos Estados Unidos para outro país (Exportação) | Serviço de Inspeção de Saúde Animal e Vegetal [regulação]","fonte":null},{"data":"15/06/26","tag":"regulação","impacto":"Alto","texto":"Mercado de Biológicos Agrícolas: Escopo, Crescimento e Tendências até 2035 [regulação]","fonte":null},{"data":"15/06/26","tag":"regulação","impacto":"Alto","texto":"Relatório sobre o Tamanho, Participação e Crescimento do Mercado Europeu de Fungicidas até 2034","fonte":null}]}],"chuva7d":[{"cidade":"Cadiz","acumulado_mm":3.6,"descricao":"Sem chuva relevante"},{"cidade":"Granada","acumulado_mm":2.92,"descricao":"Sem chuva relevante"},{"cidade":"Malaga","acumulado_mm":3.89,"descricao":"Sem chuva relevante"}],"clima":{"dias":["15","16","17","18","19","20"],"cidades":["Cadiz","Granada","Malaga"],"temp_series":null,"chuva_series":null,"mes_eixo":"junho"}},"Peru":{"titulo_pbi":"HASS | Peru Overview","cambio":{"par":"USD/PEN","valor":3.4},"tabelas":[{"titulo":"Visão geral","colunas":["Data","Tag","Impacto","Descrição","Fonte"],"linhas":[{"data":"15/06/26","tag":"mercado","impacto":"Médio","texto":"Avocados From Peru Lança Campanha de Verão 2026 [mercado]","fonte":null},{"data":"15/06/26","tag":"mercado","impacto":"Médio","texto":"Por que alguns clientes da Costco evitam abacates do Peru [mercado]","fonte":null},{"data":"15/06/26","tag":"mercado","impacto":"Médio","texto":"Reds & Avocados from Peru lançam promoção “Ultimate Summer Baseball Sweepstakes” com Toyota Tacoma como prêmio principal [mercado]","fonte":null},{"data":"15/06/26","tag":"mercado","impacto":"Médio","texto":"Concentração da oferta peruana provoca queda nos preços do abacate [mercado]","fonte":null},{"data":"15/06/26","tag":"mercado","impacto":"Médio","texto":"ProHass alerta para impacto do clima no abacate: safra peruana pode terminar um mês antes [mercado]","fonte":null},{"data":"15/06/26","tag":"d","impacto":"Médi","texto":"C i ã P d Ab t h i B d L [ d ]","fonte":null}]},{"titulo":"Logística","colunas":["Data","Tag","Impacto","Descrição","Fonte"],"linhas":[{"data":"15/06/26","tag":"logística","impacto":"Alto","texto":"Conexão Aeroporto Jorge Chávez-Porto de Chancay deve consolidar Peru como polo logístico [logística]","fonte":null},{"data":"15/06/26","tag":"logística","impacto":"Alto","texto":"COSCO SHIPPING lança ligação marítima e postal econômica para o Peru [logística]","fonte":null},{"data":"15/06/26","tag":"logística","impacto":"Alto","texto":"Megaport no Peru redefine relações comerciais [logística]","fonte":null},{"data":"15/06/26","tag":"logística","impacto":"Alto","texto":"Peru decreta estado de emergência por 30 dias em Lima e Callao [logística]","fonte":null},{"data":"15/06/26","tag":"logística","impacto":"Alto","texto":"Porto de Chancay garante exportações da América Latina na nova rota comercial China-Peru [logística]","fonte":null},{"data":"15/06/26","tag":"logística","impacto":"Alto","texto":"Porto de Energia: O Porto de Chancay no Peru e a Geopolítica da Infraestrutura na Rivalidade entre EUA e China [logística]","fonte":null}]},{"titulo":"Regulação","colunas":["Data","Tag","Impacto","Descrição","Fonte"],"linhas":[{"data":"15/06/26","tag":"regulação","impacto":"Alto","texto":"Desbloqueando o Potencial das Exportações Agrícolas do Peru [regulação]","fonte":null},{"data":"15/06/26","tag":"regulação","impacto":"Alto","texto":"Exportações de produtos frescos do Peru para a Austrália caem 3% apesar do aumento do volume [regulação]","fonte":null},{"data":"15/06/26","tag":"regulação","impacto":"Alto","texto":"Novas Diretrizes para Edição Genética no Peru Podem Impulsionar a Inovação Agrícola [regulação]","fonte":null},{"data":"15/06/26","tag":"regulação","impacto":"Alto","texto":"Peru - Mineração, Agricultura e Turismo [regulação]","fonte":null},{"data":"15/06/26","tag":"regulação","impacto":"Alto","texto":"Peru pretende atrair investimentos com cortes de impostos e manter boom das exportações agrícolas, diz ministro [regulação]","fonte":null},{"data":"15/06/26","tag":"regulação","impacto":"Alto","texto":"Peru se aproxima do Chile nas exportações agrícolas de 2025 [regulação]","fonte":null}]}],"chuva7d":[{"cidade":"La Libertad","acumulado_mm":9.47,"descricao":"Sem chuva relevante"},{"cidade":"Ica","acumulado_mm":0.0,"descricao":"Sem chuva relevante"},{"cidade":"Lima","acumulado_mm":0.0,"descricao":"Sem chuva relevante"}],"clima":{"dias":["15","16","17","18","19","20"],"cidades":["Ica","La Libertad","Lima"],"temp_series":null,"chuva_series":null,"mes_eixo":"junho"}},"Chile":{"titulo_pbi":"HASS | Chile Overview","cambio":{"par":"USD/CLP","valor":911.65},"tabelas":[{"titulo":"Visão geral","colunas":["Data","Tag","Impacto","Descrição","Fonte"],"linhas":[{"data":"15/06/26","tag":"mercado","impacto":"Médio","texto":"Argentina se torna o mercado mais atraente para o abacate Hass chileno [mercado]","fonte":null},{"data":"15/06/26","tag":"mercado","impacto":"Médio","texto":"Atualização da marca para associação chilena de abacate [mercado]","fonte":null},{"data":"15/06/26","tag":"mercado","impacto":"Médio","texto":"Bobby Flay prepara chili vegetariano para o dia do jogo com múltiplas camadas de sabor [mercado]","fonte":null},{"data":"15/06/26","tag":"mercado","impacto":"Médio","texto":"Chile Registra Temporada Destaque para Abacates [mercado]","fonte":null},{"data":"15/06/26","tag":"mercado","impacto":"Médio","texto":"Sistemas socioecológicos teleconectados: o caso do abacate no Chile | Global Sustainability | Cambridge Core [mercado]","fonte":null},{"data":"15/06/26","tag":"d","impacto":"Médi","texto":"U M E tá P d i d M lh G l I d t i li d [ d ]","fonte":null}]},{"titulo":"Logística","colunas":["Data","Tag","Impacto","Descrição","Fonte"],"linhas":[{"data":"15/06/26","tag":"logística","impacto":"Alto","texto":"Chile aprova ampliação de US$ 4,45 bilhões no porto de San Antonio [logística]","fonte":null},{"data":"15/06/26","tag":"logística","impacto":"Alto","texto":"Chile aprova construção do ‘porto externo’ de San Antonio no valor de US$ 4,45 bilhões [logística]","fonte":null},{"data":"15/06/26","tag":"logística","impacto":"Alto","texto":"Chile aprova projeto de US$ 4,45 bilhões para triplicar capacidade do maior porto do país [logística]","fonte":null},{"data":"15/06/26","tag":"logística","impacto":"Alto","texto":"Porto de Arica, no Chile, enfrenta grave transtorno com fechamento fora do terminal que sobrecarrega operações [logística]","fonte":null},{"data":"15/06/26","tag":"logística","impacto":"Alto","texto":"Presidente da Bolívia Propõe ‘Portos Secos’ para Integrar Logística Brasil–Chile [logística]","fonte":null},{"data":"15/06/26","tag":"logística","impacto":"Alto","texto":"ZEAL vê potencial para replicar seu modelo nos portos do norte do Chile [logística]","fonte":null}]},{"titulo":"Regulação","colunas":["Data","Tag","Impacto","Descrição","Fonte"],"linhas":[{"data":"15/06/26","tag":"regulação","impacto":"Alto","texto":"Chile avança para formalizar marco regulatório das Novas Técnicas de Melhoramento Genético (NBTs) [regulação]","fonte":null},{"data":"15/06/26","tag":"regulação","impacto":"Alto","texto":"Chile surge como um importante centro para o desenvolvimento de sementes transgênicas e editadas por genes [regulação]","fonte":null},{"data":"15/06/26","tag":"regulação","impacto":"Alto","texto":"Livre Comércio para Parceria Estratégica: Como Evoluiu a Relação entre UE e Chile [regulação]","fonte":null},{"data":"15/06/26","tag":"regulação","impacto":"Alto","texto":"México e Chile fortalecem comércio agroalimentar e digitalização da saúde [regulação]","fonte":null},{"data":"15/06/26","tag":"regulação","impacto":"Alto","texto":"Peru se aproxima do Chile nas exportações agrícolas de 2025 [regulação]","fonte":null},{"data":"15/06/26","tag":"regulação","impacto":"Alto","texto":"Trabalho Forçado na Agroindústria e na Salmonicultura do Chile: Revelando as Razões por Trás das","fonte":null}]}],"chuva7d":[{"cidade":"Santiago","acumulado_mm":0.36,"descricao":"Sem chuva relevante"},{"cidade":"O’Higgins","acumulado_mm":0.21,"descricao":"Sem chuva relevante"},{"cidade":"Coquimbo","acumulado_mm":0.0,"descricao":"Sem chuva relevante"},{"cidade":"Valparaiso","acumulado_mm":0.0,"descricao":"Sem chuva relevante"}],"clima":{"dias":["15","16","17","18","19","20"],"cidades":["Coquimbo","O’Higgins","Santiago","Valparaiso"],"temp_series":null,"chuva_series":null,"mes_eixo":"junho"}}},"share_brasil":{"meses":[1,2,3,4,5],"paises":[{"pais":"Países Baixos (Holanda)","por_mes":{"1":{"containers":1,"pct":0.14},"2":{"containers":16,"pct":0.47},"3":{"containers":149,"pct":0.48},"4":{"containers":485,"pct":0.69},"5":{"containers":226,"pct":0.58}},"total":{"containers":875,"pct":0.6}},{"pais":"Espanha","por_mes":{"1":{"containers":1,"pct":0.14},"2":{"containers":9,"pct":0.26},"3":{"containers":61,"pct":0.19},"4":{"containers":128,"pct":0.18},"5":{"containers":83,"pct":0.21}},"total":{"containers":281,"pct":0.19}},{"pais":"Argentina","por_mes":{"1":{"containers":1,"pct":0.14},"2":{"containers":3,"pct":0.09},"3":{"containers":75,"pct":0.24},"4":{"containers":49,"pct":0.07},"5":{"containers":47,"pct":0.12}},"total":{"containers":174,"pct":0.12}},{"pais":"Reino Unido","por_mes":{"1":{"containers":1,"pct":0.14},"2":{"containers":1,"pct":0.03},"3":{"containers":6,"pct":0.02},"4":{"containers":17,"pct":0.02},"5":{"containers":9,"pct":0.02}},"total":{"containers":32,"pct":0.02}},{"pais":"Uruguai","por_mes":{"1":{"containers":1,"pct":0.14},"2":{"containers":1,"pct":0.03},"3":{"containers":12,"pct":0.04},"4":{"containers":9,"pct":0.01},"5":{"containers":10,"pct":0.03}},"total":{"containers":31,"pct":0.02}},{"pais":"França","por_mes":{"1":{"containers":3,"pct":0.43},"2":{"containers":4,"pct":0.12},"3":{"containers":8,"pct":0.03},"4":{"containers":9,"pct":0.01},"5":{"containers":7,"pct":0.02}},"total":{"containers":30,"pct":0.02}},{"pais":"Chile","por_mes":{"1":{"containers":null,"pct":null},"2":{"containers":null,"pct":null},"3":{"containers":null,"pct":null},"4":{"containers":6,"pct":0.01},"5":{"containers":2,"pct":0.01}},"total":{"containers":8,"pct":0.01}},{"pais":"Marrocos","por_mes":{"1":{"containers":null,"pct":null},"2":{"containers":null,"pct":null},"3":{"containers":null,"pct":null},"4":{"containers":4,"pct":0.01},"5":{"containers":3,"pct":0.01}},"total":{"containers":6,"pct":0.0}},{"pais":"Guiana","por_mes":{"1":{"containers":1,"pct":0.14},"2":{"containers":1,"pct":0.03},"3":{"containers":1,"pct":0.0},"4":{"containers":2,"pct":0.0},"5":{"containers":1,"pct":0.0}},"total":{"containers":5,"pct":0.0}},{"pais":"Portugal","por_mes":{"1":{"containers":1,"pct":0.14},"2":{"containers":1,"pct":0.03},"3":{"containers":2,"pct":0.01},"4":{"containers":2,"pct":0.0},"5":{"containers":2,"pct":0.01}},"total":{"containers":5,"pct":0.0}},{"pais":"Alemanha","por_mes":{"1":{"containers":1,"pct":0.14},"2":{"containers":1,"pct":0.03},"3":{"containers":1,"pct":0.0},"4":{"containers":1,"pct":0.0},"5":{"containers":1,"pct":0.0}},"total":{"containers":2,"pct":0.0}},{"pais":"Bolívia","por_mes":{"1":{"containers":null,"pct":null},"2":{"containers":null,"pct":null},"3":{"containers":null,"pct":null},"4":{"containers":null,"pct":null},"5":{"containers":2,"pct":0.01}},"total":{"containers":2,"pct":0.0}},{"pais":"Antígua e Barbuda","por_mes":{"1":{"containers":1,"pct":0.14},"2":{"containers":1,"pct":0.03},"3":{"containers":1,"pct":0.0},"4":{"containers":1,"pct":0.0},"5":{"containers":1,"pct":0.0}},"total":{"containers":1,"pct":0.0}},{"pais":"Arábia Saudita","por_mes":{"1":{"containers":1,"pct":0.14},"2":{"containers":1,"pct":0.03},"3":{"containers":null,"pct":null},"4":{"containers":1,"pct":0.0},"5":{"containers":null,"pct":null}},"total":{"containers":1,"pct":0.0}},{"pais":"Aruba","por_mes":{"1":{"containers":null,"pct":null},"2":{"containers":null,"pct":null},"3":{"containers":1,"pct":0.0},"4":{"containers":null,"pct":null},"5":{"containers":null,"pct":null}},"total":{"containers":1,"pct":0.0}},{"pais":"Áustria","por_mes":{"1":{"containers":null,"pct":null},"2":{"containers":null,"pct":null},"3":{"containers":null,"pct":null},"4":{"containers":null,"pct":null},"5":{"containers":1,"pct":0.0}},"total":{"containers":1,"pct":0.0}}],"total_geral":{"por_mes":{"1":{"containers":7,"pct":1.0},"2":{"containers":34,"pct":1.0},"3":{"containers":313,"pct":1.0},"4":{"containers":708,"pct":1.0},"5":{"containers":388,"pct":1.0}},"total":{"containers":1448,"pct":1.0}},"pct_mes_anterior":[{"pais":"Uruguai","pct":"11%"},{"pais":"Alemanha","pct":"0%"},{"pais":"Antígua e Barbuda","pct":"0%"},{"pais":"Bahamas","pct":"0%"},{"pais":"Barein","pct":"0%"},{"pais":"Bélgica","pct":"0%"},{"pais":"Brasil","pct":"0%"}]}};
+
+/* ── helpers ────────────────────────────────────────────────── */
+const $  = id => document.getElementById(id);
+const esc = s => (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const nf = (v,d=2) => (v==null||isNaN(v)) ? '—' : Number(v).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+const ni = v => (v==null||isNaN(v)) ? '—' : Number(v).toLocaleString('pt-BR');
+const impCls = i => { const s=(i||'').toLowerCase(); return s.indexOf('alto')>=0?'alto':(s.charAt(0)==='m'?'medio':'baixo'); };
+const limpa = s => (s==null?'':String(s)).replace(/^[^\p{L}\p{N}]+/u,'').trim();
+const dtBR = s => { if(!s) return '—'; const m=String(s).match(/^(\d{4})-(\d{2})-(\d{2})/); return m? m[3]+'/'+m[2]+'/'+m[1].slice(2) : String(s); };
+const semanaISO = d => { const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())); const dn=t.getUTCDay()||7; t.setUTCDate(t.getUTCDate()+4-dn); const y=new Date(Date.UTC(t.getUTCFullYear(),0,1)); return Math.ceil(((t-y)/86400000+1)/7); };
+
+const IC = {"chart":"<path d=\"M3 3v18h18\"/><path d=\"M7 16l4-4 4 4 4-4\"/>","grid":"<rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1\"/>","news":"<path d=\"M4 4h13a2 2 0 0 1 2 2v12a2 2 0 0 0 2-2V8\"/><path d=\"M4 4v14a2 2 0 0 0 2 2h13\"/><line x1=\"8\" y1=\"9\" x2=\"14\" y2=\"9\"/><line x1=\"8\" y1=\"13\" x2=\"14\" y2=\"13\"/>","boat":"<path d=\"M3 15l2-6h14l2 6\"/><path d=\"M4 15c2 3 4 4 8 4s6-1 8-4\"/><line x1=\"12\" y1=\"3\" x2=\"12\" y2=\"9\"/>","calendar":"<rect x=\"3\" y=\"5\" width=\"18\" height=\"16\" rx=\"2\"/><line x1=\"3\" y1=\"10\" x2=\"21\" y2=\"10\"/><line x1=\"8\" y1=\"3\" x2=\"8\" y2=\"6\"/><line x1=\"16\" y1=\"3\" x2=\"16\" y2=\"6\"/>","bars":"<path d=\"M21 21H3V3\"/><rect x=\"7\" y=\"10\" width=\"4\" height=\"11\"/><rect x=\"13\" y=\"6\" width=\"4\" height=\"15\"/>","db":"<ellipse cx=\"12\" cy=\"5\" rx=\"8\" ry=\"3\"/><path d=\"M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5\"/><path d=\"M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3\"/>","globe":"<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M3.6 9h16.8M3.6 15h16.8M12 3a13.8 13.8 0 0 1 0 18M12 3a13.8 13.8 0 0 0 0 18\"/>","warn":"<path d=\"M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z\"/><line x1=\"12\" y1=\"9\" x2=\"12\" y2=\"13\"/><line x1=\"12\" y1=\"17\" x2=\"12.01\" y2=\"17\"/>","check":"<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M8.5 12.5l2.5 2.5 4.5-5\"/>","link":"<path d=\"M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1\"/><path d=\"M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1\"/>","cloud":"<path d=\"M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 0 1 0 9z\"/>","thermo":"<path d=\"M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z\"/>","cloudoff":"<path d=\"M3 3l18 18\"/><path d=\"M17.5 19H9a7 7 0 0 1-1.2-13.9\"/><path d=\"M12.5 5.1A7 7 0 0 1 15.7 10h1.8a4.5 4.5 0 0 1 3.2 7.7\"/>","pin":"<path d=\"M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11z\"/><circle cx=\"12\" cy=\"10\" r=\"2.5\"/>","file":"<path d=\"M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z\"/><path d=\"M14 3v5h5\"/>","euro":"<path d=\"M16 6.5A6.5 6.5 0 1 0 16 17.5\"/><line x1=\"4\" y1=\"10\" x2=\"13\" y2=\"10\"/><line x1=\"4\" y1=\"14\" x2=\"13\" y2=\"14\"/>","clock":"<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 6v6l4 2\"/>"};
+const ico = (n,c) => '<svg class="'+(c||'')+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'+(IC[n]||'')+'</svg>';
+
+/* ── design system ──────────────────────────────────────────── */
+const PALETTE = ['#8DC63F','#F47C20','#3498DB','#F0C040','#E74C3C','#9B59B6','#1ABC9C','#E67E22','#C8E68A','#7FC7E8','#FBD38D'];
+const ANO_COR = {'2021':'#9B59B6','2022':'#1ABC9C','2023':'#3498DB','2024':'#F0C040','2025':'#F47C20','2026':'#8DC63F'};
+
+const HAS_CHART = (typeof Chart !== 'undefined');
+if(HAS_CHART){
+  Chart.defaults.color = '#ADADAD';
+  Chart.defaults.borderColor = 'rgba(255,255,255,.06)';
+  Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
+  Chart.defaults.font.size = 11;
+  Chart.defaults.maintainAspectRatio = false;
+  Chart.defaults.plugins.legend.labels.boxWidth = 10;
+  Chart.defaults.plugins.legend.labels.padding = 14;
+  Chart.defaults.plugins.legend.labels.usePointStyle = true;
+  Chart.defaults.plugins.legend.labels.pointStyle = 'circle';
+  Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(13,17,13,.95)';
+  Chart.defaults.plugins.tooltip.borderColor = 'rgba(141,198,63,.3)';
+  Chart.defaults.plugins.tooltip.borderWidth = 1;
+  Chart.defaults.plugins.tooltip.padding = 10;
+  Chart.defaults.plugins.tooltip.titleColor = '#FFFFFF';
+  Chart.defaults.plugins.tooltip.bodyColor = '#ADADAD';
+  Chart.defaults.plugins.tooltip.cornerRadius = 8;
+}
+const TT_RAMP = [[141,198,63],[240,192,64],[231,76,60]];   // [[r,g,b] rapido, [r,g,b] medio, [r,g,b] lento]
+const GRID = {color:'rgba(255,255,255,.06)', drawTicks:false};
+const NOGRID = {display:false};
+
+/* rotulo de valor no topo da barra (paridade com o Power BI) */
+const barLabels = { id:'barLabels', afterDatasetsDraw(chart,a,opts){
+  const ctx=chart.ctx, pfx=(opts&&opts.prefix)||'', dec=(opts&&opts.dec!=null)?opts.dec:2;
+  ctx.save(); ctx.font='600 10px "Plus Jakarta Sans", sans-serif'; ctx.fillStyle='#ADADAD';
+  ctx.textAlign='center'; ctx.textBaseline='bottom';
+  chart.data.datasets.forEach((ds,di)=>{ const m=chart.getDatasetMeta(di); if(m.hidden) return;
+    m.data.forEach((el,i)=>{ const v=ds.data[i]; if(v==null) return;
+      ctx.fillText(pfx+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:dec,maximumFractionDigits:dec}), el.x, el.y-4); }); });
+  ctx.restore(); } };
+
+const charts = {};
+function mk(id, cfg){
+  const el = $(id); if(!el) return;
+  if(!HAS_CHART){ const w=el.parentElement; if(w) w.innerHTML='<div class="vazio-box">'+ico('cloudoff')+'<span>Chart.js nao carregou (sem acesso ao CDN).</span></div>'; return; }
+  if(charts[id]) charts[id].destroy();
+  charts[id] = new Chart(el, cfg);
+}
+
+/* ── blocos de markup (design system) ───────────────────────── */
+const card  = (inner, cls) => '<div class="card-shell'+(cls?' '+cls:'')+'"><div class="card-inner">'+inner+'</div></div>';
+const kpi   = (label, val, unit, trend, vcls) => card(
+  '<div class="kpi-label">'+label+'</div>'+
+  '<div class="kpi-value'+(vcls?' '+vcls:'')+'">'+val+'</div>'+
+  (unit?'<div class="kpi-unit">'+unit+'</div>':'')+
+  (trend?trend:''));
+const trendTag = d => (d==null||isNaN(d)) ? '' :
+  '<span class="kpi-trend '+(d>=0?'up':'down')+'">'+(d>=0?'&uarr;':'&darr;')+' '+nf(Math.abs(d)*100,1)+'%</span>';
+const chartCard = (titulo, canvasId, filtros, nota, wrapCls) => card(
+  '<div class="chart-header"><span class="chart-title">'+titulo+'</span>'+(filtros?'<div class="filter-bar">'+filtros+'</div>':'')+'</div>'+
+  '<div class="chart-wrap'+(wrapCls?' '+wrapCls:'')+'"><canvas id="'+canvasId+'"></canvas></div>'+
+  (nota?'<div class="chart-note">'+nota+'</div>':''), 'chart-card');
+const pageHeader = (eyebrow, titulo, sub) =>
+  '<div class="page-header"><div class="page-eyebrow">'+eyebrow+'</div>'+
+  '<div class="page-title">'+titulo+'</div>'+(sub?'<p class="page-sub">'+sub+'</p>':'')+'</div>';
+const aviso = (txt, ok) => '<div class="aviso'+(ok?' ok':'')+'">'+ico(ok?'check':'warn')+'<div>'+txt+'</div></div>';
+const vazio = txt => '<div class="vazio-box">'+ico('cloudoff')+'<span>'+txt+'</span></div>';
+const srcLink = u => u ? '<a class="src" href="'+esc(u)+'" target="_blank" rel="noopener" title="'+esc(u)+'">'+ico('link')+'</a>' : '<span style="color:var(--text-3)">—</span>';
+
+/* ══ NAVEGACAO ═══════════════════════════════════════════════ */
+const RENDER = {};
+const jaRenderizou = {};
+function irPara(key){
+  document.querySelectorAll('.page').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.nav-item,.mb-item').forEach(e=>e.classList.toggle('active', e.dataset.page===key));
+  const sec = $('page-'+key); if(!sec) return;
+  sec.classList.add('active');
+  if(!jaRenderizou[key] && RENDER[key]){ RENDER[key](); jaRenderizou[key]=true; }
+  else if(RENDER[key+'Charts']) RENDER[key+'Charts']();
+  sec.scrollTop = 0;
+}
+
+
+
+/* ══ SUPABASE ════════════════════════════════════════════════
+   Preencha com o projeto do BI Avocado. A chave aqui e a ANON
+   (somente leitura, protegida por RLS) — nunca a service_role.
+   Se as constantes voltarem para um valor invalido, o dashboard nao tenta
+   a rede e usa o bloco de dados embutido. */
+const SUPA_URL  = 'https://lbgeneauerjeskiwbgpj.supabase.co';
+const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxiZ2VuZWF1ZXJqZXNraXdiZ3BqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY0NTI1MjksImV4cCI6MjEwMjAyODUyOX0.hTKuLed9sy7WA-g5ByV5jp8NUrCX8SNQaCchi1Yftgw';
+
+let FONTE_DADOS = { modo: 'embutido', detalhe: 'dados do arquivo', em: null };
+
+const supaConfigurado = () =>
+  /^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/i.test(SUPA_URL) && SUPA_ANON.length > 40;
+
+/* paginado de 1000 em 1000 via header Range — mesmo padrao do BI Limao */
+async function sbFetch(tabela, params = {}){
+  const PAGE = 1000;
+  let todos = [], offset = 0;
+  while(true){
+    const url = new URL(SUPA_URL.replace(/\/$/,'') + '/rest/v1/' + tabela);
+    Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
+    const r = await fetch(url, { headers: {
+      apikey: SUPA_ANON, Authorization: 'Bearer ' + SUPA_ANON,
+      'Range-Unit': 'items', Range: offset + '-' + (offset + PAGE - 1), Prefer: 'count=none'
+    }});
+    if(!r.ok){
+      const corpo = await r.text().catch(()=> '');
+      throw new Error(tabela + ': HTTP ' + r.status + ' — ' + corpo.slice(0,120));
+    }
+    const pag = await r.json();
+    todos = todos.concat(pag);
+    if(pag.length < PAGE) break;
+    offset += PAGE;
+  }
+  return todos;
+}
+
+/* ── carga do Supabase, tabela por tabela ─────────────────────
+   Cada bloco tem try/catch proprio: se uma tabela falhar, as outras
+   continuam vivas e so aquela cai no dado embutido. FONTES registra
+   qual venceu, e a aba Fontes & Lacunas mostra isso. */
+const FONTES = {};
+
+const med = a => { if(!a.length) return null; const s=a.slice().sort((x,y)=>x-y), m=s.length>>1;
+                   return s.length%2 ? s[m] : (s[m-1]+s[m])/2; };
+const mediaDe = a => a.length ? a.reduce((x,y)=>x+y,0)/a.length : null;
+
+async function bloco(nome, fn){
+  try { const n = await fn(); FONTES[nome] = {modo:'ao vivo', n}; return true; }
+  catch(e){ console.warn('[supabase] '+nome+': '+e.message); FONTES[nome] = {modo:'embutido', erro:e.message}; return false; }
+}
+
+/* preco do Brasil — a tabela tem o historico completo, entao substitui */
+async function carregaBrasil(){
+  const l = await sbFetch('v_brasil_precos_semanal',
+    {select:'ano,semana,preco_max,extracted_at', order:'ano.asc,semana.asc'});
+  if(!l.length) throw new Error('tabela vazia');
+  const s = {};
+  l.forEach(r => (s[String(r.ano)] = s[String(r.ano)]||[]).push({semana:+r.semana, valor:+r.preco_max}));
+  DATA.precos.brasil.series = s;
+  FONTE_DADOS = { modo:'ao vivo', detalhe:'Supabase · v_brasil_precos_semanal',
+                  em: l[l.length-1].extracted_at };
+  return l.length;
+}
+
+/* Chile, Argentina, Uruguai — a tabela cobre so 2026, entao MESCLA por ano
+   com o que ja veio das planilhas (2023-2025) */
+async function carregaOrigens(){
+  const l = await sbFetch('v_precos_origem_semanal',
+    {select:'pais,ano,semana,preco_max', order:'pais.asc,ano.asc,semana.asc'});
+  if(!l.length) throw new Error('tabela vazia');
+  const mapa = {'Chile':'chile','Argentina':'argentina','Uruguai':'uruguai','Uruguay':'uruguai'};
+  const porPais = {};
+  l.forEach(r => {
+    const k = mapa[r.pais]; if(!k) return;
+    porPais[k] = porPais[k] || {};
+    (porPais[k][String(r.ano)] = porPais[k][String(r.ano)]||[]).push({semana:+r.semana, valor:+r.preco_max});
+  });
+  Object.keys(porPais).forEach(k => {
+    if(!DATA.precos[k]) return;
+    DATA.precos[k].series = Object.assign({}, DATA.precos[k].series, porPais[k]);
+  });
+  return l.length;
+}
+
+/* noticias dos 7 paises — substitui tanto DATA.news (Brasil/Chile) quanto o
+   snapshot do PDF dos outros cinco */
+async function carregaNews(){
+  const l = await sbFetch('news',
+    {select:'data,pais,categoria,tag,impacto,estado,texto,fonte_url', order:'data.desc'});
+  if(!l.length) throw new Error('tabela vazia');
+  const slug = p => p.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z]/g,'');
+  const novo = {};
+  l.forEach(r => {
+    const k = slug(r.pais);
+    novo[k] = novo[k] || {pais:r.pais, geral:[], regulacao:[], logistica:[]};
+    const cat = ['geral','regulacao','logistica'].includes(r.categoria) ? r.categoria : 'geral';
+    novo[k][cat].push({data:r.data, tag:r.tag, impacto:r.impacto, texto:r.texto, fonte:r.fonte_url});
+  });
+  Object.keys(novo).forEach(k => {
+    DATA.news[k] = Object.assign({}, DATA.news[k] || {}, novo[k]);
+  });
+  return l.length;
+}
+
+async function carregaCambio(){
+  const l = await sbFetch('v_cambio_atual', {select:'par,data,valor', order:'par.asc'});
+  if(!l.length) throw new Error('tabela vazia');
+  const porPar = {}; l.forEach(r => porPar[r.par] = r);
+  const dePais = {brasil:'USD/BRL', chile:'USD/CLP', colombia:'USD/COP',
+                  espanha:'USD/EUR', israel:'USD/ILS', marrocos:'USD/MAD', peru:'USD/PEN'};
+  Object.entries(dePais).forEach(([k, par]) => {
+    const r = porPar[par]; if(!r) return;
+    DATA.news[k] = DATA.news[k] || {geral:[], regulacao:[], logistica:[]};
+    DATA.news[k].cambio = {par, valor:+r.valor, data:r.data};
+  });
+  return l.length;
+}
+
+async function carregaCirad(){
+  const l = await sbFetch('cirad_resumo',
+    {select:'ano,semana,ordem,secao,texto', order:'ano.desc,semana.desc,ordem.asc'});
+  if(!l.length) throw new Error('tabela vazia');
+  const ano = l[0].ano, semana = l[0].semana;
+  const desta = l.filter(r => r.ano===ano && r.semana===semana);
+  SNAP.cirad = { titulo: SNAP.cirad.titulo, ano, semana,
+    secoes: desta.map(r => {
+      const linhas = String(r.texto).split('\n').map(x=>x.trim()).filter(Boolean);
+      const itens = linhas.filter(x => x.startsWith('-')).map(x => x.replace(/^-\s*/,''));
+      const texto = linhas.filter(x => !x.startsWith('-')).join(' ');
+      return itens.length ? {titulo:r.secao, texto:texto||null, itens} : {titulo:r.secao, texto};
+    })};
+  return desta.length;
+}
+
+/* rotas: o dado bruto vem do banco e as matrizes/ranking/cards sao
+   recalculados aqui — nao ha mais agregado pre-cozido no arquivo */
+async function carregaRotas(){
+  const l = await sbFetch('logistica_rotas',
+    {select:'pais_origem,porto_origem,rota,pais_destino,porto_destino,modal,transit_time_dias,armador,obs,fonte',
+     order:'pais_origem.asc'});
+  if(!l.length) throw new Error('tabela vazia');
+  const ehBrasil = r => r.pais_origem === 'Brasil';
+  const glob = l.filter(r => !ehBrasil(r)), br = l.filter(ehBrasil);
+
+  const rota = r => ({pais:r.pais_origem, porto_origem:r.porto_origem, rota:r.rota,
+    pais_destino:r.pais_destino, porto_destino:r.porto_destino,
+    transit_time: r.transit_time_dias==null?null:+r.transit_time_dias,
+    fornecedor:r.armador, modal:r.modal, obs:r.obs});
+
+  // cards sao dos cards do PBI: calculados so sobre as rotas GLOBAIS, nao
+  // incluindo as de Santos (que tem secao propria)
+  const tts = glob.map(r=>r.transit_time_dias).filter(v=>v!=null).map(Number);
+  const G = {rotas: glob.map(rota), matriz:{paises_origem:[], paises_destino:[], valores:{}}, ranking:[],
+             cards:{tt_menor: Math.min.apply(null,tts), tt_maior: Math.max.apply(null,tts),
+                    tt_medio: +(mediaDe(tts)).toFixed(2)}};
+  G.matriz.paises_origem  = Array.from(new Set(glob.map(r=>r.pais_origem))).sort();
+  G.matriz.paises_destino = Array.from(new Set(glob.map(r=>r.pais_destino))).sort();
+  G.matriz.paises_origem.forEach(o => {
+    G.matriz.valores[o] = {};
+    G.matriz.paises_destino.forEach(d => {
+      const v = glob.filter(r=>r.pais_origem===o && r.pais_destino===d && r.transit_time_dias!=null)
+                    .map(r=>+r.transit_time_dias);
+      if(v.length) G.matriz.valores[o][d] = med(v);
+    });
+  });
+  G.ranking = G.matriz.paises_origem.map(p => ({
+      pais: p,
+      portos: Array.from(new Set(glob.filter(r=>r.pais_origem===p).map(r=>r.porto_origem))).map(pt => ({
+        porto: pt,
+        tt: +(mediaDe(glob.filter(r=>r.pais_origem===p && r.porto_origem===pt && r.transit_time_dias!=null)
+                          .map(r=>+r.transit_time_dias))).toFixed(2)
+      })).sort((a,b)=>a.tt-b.tt)
+    })).sort((a,b)=>a.portos[0].tt - b.portos[0].tt);
+
+  const B = {rotas: br.map(rota), matriz:{}, ranking:[]};
+  Array.from(new Set(br.map(r=>r.pais_destino))).forEach(d => {
+    const v = br.filter(r=>r.pais_destino===d && r.transit_time_dias!=null).map(r=>+r.transit_time_dias);
+    if(v.length) B.matriz[d] = +(mediaDe(v)).toFixed(2);
+  });
+  B.ranking = br.map(r => ({porto_origem:r.porto_origem, pais_destino:r.pais_destino,
+    maritimo: (r.modal||'').indexOf('Rodov')===0 ? null : (r.transit_time_dias==null?null:+r.transit_time_dias),
+    rodoviario: (r.modal||'').indexOf('Rodov')===0 ? (r.transit_time_dias==null?null:+r.transit_time_dias) : null}));
+
+  DATA.logistica = {global:G, brasil:B};
+  return l.length;
+}
+
+async function carregaJanela(){
+  const l = await sbFetch('janela_producao',
+    {select:'pais,mes_num,mes_nome,nivel,ordem_pais', order:'ordem_pais.asc,mes_num.asc'});
+  if(!l.length) throw new Error('tabela vazia');
+  const meses = [];
+  l.forEach(r => { meses[r.mes_num-1] = r.mes_nome; });
+  const porPais = {};
+  l.forEach(r => {
+    porPais[r.pais] = porPais[r.pais] || {pais:r.pais, ordem:r.ordem_pais||999, niveis:new Array(12).fill(0)};
+    porPais[r.pais].niveis[r.mes_num-1] = +r.nivel;
+  });
+  DATA.producao_global = { meses,
+    paises: Object.values(porPais).sort((a,b)=>a.ordem-b.ordem) };
+  return l.length;
+}
+
+async function carregaClima(){
+  const l = await sbFetch('v_clima_acumulado_7d',
+    {select:'pais,cidade,acumulado_7d_mm,ultima_data', order:'acumulado_7d_mm.desc'});
+  if(!l.length) throw new Error('tabela vazia');
+  const porPais = {};
+  l.forEach(r => (porPais[r.pais] = porPais[r.pais]||[]).push(
+    {cidade:r.cidade, acumulado_mm:+r.acumulado_7d_mm, descricao:''}));
+  Object.keys(porPais).forEach(p => { if(SNAP.newsletters[p]) SNAP.newsletters[p].chuva7d = porPais[p]; });
+  return l.length;
+}
+
+/* Le tudo em paralelo. Nunca lanca para fora: o que falhar fica no embutido. */
+async function carregarSupabase(){
+  if(!supaConfigurado()){
+    FONTE_DADOS = { modo:'embutido', detalhe:'Supabase nao configurado', em:null };
+    return false;
+  }
+  const r = await Promise.all([
+    bloco('brasil_precos',   carregaBrasil),
+    bloco('precos_origem',   carregaOrigens),
+    bloco('news',            carregaNews),
+    bloco('cambio',          carregaCambio),
+    bloco('cirad_resumo',    carregaCirad),
+    bloco('logistica_rotas', carregaRotas),
+    bloco('janela_producao', carregaJanela),
+    bloco('clima',           carregaClima),
+  ]);
+  const vivos = r.filter(Boolean).length;
+  if(!vivos) FONTE_DADOS = { modo:'embutido', detalhe:'nenhuma tabela respondeu', em:null };
+  return vivos > 0;
+}
+
+/* ══ AUDITORIA DE FONTE ══════════════════════════════════════
+   Preenchido conforme cada aba e revisada com o responsavel.
+   `status`: validado | pendente | lacuna */
+const AUDITORIA = {
+  brasil: {
+    status: 'validado', em: '11/08/2026',
+    fontes: [
+      ['2024&ndash;2025', 'Brasil_historico.xlsx', 'Hass / Fuerte A no Ceagesp/SP &mdash; 680 dias, 02/01/2024 a 31/12/2025 (326 dias em 2024, 354 em 2025)'],
+      ['2026', 'abacate_preco_brasil_agrolink.csv', '129 registros de <b>Avocado/ Hass/ Fuerte A</b> no Ceagesp/SP, de 03/02 a 07/08/2026 &mdash; a s&eacute;rie come&ccedil;a na S6']
+    ],
+    agg: 'M&aacute;ximo do pre&ccedil;o por (ano, semana), com semana no padr&atilde;o <b>WEEKNUM do Excel</b> &mdash; come&ccedil;a no domingo, ano com 53 semanas.',
+    provas: [
+      'R$ 23,33 &rarr; 10/11/2024 &rarr; S46 no WEEKNUM (ISO daria S45, e o relat&oacute;rio mostra S46)',
+      'S1/2024 = R$ 6,54 no WEEKNUM (ISO daria 11,22, valor que n&atilde;o aparece no relat&oacute;rio)',
+      'R$ 18,57 &rarr; S49/2024 e R$ 16,81 &rarr; S50/2024, ambos conferem',
+      'R$ 21,64 &rarr; 07/04/2025 &rarr; S15 nas duas conven&ccedil;&otilde;es'
+    ],
+    ressalvas: [
+      '<b>S23/2026:</b> o Power BI mostra R$ 6,52 e o m&aacute;ximo real da semana &eacute; R$ 6,60. Os dias s&atilde;o 01/06 = 6,25 &middot; 02/06 = 6,60 &middot; 03/06 = 6,60 &middot; 05/06 = 6,52. As quatro linhas foram coletadas juntas em 08/06 e o PDF saiu em 15/06, ent&atilde;o n&atilde;o &eacute; quest&atilde;o de snapshot. S21, S22 e S24 batem no centavo.',
+      'As 23 linhas legadas de janeiro t&ecirc;m <code>CEASA</code> e <code>Produto</code> <b>invertidas</b> (produto em <code>CEASA</code>, mercado em <code>Produto</code>). Nas 129 linhas do coletor atual est&aacute; correto: <code>CEASA</code> = mercado, <code>Produto</code> = produto.',
+      'A partir de 11/08/2026 a s&eacute;rie vem da tabela <code>brasil_precos</code> no Supabase, alimentada por <code>etl_brasil_precos.py</code> no GitHub Actions. O ETL faz <b>upsert</b> por (data, mercado, produto), ent&atilde;o um pre&ccedil;o corrigido na fonte passa a entrar &mdash; o coletor antigo era append-only e nunca atualizava, o que provavelmente explica a divergência da S23.',
+      '23 registros legados de janeiro/2026 com produto <code>Abacate 1</code> (abacate comum, de CEAGESP, CEASA-MA, MT e PB, entre R$ 8,17 e 13,51) permanecem no arquivo por decis&atilde;o de projeto. N&atilde;o entram na s&eacute;rie porque n&atilde;o s&atilde;o Hass &mdash; o Power BI tamb&eacute;m os ignora.'
+    ]
+  }
+};
+
+/* ══ PRECOS ══════════════════════════════════════════════════ */
+const ORIGENS = [
+  {key:'brasil',    label:'Brasil',    moeda:'R$',  unid:'R$/kg',  agg:'m&aacute;ximo'},
+  {key:'chile',     label:'Chile',     moeda:'US$', unid:'USD/kg', agg:'m&eacute;dia'},
+  {key:'uruguai',   label:'Uruguai',   moeda:'US$', unid:'USD/kg', agg:'m&aacute;ximo'},
+  {key:'argentina', label:'Argentina', moeda:'US$', unid:'USD/kg', agg:'m&eacute;dia'},
+  {key:'europa',    label:'Europa',    moeda:'&euro;', unid:'&euro;/caixa 4kg', agg:'refer&ecirc;ncia CIRAD'}
+];
+let precoAtual = 'brasil';
+const anosDe = o => Object.keys((o&&o.series)||{}).sort();
+const ultimoAno = o => { const a=anosDe(o); return a.length? a[a.length-1] : null; };
+
+function ult4(key){
+  const o = DATA.precos[key];
+  if(o && o.series){
+    const ano = ultimoAno(o);
+    if(ano){ const arr=o.series[ano].slice(-4);
+      if(arr.length) return {origem:'planilha', valores:arr.map(x=>({ano:+ano, semana:x.semana, valor:x.valor}))}; }
+  }
+  const lbl = key.charAt(0).toUpperCase()+key.slice(1);
+  const s = SNAP.ultimas_4_semanas && SNAP.ultimas_4_semanas[lbl];
+  return s ? {origem:'pbi', valores:s.valores} : null;
+}
+
+RENDER.precos = function(){
+  const chips = ORIGENS.map(o=>'<button class="filter-chip'+(o.key===precoAtual?' active':'')+'" data-origem="'+o.key+'">'+o.label+'</button>').join('');
+  $('page-precos').innerHTML =
+    pageHeader('Mercados &middot; Pre&ccedil;o semanal Hass', 'Pre&ccedil;os',
+               'Mesma agrega&ccedil;&atilde;o do relat&oacute;rio Power BI, calculada sobre as planilhas e coletores do projeto.') +
+    '<div class="filter-bar chip-row" id="chips-precos">'+chips+'</div><div id="precos-body"></div>';
+  $('chips-precos').addEventListener('click', ev=>{
+    const b = ev.target.closest('.filter-chip'); if(!b) return;
+    precoAtual = b.dataset.origem;
+    document.querySelectorAll('#chips-precos .filter-chip').forEach(c=>c.classList.toggle('active', c===b));
+    corpoPreco(precoAtual);
+  });
+  corpoPreco(precoAtual);
+};
+RENDER.precosCharts = function(){ corpoPreco(precoAtual); };
+
+
+
+/* Fonte em uma linha, no pe da tabela. O detalhamento da auditoria
+   (provas da convencao de semana, ressalvas) vive na aba Fontes & Lacunas. */
+function notaFonte(key, m, fonte){
+  const a = AUDITORIA[key];
+  const partes = [];
+  if(a){
+    partes.push('<b>Fonte:</b> ' + a.fontes.map(f => f[1] + ' (' + f[0] + ')').join(' + '));
+    if(FONTE_DADOS.modo === 'ao vivo')
+      partes.push('via <code>brasil_precos</code> no Supabase, carga de ' + dtBR(FONTE_DADOS.em));
+  } else {
+    partes.push('<b>Fonte:</b> ' + esc(fonte));
+  }
+  partes.push('<b>Agrega&ccedil;&atilde;o:</b> ' + (a ? 'm&aacute;ximo' : m.agg) +
+              ' do pre&ccedil;o por (ano, semana), semana no padr&atilde;o WEEKNUM do Excel');
+  return partes.join(' &nbsp;&middot;&nbsp; ');
+}
+
+function corpoPreco(key){
+  const m = ORIGENS.find(o=>o.key===key);
+  if(key==='europa'){ $('precos-body').innerHTML = corpoEuropa(); chartEuropa(); return; }
+  const o = DATA.precos[key], anos = anosDe(o), u4 = ult4(key);
+  const sAt = o.series[ultimoAno(o)], anoAt = ultimoAno(o);
+  const ultimo = sAt[sAt.length-1], penult = sAt[sAt.length-2];
+  const d = penult ? (ultimo.valor-penult.valor)/penult.valor : null;
+  const media = sAt.reduce((a,b)=>a+b.valor,0)/sAt.length;
+  const max = sAt.reduce((a,b)=>b.valor>a.valor?b:a, sAt[0]);
+  const min = sAt.reduce((a,b)=>b.valor<a.valor?b:a, sAt[0]);
+  const fonte = (DATA.meta.fontes['precos.'+key]||[]).join(' + ');
+
+  $('precos-body').innerHTML =
+    '<div class="kpi-grid">'+
+      kpi('Semana '+ultimo.semana+'/'+anoAt, m.moeda+'&nbsp;'+nf(ultimo.valor), m.unid, trendTag(d))+
+      kpi('M&eacute;dia '+anoAt, m.moeda+'&nbsp;'+nf(media), m.unid)+
+      kpi('M&aacute;ximo '+anoAt, m.moeda+'&nbsp;'+nf(max.valor), 'semana '+max.semana)+
+      kpi('M&iacute;nimo '+anoAt, m.moeda+'&nbsp;'+nf(min.valor), 'semana '+min.semana)+
+      kpi('Cobertura', anos.length+' anos', anos.join(' &middot; '))+
+    '</div>'+
+    '<div class="col-1-2">'+
+      chartCard('04 &uacute;ltimas semanas', 'chartU4', '<span class="badge">'+m.unid+'</span>',
+        u4 && u4.origem==='pbi'
+          ? 'Valores do export do Power BI (semana 24/2026) &mdash; as planilhas do projeto n&atilde;o t&ecirc;m '+m.label+' em 2026.'
+          : 'Semanas mais recentes da s&eacute;rie, agrega&ccedil;&atilde;o '+m.agg+'.')+
+      chartCard('M&eacute;dia hist&oacute;rica | KG', 'chartHist',
+        anos.map(a=>'<span class="badge" style="background:transparent;border-color:'+(ANO_COR[a]||'#8DC63F')+';color:'+(ANO_COR[a]||'#8DC63F')+'">'+a+'</span>').join(''),
+        null, 'tall')+
+    '</div>'+
+    card('<div class="chart-header"><span class="chart-title">S&eacute;rie semanal</span><span class="badge">'+m.unid+'</span></div>'+
+      '<div class="table-wrap scroll-y-lg">'+tblSerie(o, anos, m)+'</div>'+
+      '<div class="chart-note">'+notaFonte(key, m, fonte)+'</div>');
+
+  mk('chartU4', {type:'bar', plugins:[barLabels], data:{
+      labels: u4.valores.map(v=>[String(v.ano),'S'+v.semana]),
+      datasets:[{data:u4.valores.map(v=>v.valor), backgroundColor:'#8DC63F', hoverBackgroundColor:'#A5D95C', borderRadius:4, maxBarThickness:46}]},
+    options:{layout:{padding:{top:18}},
+      plugins:{legend:{display:false}, barLabels:{prefix:m.moeda+' ', dec:2},
+               tooltip:{callbacks:{label:c=>m.moeda+' '+nf(c.parsed.y)}}},
+      scales:{x:{grid:NOGRID}, y:{grid:GRID, beginAtZero:true, ticks:{callback:v=>m.moeda+' '+v}}}}});
+
+  const semanas = Array.from({length:53},(_,i)=>i+1);
+  mk('chartHist', {type:'line', data:{labels:semanas,
+      datasets:anos.map(a=>{ const map={}; o.series[a].forEach(x=>map[x.semana]=x.valor);
+        return {label:a, data:semanas.map(s=>map[s]!=null?map[s]:null), spanGaps:true,
+          borderColor:ANO_COR[a]||PALETTE[anos.indexOf(a)%11], backgroundColor:ANO_COR[a]||PALETTE[anos.indexOf(a)%11],
+          borderWidth:a===anoAt?2.4:1.5, pointRadius:0, pointHoverRadius:4, tension:.3};})},
+    options:{interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false}, tooltip:{callbacks:{title:c=>'Semana '+c[0].label, label:c=>c.dataset.label+': '+m.moeda+' '+nf(c.parsed.y)}}},
+      scales:{x:{grid:NOGRID, title:{display:true,text:'Semanas',color:'#909090',font:{size:10}}, ticks:{maxTicksLimit:27}},
+              y:{grid:GRID, ticks:{callback:v=>m.moeda+' '+v}}}}});
+}
+
+function tblSerie(o, anos, m){
+  const map={}; anos.forEach(a=>{ map[a]={}; o.series[a].forEach(x=>map[a][x.semana]=x.valor); });
+  let h='<table class="table-mes"><thead><tr><th class="col-pais">Semana</th>'+
+        anos.map((a,i)=>'<th class="col-num'+(i%2?' col-zebra':'')+'">'+a+'</th>').join('')+'</tr></thead><tbody>';
+  for(let s=1;s<=53;s++){
+    if(!anos.some(a=>map[a][s]!=null)) continue;
+    h+='<tr><td class="col-pais">S'+s+'</td>'+anos.map((a,i)=>
+      '<td class="col-num'+(i%2?' col-zebra':'')+'">'+(map[a][s]!=null? m.moeda+' '+nf(map[a][s]) : '<span class="col-mes-vazio">—</span>')+'</td>').join('')+'</tr>';
+  }
+  return h+'</tbody></table>';
+}
+
+function corpoEuropa(){
+  const r = SNAP.europa_cirad.referencia, g = SNAP.europa_cirad.grafico;
+  const uk = (DATA.precos.europa.paises||{})['Uk'] || {};
+  const anosUk = Object.keys(uk).sort();
+  return '<div class="kpi-grid">'+
+      kpi('EU reference price', '&euro;&nbsp;'+nf(r.valor_atual_eur), esc(r.grade)+' &middot; semana '+r.week_atual+'/2026')+
+      kpi('Semana anterior', '&euro;&nbsp;'+nf(r.valor_anterior_eur), 'semana '+r.week_anterior+' &middot; sem cota&ccedil;&atilde;o publicada')+
+      kpi('vs. m&eacute;dia 2023&ndash;24', esc(r.variacao_vs_media_23_24), 'pre&ccedil;os ponderados por chegadas')+
+      kpi('Unidade', '&euro;/4kg', 'caixa de 4 quilos &middot; CIRAD')+
+    '</div>'+
+    '<div class="col-2-1">'+
+      chartCard('Reino Unido &mdash; pre&ccedil;o m&eacute;dio semanal', 'chartEuropa',
+        anosUk.map(a=>'<span class="badge">'+a+'</span>').join(''),
+        'No <b>Consolidado_forecast.xlsx</b> apenas o Reino Unido est&aacute; em USD/kg. Holanda, Espanha, It&aacute;lia e Fran&ccedil;a t&ecirc;m valores na casa das dezenas de milhares &mdash; s&atilde;o valores de embarque, n&atilde;o pre&ccedil;o por quilo, e ficaram fora do gr&aacute;fico at&eacute; a unidade ser confirmada.', 'tall')+
+      card('<div class="chart-header"><span class="chart-title">Refer&ecirc;ncia CIRAD</span></div>'+
+        '<div class="fontes-list"><b style="color:var(--text)">'+esc(g.titulo)+'</b><br>'+
+        'Unidade: '+esc(g.unidade)+'<br>Eixo: '+g.semanas.map(esc).join(' &middot; ')+'<br>S&eacute;ries: '+g.anos.join(' &middot; ')+'</div>'+
+        aviso('A p&aacute;gina <b>Pre&ccedil;os Europa</b> do Power BI n&atilde;o tem modelo de dados &mdash; s&atilde;o dois prints do boletim CIRAD colados no relat&oacute;rio. Para virar gr&aacute;fico nativo, precisamos da s&eacute;rie semanal do CIRAD em planilha ou de um coletor sobre o PDF do boletim.'))+
+    '</div>'+
+    card('<div class="chart-header"><span class="chart-title">Resumo executivo CIRAD / Tropisens</span><span class="badge">semana '+SNAP.cirad.semana+'/'+SNAP.cirad.ano+'</span></div>'+
+      '<div class="two-col" style="align-items:start">'+
+        '<div>'+SNAP.cirad.secoes.filter((_,i)=>i%2===0).map(secCirad).join('')+'</div>'+
+        '<div>'+SNAP.cirad.secoes.filter((_,i)=>i%2===1).map(secCirad).join('')+'</div>'+
+      '</div>', 'chart-card');
+}
+
+function secCirad(s){
+  return '<div class="cirad-sec"><h4>'+esc(s.titulo)+'</h4>'+
+    (s.texto?'<p>'+esc(s.texto)+'</p>':'')+
+    (s.itens?'<ul>'+s.itens.map(i=>'<li>'+esc(i)+'</li>').join('')+'</ul>':'')+'</div>';
+}
+function chartEuropa(){
+  const uk = (DATA.precos.europa.paises||{})['Uk'] || {};
+  const anos = Object.keys(uk).sort(), semanas = Array.from({length:53},(_,i)=>i+1);
+  mk('chartEuropa', {type:'line', data:{labels:semanas,
+    datasets:anos.map(a=>{ const map={}; uk[a].forEach(x=>map[x.semana]=x.valor);
+      return {label:'Reino Unido '+a, data:semanas.map(s=>map[s]!=null?map[s]:null), spanGaps:true,
+        borderColor:ANO_COR[a]||'#8DC63F', backgroundColor:ANO_COR[a]||'#8DC63F', borderWidth:2, pointRadius:0, pointHoverRadius:4, tension:.3};})},
+    options:{interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false}, tooltip:{callbacks:{title:c=>'Semana '+c[0].label, label:c=>c.dataset.label+': US$ '+nf(c.parsed.y)}}},
+      scales:{x:{grid:NOGRID, ticks:{maxTicksLimit:27}}, y:{grid:GRID, ticks:{callback:v=>'US$ '+v}}}}});
+}
+
+/* ══ NEWSLETTERS ═════════════════════════════════════════════ */
+const PAISES_NL = ['Brasil','Chile','Marrocos','Israel','Colômbia','Espanha','Peru'];
+let paisAtual = 'Brasil';
+
+function blocoNL(pais){
+  const k = pais.toLowerCase().replace(/ô/g,'o').replace(/[^a-z]/g,'');
+  const vivo = DATA.news[k], snap = SNAP.newsletters[pais];
+  if(vivo) return {origem:'coletor', dataRef:vivo.cambio.data, cambio:vivo.cambio,
+    tabelas:[{titulo:'Vis&atilde;o geral',linhas:vivo.geral},{titulo:'Regula&ccedil;&atilde;o',linhas:vivo.regulacao},{titulo:'Log&iacute;stica',linhas:vivo.logistica}].filter(t=>t.linhas&&t.linhas.length),
+    chuva: snap?snap.chuva7d:null, clima: snap?snap.clima:null};
+  return {origem:'pbi', dataRef:SNAP.meta.exportado_em, cambio:snap.cambio,
+    tabelas:(snap.tabelas||[]).map(t=>({titulo:esc(t.titulo),linhas:t.linhas})),
+    chuva:snap.chuva7d, clima:snap.clima};
+}
+
+RENDER.news = function(){
+  const chips = PAISES_NL.map(p=>'<button class="filter-chip'+(p===paisAtual?' active':'')+'" data-pais="'+esc(p)+'">'+esc(p)+'</button>').join('');
+  $('page-news').innerHTML =
+    pageHeader('Intelig&ecirc;ncia &middot; Overview por origem', 'Newsletters',
+               'Not&iacute;cias, regula&ccedil;&atilde;o, log&iacute;stica, c&acirc;mbio e clima por pa&iacute;s produtor &mdash; equivalente &agrave;s p&aacute;ginas HASS Overview do Power BI.')+
+    '<div class="filter-bar chip-row" id="chips-news">'+chips+'</div><div id="news-body"></div>';
+  $('chips-news').addEventListener('click', ev=>{
+    const b = ev.target.closest('.filter-chip'); if(!b) return;
+    paisAtual = b.dataset.pais;
+    document.querySelectorAll('#chips-news .filter-chip').forEach(c=>c.classList.toggle('active', c===b));
+    corpoNL(paisAtual);
+  });
+  corpoNL(paisAtual);
+};
+
+function corpoNL(pais){
+  const b = blocoNL(pais);
+  const badge = b.origem==='coletor'
+    ? '<span class="badge"><span class="dot-live" style="margin-right:.3rem"></span>coletor &middot; '+dtBR(b.dataRef)+'</span>'
+    : '<span class="ntag orange">snapshot Power BI &middot; semana '+SNAP.meta.semana_referencia+'/'+SNAP.meta.ano_referencia+'</span>';
+  const dec = b.cambio.valor>100 ? 2 : 4;
+
+  let h = '<div class="col-2-1">'+
+    card('<div class="chart-header"><span class="chart-title">Acumulado de chuva 7 dias</span><span class="badge">mm</span></div>'+
+      (b.chuva && b.chuva.length
+        ? b.chuva.map(c=>'<div class="rain-row"><span class="rr-cty">'+esc(c.cidade)+'</span>'+
+            '<span class="rr-mm">'+nf(c.acumulado_mm)+' mm</span><span class="rr-dsc">'+esc(limpa(c.descricao))+'</span></div>').join('')
+        : vazio('Tabela de chuva ausente na p&aacute;gina de '+esc(pais)+' do relat&oacute;rio de origem.')))+
+    kpi('C&acirc;mbio '+esc(b.cambio.par), nf(b.cambio.valor,dec), dtBR(b.dataRef)+'<br>'+badge)+
+  '</div>';
+
+  b.tabelas.forEach(t=>{
+    h += card('<div class="chart-header"><span class="chart-title">'+t.titulo+'</span><span class="badge">'+t.linhas.length+' registro'+(t.linhas.length===1?'':'s')+'</span></div>'+
+      '<div class="table-wrap scroll-y"><table><thead><tr><th>Data</th><th>Tag</th><th>Impacto</th><th>Descri&ccedil;&atilde;o</th><th>Fonte</th></tr></thead><tbody>'+
+      t.linhas.map(l=>'<tr><td>'+dtBR(l.data)+'</td><td><span class="ntag">'+esc(l.tag)+'</span></td>'+
+        '<td><span class="ntag '+impCls(l.impacto)+'">'+esc(l.impacto)+'</span></td>'+
+        '<td class="txt">'+esc(l.texto)+'</td><td class="fonte-cel">'+srcLink(l.fonte)+'</td></tr>').join('')+
+      '</tbody></table></div>', 'chart-card');
+  });
+
+  if(b.clima){
+    h += card('<div class="chart-header"><span class="chart-title">Clima &mdash; regi&otilde;es produtoras monitoradas</span></div>'+
+      '<div class="filter-bar">'+(b.clima.cidades||[]).map(c=>'<span class="ntag">'+esc(c)+'</span>').join('')+'</div>'+
+      aviso('Os gr&aacute;ficos de <b>Temp &ordm;C</b> e <b>Precipita&ccedil;&atilde;o (mm)</b> vinham de consulta direta a API de clima dentro do Power BI (<code>Weather_Avocado</code> / <code>Weather_Local</code>). N&atilde;o existe arquivo desses dados no projeto e os r&oacute;tulos do PDF n&atilde;o permitem reassociar valor &rarr; cidade &rarr; dia. Cobertura no relat&oacute;rio: '+((b.clima.dias||[]).length)+' dias, '+((b.clima.cidades||[]).length)+' cidades. O BI Lim&atilde;o j&aacute; tem <code>etl_clima_openweather.py</code> resolvendo exatamente isso.'), 'chart-card');
+  }
+  if(b.origem==='pbi'){
+    h += aviso('N&atilde;o existe coletor de not&iacute;cias para <b>'+esc(pais)+'</b> no projeto &mdash; s&oacute; Brasil e Chile t&ecirc;m <code>news_*.py</code>. O conte&uacute;do acima &eacute; o snapshot do export de 15/06/2026 e n&atilde;o se atualiza.');
+  }
+  $('news-body').innerHTML = h;
+}
+
+/* ══ LOGISTICA ═══════════════════════════════════════════════ */
+function corTT(v, mn, mx){
+  const t = Math.max(0, Math.min(1, (v-mn)/((mx-mn)||1)));
+  const S = TT_RAMP;                      // [rapido, medio, lento]
+  const k = t < .5 ? 0 : 1, u = t < .5 ? t*2 : (t-.5)*2;
+  const a = S[k], b = S[k+1];
+  const mix = i => Math.round(a[i] + u*(b[i]-a[i]));
+  return 'rgb('+mix(0)+','+mix(1)+','+mix(2)+')';
+}
+let rotaTab = 'global';
+
+RENDER.logistica = function(){
+  const G = DATA.logistica.global, B = DATA.logistica.brasil;
+  const vals = [];
+  G.matriz.paises_origem.forEach(o=>G.matriz.paises_destino.forEach(d=>{ const v=(G.matriz.valores[o]||{})[d]; if(v!=null) vals.push(v); }));
+  const mn = Math.min.apply(null,vals), mx = Math.max.apply(null,vals);
+
+  let mtxG = '<table class="mtx"><thead><tr><th class="rowh">Pa&iacute;s</th>'+
+    G.matriz.paises_destino.map(d=>'<th>'+esc(d)+'</th>').join('')+'</tr></thead><tbody>'+
+    G.matriz.paises_origem.map(o=>'<tr><th class="rowh">'+esc(o)+'</th>'+
+      G.matriz.paises_destino.map(d=>{ const v=(G.matriz.valores[o]||{})[d];
+        return v==null ? '<td><div class="mcell vazio">&middot;</div></td>'
+          : '<td><div class="mcell" style="background:'+corTT(v,mn,mx)+';color:#0A0D0A" title="'+esc(o)+' &rarr; '+esc(d)+': '+nf(v)+' dias">'+nf(v,0)+'</div></td>'; }).join('')+
+      '</tr>').join('')+'</tbody></table>'+
+    '<div class="mlegend"><div class="it"><span class="sw" style="background:'+corTT(mn,mn,mx)+'"></span>mais r&aacute;pido ('+nf(mn,0)+'d)</div>'+
+    '<div class="it"><span class="sw" style="background:'+corTT((mn+mx)/2,mn,mx)+'"></span>intermedi&aacute;rio</div>'+
+    '<div class="it"><span class="sw" style="background:'+corTT(mx,mn,mx)+'"></span>mais lento ('+nf(mx,0)+'d)</div>'+
+    '<div class="it"><span class="sw" style="background:rgba(255,255,255,.025)"></span>rota inexistente</div></div>';
+
+  let rankG = '<table class="table-compacta"><thead><tr><th>Pa&iacute;s</th><th>Porto de origem</th><th style="text-align:right">TT m&eacute;dio</th></tr></thead><tbody>';
+  G.ranking.forEach(p=>p.portos.forEach((pt,i)=>{
+    rankG += '<tr>'+(i===0?'<td rowspan="'+p.portos.length+'" style="color:var(--text);font-weight:500">'+esc(p.pais)+'</td>':'')+
+      '<td>'+esc(pt.porto)+'</td><td style="text-align:right;font-variant-numeric:tabular-nums;color:var(--text)">'+nf(pt.tt)+'</td></tr>';
+  }));
+  rankG += '</tbody></table>';
+
+  const bd = Object.keys(B.matriz).sort(), bv = bd.map(k=>B.matriz[k]);
+  const bmn = Math.min.apply(null,bv), bmx = Math.max.apply(null,bv);
+  const mtxB = '<table class="mtx"><thead><tr><th class="rowh">Pa&iacute;s</th>'+bd.map(d=>'<th>'+esc(d)+'</th>').join('')+'</tr></thead>'+
+    '<tbody><tr><th class="rowh">Brasil</th>'+bd.map(d=>'<td><div class="mcell" style="background:'+corTT(B.matriz[d],bmn,bmx)+';color:#0A0D0A" title="Santos &rarr; '+esc(d)+': '+nf(B.matriz[d])+' dias">'+nf(B.matriz[d])+'</div></td>').join('')+'</tr></tbody></table>';
+
+  const agr = {};
+  B.ranking.forEach(x=>{ const k=x.pais_destino; if(!agr[k]) agr[k]={m:[],r:[]};
+    if(x.maritimo!=null) agr[k].m.push(x.maritimo); if(x.rodoviario!=null) agr[k].r.push(x.rodoviario); });
+  const av = a => a.length ? a.reduce((x,y)=>x+y,0)/a.length : null;
+  const ordK = Object.keys(agr).sort((a,b)=>{
+    const x = av(agr[a].m)!=null?av(agr[a].m):av(agr[a].r), y = av(agr[b].m)!=null?av(agr[b].m):av(agr[b].r); return x-y; });
+  const rankB = '<table class="table-compacta"><thead><tr><th>Porto origem</th><th>Pa&iacute;s de destino</th><th style="text-align:right">Mar&iacute;timo</th><th style="text-align:right">Rodovi&aacute;rio</th></tr></thead><tbody>'+
+    ordK.map(k=>{ const m=av(agr[k].m), r=av(agr[k].r);
+      return '<tr><td>Santos</td><td style="color:var(--text);font-weight:500">'+esc(k)+'</td>'+
+        '<td style="text-align:right;font-variant-numeric:tabular-nums">'+(m!=null?nf(m):'<span style="color:var(--text-3)">—</span>')+'</td>'+
+        '<td style="text-align:right;font-variant-numeric:tabular-nums">'+(r!=null?nf(r):'<span style="color:var(--text-3)">—</span>')+'</td></tr>'; }).join('')+'</tbody></table>';
+
+  $('page-logistica').innerHTML =
+    pageHeader('Log&iacute;stica &middot; Estudo de rotas TFruits', 'Transit Time',
+               G.rotas.length+' rotas globais e '+B.rotas.length+' rotas a partir de Santos.')+
+    '<div class="kpi-grid">'+
+      kpi('TT menor', nf(G.cards.tt_menor,2), 'dias &middot; rota mais r&aacute;pida')+
+      kpi('TT m&eacute;dio', nf(G.cards.tt_medio,2), 'dias &middot; '+G.rotas.length+' rotas globais')+
+      kpi('TT maior', nf(G.cards.tt_maior,2), 'dias &middot; rota mais lenta')+
+      kpi('Portos de origem', String(new Set(G.rotas.map(r=>r.porto_origem)).size), 'em '+new Set(G.rotas.map(r=>r.pais)).size+' pa&iacute;ses')+
+    '</div>'+
+    aviso('O relat&oacute;rio Power BI mostra TT menor <b>4</b> e maior <b>37</b>. Na planilha os extremos s&atilde;o <b>3</b> (San Antonio &rarr; Buenos Aires) e <b>39</b> (Buenaventura &rarr; Buenos Aires) &mdash; e a m&eacute;dia 16,63 s&oacute; fecha incluindo os dois. Prov&aacute;vel filtro manual de outlier nos cards do PBI.')+
+    '<div class="region-title">Global</div>'+
+    '<div class="col-2-1">'+
+      card('<div class="chart-header"><span class="chart-title">M&eacute;dia de TT estimado &mdash; mediana origem &times; destino</span><span class="badge">dias</span></div><div class="mtx-wrap">'+mtxG+'</div>', 'chart-card')+
+      card('<div class="chart-header"><span class="chart-title">Ranking rotas r&aacute;pidas</span></div><div class="table-wrap scroll-y">'+rankG+'</div>', 'chart-card')+
+    '</div>'+
+    '<div class="region-title">Brasil</div>'+
+    '<div class="col-2-1">'+
+      card('<div class="chart-header"><span class="chart-title">M&eacute;dia de TT estimado &mdash; Santos &rarr; destino</span><span class="badge">dias</span></div><div class="mtx-wrap">'+mtxB+'</div>', 'chart-card')+
+      card('<div class="chart-header"><span class="chart-title">Ranking rotas r&aacute;pidas por modal</span></div><div class="table-wrap scroll-y">'+rankB+'</div>', 'chart-card')+
+    '</div>'+
+    card('<div class="chart-header"><span class="chart-title">Rotas detalhadas</span>'+
+      '<div class="filter-bar" id="chips-rotas">'+
+      '<button class="filter-chip'+(rotaTab==='global'?' active':'')+'" data-rt="global">Global ('+G.rotas.length+')</button>'+
+      '<button class="filter-chip'+(rotaTab==='brasil'?' active':'')+'" data-rt="brasil">Brasil ('+B.rotas.length+')</button></div></div>'+
+      '<div class="table-wrap scroll-y-lg" id="tbl-rotas"></div>', 'chart-card');
+
+  $('chips-rotas').addEventListener('click', ev=>{
+    const b = ev.target.closest('.filter-chip'); if(!b) return;
+    rotaTab = b.dataset.rt;
+    document.querySelectorAll('#chips-rotas .filter-chip').forEach(c=>c.classList.toggle('active', c===b));
+    tabelaRotas();
+  });
+  tabelaRotas();
+};
+
+function tabelaRotas(){
+  const ord = (a,b)=>(a.transit_time==null?1e9:a.transit_time)-(b.transit_time==null?1e9:b.transit_time);
+  if(rotaTab==='global'){
+    $('tbl-rotas').innerHTML = '<table><thead><tr><th>Pa&iacute;s</th><th>Porto de origem</th><th>Rota</th><th>Pa&iacute;s de destino</th><th>Porto de destino</th><th style="text-align:right">TT</th><th>Armador</th></tr></thead><tbody>'+
+      DATA.logistica.global.rotas.slice().sort(ord).map(x=>'<tr><td style="color:var(--text);font-weight:500">'+esc(x.pais)+'</td><td>'+esc(x.porto_origem)+'</td><td>'+esc(x.rota)+'</td>'+
+        '<td>'+esc(x.pais_destino)+'</td><td>'+esc(x.porto_destino)+'</td>'+
+        '<td style="text-align:right;font-variant-numeric:tabular-nums;color:var(--text)">'+(x.transit_time!=null?nf(x.transit_time,0):'—')+'</td><td>'+esc(x.fornecedor)+'</td></tr>').join('')+'</tbody></table>';
+  } else {
+    $('tbl-rotas').innerHTML = '<table><thead><tr><th>Porto de origem</th><th>Porto de destino</th><th>Pa&iacute;s de destino</th><th>Modal</th><th style="text-align:right">TT</th><th>Observa&ccedil;&atilde;o</th></tr></thead><tbody>'+
+      DATA.logistica.brasil.rotas.slice().sort(ord).map(x=>'<tr><td>'+esc(x.porto_origem)+'</td><td>'+esc(x.porto_destino)+'</td>'+
+        '<td style="color:var(--text);font-weight:500">'+esc(x.pais_destino)+'</td>'+
+        '<td><span class="ntag'+((x.modal||'').indexOf('Rodov')===0?' orange':'')+'">'+esc(x.modal)+'</span></td>'+
+        '<td style="text-align:right;font-variant-numeric:tabular-nums;color:var(--text)">'+(x.transit_time!=null?nf(x.transit_time,0):'—')+'</td>'+
+        '<td class="txt">'+esc(x.obs)+'</td></tr>').join('')+'</tbody></table>';
+  }
+}
+
+/* ══ PRODUCAO GLOBAL ═════════════════════════════════════════ */
+const NIV_COR = {3:'#8DC63F', 2:'rgba(141,198,63,.60)', 1:'rgba(141,198,63,.26)'};
+const NIV_TXT = {3:'#000000', 2:'#FFFFFF', 1:'#ADADAD'};
+const MES_ABR = {'Janeiro':'Jan','Fevereiro':'Fev','Março':'Mar','Abril':'Abr','Maio':'Mai','Junho':'Jun','Julho':'Jul','Agosto':'Ago','Setembro':'Set','Outubro':'Out','Novembro':'Nov','Dezembro':'Dez'};
+
+RENDER.producao = function(){
+  const P = DATA.producao_global;
+  const ativosMes = P.meses.map((m,i)=>P.paises.reduce((a,p)=>a+(p.niveis[i]>0?1:0),0));
+  const pico = ativosMes.indexOf(Math.max.apply(null,ativosMes));
+  const resumo = P.paises.map(p=>({pais:p.pais, meses:p.niveis.filter(n=>n>0).length, forca:p.niveis.reduce((a,b)=>a+b,0)}));
+  const longa = resumo.slice().sort((a,b)=>b.meses-a.meses)[0];
+  const forte = resumo.slice().sort((a,b)=>b.forca-a.forca)[0];
+
+  const mtx = '<table class="mtx"><thead><tr><th class="rowh">Pa&iacute;s</th>'+
+    P.meses.map(m=>'<th>'+(MES_ABR[m]||esc(m))+'</th>').join('')+'<th>Meses</th></tr></thead><tbody>'+
+    P.paises.map(p=>'<tr><th class="rowh">'+esc(p.pais)+'</th>'+
+      p.niveis.map((n,i)=> n ? '<td><div class="mcell" style="background:'+NIV_COR[n]+';color:'+NIV_TXT[n]+'" title="'+esc(p.pais)+' &mdash; '+esc(P.meses[i])+': n&iacute;vel '+n+'">'+n+'</div></td>'
+                              : '<td><div class="mcell vazio">&nbsp;</div></td>').join('')+
+      '<td><div class="mcell neutra">'+p.niveis.filter(n=>n>0).length+'</div></td></tr>').join('')+
+    '<tr><th class="rowh" style="color:var(--text-3);font-weight:400">Pa&iacute;ses ativos</th>'+
+      ativosMes.map(t=>'<td><div class="mcell neutra">'+t+'</div></td>').join('')+'<td></td></tr>'+
+    '</tbody></table>'+
+    '<div class="mlegend">'+
+      '<div class="it"><span class="sw" style="background:'+NIV_COR[3]+'"></span>3 &mdash; pico de safra</div>'+
+      '<div class="it"><span class="sw" style="background:'+NIV_COR[2]+'"></span>2 &mdash; safra m&eacute;dia</div>'+
+      '<div class="it"><span class="sw" style="background:'+NIV_COR[1]+'"></span>1 &mdash; safra inicial / residual</div>'+
+      '<div class="it"><span class="sw" style="background:rgba(255,255,255,.025)"></span>sem produ&ccedil;&atilde;o</div></div>';
+
+  $('page-producao').innerHTML =
+    pageHeader('Produ&ccedil;&atilde;o &middot; Janela mundial Hass', 'Janela de Produ&ccedil;&atilde;o Global',
+               'N&iacute;vel de produ&ccedil;&atilde;o por pa&iacute;s e m&ecirc;s, na ordem do relat&oacute;rio original.')+
+    '<div class="kpi-grid">'+
+      kpi('Pa&iacute;ses mapeados', String(P.paises.length), 'janela de produ&ccedil;&atilde;o Hass')+
+      kpi('M&ecirc;s de maior oferta', esc(P.meses[pico]), ativosMes[pico]+' pa&iacute;ses produzindo', null, 'kpi-value-sm')+
+      kpi('Janela mais longa', esc(longa.pais), longa.meses+' meses no ano', null, 'kpi-value-sm')+
+      kpi('Maior for&ccedil;a acumulada', esc(forte.pais), 'soma de n&iacute;veis = '+forte.forca, null, 'kpi-value-sm')+
+    '</div>'+
+    card('<div class="chart-header"><span class="chart-title">Janela de produ&ccedil;&atilde;o mundial Avocado Hass</span><span class="badge">n&iacute;vel 1&ndash;3</span></div>'+
+      '<div class="mtx-wrap">'+mtx+'</div>'+
+      aviso('O relat&oacute;rio Power BI lista 15 linhas, mas o <code>janela_avocado_ordenada_producao_ordempais.csv</code> tem '+P.paises.length+': faltam <b>Chile</b> (OrdemPais 5) e <b>EUA (Canad&aacute;)</b> (OrdemPais 15). Provavelmente foram digitados direto no modelo do PBI &mdash; vale acrescentar as duas linhas ao CSV.'), 'chart-card');
+};
+
+/* ══ SHARE BRASIL ════════════════════════════════════════════ */
+const MESN = {1:'Janeiro',2:'Fevereiro',3:'Mar&ccedil;o',4:'Abril',5:'Maio',6:'Junho',7:'Julho',8:'Agosto',9:'Setembro',10:'Outubro',11:'Novembro',12:'Dezembro'};
+const MESA = {1:'Jan',2:'Fev',3:'Mar',4:'Abr',5:'Mai',6:'Jun',7:'Jul',8:'Ago',9:'Set',10:'Out',11:'Nov',12:'Dez'};
+
+RENDER.share = function(){
+  const S = SNAP.share_brasil, tg = S.total_geral;
+  const cel = (o,m) => o[m] || o[String(m)] || {};
+  const top = S.paises.slice().filter(p=>p.total.containers).sort((a,b)=>b.total.containers-a.total.containers);
+  const mesPico = S.meses.reduce((a,m)=> (cel(tg.por_mes,m).containers||0) > (cel(tg.por_mes,a).containers||0) ? m : a, S.meses[0]);
+
+  let tbl = '<table class="table-mes"><thead><tr><th class="col-pais">Pa&iacute;s de destino</th>';
+  S.meses.forEach((m,i)=>{ const z = i%2 ? ' col-zebra':'';
+    tbl += '<th class="col-mes'+z+'">'+MESA[m]+' ctn</th><th class="col-mes'+z+(m%3===0?' col-tri':'')+'">%</th>'; });
+  tbl += '<th class="col-total">Total ctn</th><th class="col-total">%</th></tr></thead><tbody>';
+  S.paises.forEach((p,idx)=>{
+    tbl += '<tr><td class="col-pais"><span class="pais-rank">'+(idx+1)+'</span>'+esc(p.pais)+'</td>';
+    S.meses.forEach((m,i)=>{ const c = cel(p.por_mes,m), z = i%2?' col-zebra':'';
+      tbl += '<td class="col-mes'+z+'">'+(c.containers!=null?ni(c.containers):'<span class="col-mes-vazio">—</span>')+'</td>';
+      tbl += '<td class="col-mes'+z+(m%3===0?' col-tri':'')+'">'+(c.pct!=null?nf(c.pct,2):'<span class="col-mes-vazio">—</span>')+'</td>'; });
+    tbl += '<td class="col-total">'+ni(p.total.containers)+'</td><td class="col-total">'+nf(p.total.pct,2)+'</td></tr>';
+  });
+  tbl += '</tbody><tfoot><tr><td class="col-pais">Total</td>';
+  S.meses.forEach((m,i)=>{ const c = cel(tg.por_mes,m), z = i%2?' col-zebra':'';
+    tbl += '<td class="col-mes'+z+'">'+ni(c.containers)+'</td><td class="col-mes'+z+(m%3===0?' col-tri':'')+'">'+nf(c.pct,2)+'</td>'; });
+  tbl += '<td class="col-total">'+ni(tg.total.containers)+'</td><td class="col-total">'+nf(tg.total.pct,2)+'</td></tr></tfoot></table>';
+
+  $('page-share').innerHTML =
+    pageHeader('Log&iacute;stica &middot; Comexstat', 'Share Brasil',
+               'Containers exportados por pa&iacute;s de destino e m&ecirc;s &mdash; jan a mai/2026.')+
+    '<div class="kpi-grid">'+
+      kpi('Containers acumulados', ni(tg.total.containers), 'jan a mai/2026')+
+      kpi('Destinos ativos', String(top.length), 'de '+S.paises.length+' pa&iacute;ses na matriz')+
+      kpi('Principal destino', esc(top[0].pais.replace(' (Holanda)','')), ni(top[0].total.containers)+' ctn &middot; '+nf(top[0].total.pct*100,0)+'%', null, 'kpi-value-sm')+
+      kpi('M&ecirc;s de pico', MESN[mesPico], ni(cel(tg.por_mes,mesPico).containers)+' containers', null, 'kpi-value-sm')+
+    '</div>'+
+    '<div class="two-col">'+
+      chartCard('Containers exportados por m&ecirc;s', 'chartShareMes', '<span class="badge">2026</span>')+
+      chartCard('Share por destino', 'chartShareDest', '<span class="badge">acumulado</span>')+
+    '</div>'+
+    card('<div class="chart-header"><span class="chart-title">Containers e % por pa&iacute;s de destino &times; m&ecirc;s</span></div>'+
+      '<div class="table-wrap">'+tbl+'</div>', 'chart-card')+
+    '<div class="two-col">'+
+      card('<div class="chart-header"><span class="chart-title">% m&ecirc;s anterior</span></div>'+
+        '<div class="table-wrap"><table class="table-compacta"><thead><tr><th>Pa&iacute;s</th><th style="text-align:right">% m&ecirc;s anterior</th></tr></thead><tbody>'+
+        S.pct_mes_anterior.map(x=>'<tr><td style="color:var(--text);font-weight:500">'+esc(x.pais)+'</td><td style="text-align:right">'+esc(x.pct)+'</td></tr>').join('')+
+        '</tbody></table></div>')+
+      card('<div class="chart-header"><span class="chart-title">Origem do dado</span></div>'+
+        '<div class="fontes-list">A tabela <code>Comexstat</code> do Power BI n&atilde;o tem arquivo nem coletor neste projeto. Os n&uacute;meros vieram do export PDF do relat&oacute;rio (15/06/2026).</div>'+
+        aviso('No export, a matriz e a tabela de % m&ecirc;s anterior aparecem <b>roladas</b>: apenas as linhas vis&iacute;veis foram capturadas ('+S.paises.length+' pa&iacute;ses na matriz, '+S.pct_mes_anterior.length+' em % m&ecirc;s anterior). O BI Lim&atilde;o j&aacute; tem <code>etl_comexstat.py</code> &mdash; adaptar para o NCM 0804.40.00 resolve.'))+
+    '</div>';
+  RENDER.shareCharts();
+};
+
+RENDER.shareCharts = function(){
+  const S = SNAP.share_brasil, tg = S.total_geral;
+  const cel = (o,m) => o[m] || o[String(m)] || {};
+  mk('chartShareMes', {type:'bar', plugins:[barLabels], data:{labels:S.meses.map(m=>MESA[m]),
+      datasets:[{data:S.meses.map(m=>cel(tg.por_mes,m).containers||0), backgroundColor:'#8DC63F', hoverBackgroundColor:'#A5D95C', borderRadius:4, maxBarThickness:48}]},
+    options:{layout:{padding:{top:18}},
+      plugins:{legend:{display:false}, barLabels:{dec:0}, tooltip:{callbacks:{label:c=>ni(c.parsed.y)+' containers'}}},
+      scales:{x:{grid:NOGRID}, y:{grid:GRID, beginAtZero:true}}}});
+
+  const top = S.paises.slice().filter(p=>p.total.containers).sort((a,b)=>b.total.containers-a.total.containers).slice(0,8);
+  mk('chartShareDest', {type:'bar', data:{labels:top.map(p=>p.pais.replace(' (Holanda)','')),
+      datasets:[{data:top.map(p=>p.total.containers), backgroundColor:top.map((_,i)=>PALETTE[i%11]), borderRadius:4, maxBarThickness:18}]},
+    options:{indexAxis:'y', plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>ni(c.parsed.x)+' containers'}}},
+      scales:{x:{grid:GRID, beginAtZero:true}, y:{grid:NOGRID, ticks:{font:{size:10}}}}}});
+};
+
+/* ══ FONTES & LACUNAS ════════════════════════════════════════ */
+const DEPARA = [
+  ['Pre&ccedil;os Brasil','brasil_consolidado','Semana, Ano, M&aacute;ximo de Preco','Brasil_historico.xlsx (Hass Ceagesp/SP, 2024&ndash;25) + abacate_preco_brasil_agrolink.csv (Hass Ceagesp/SP, 2026)','validado'],
+  ['Pre&ccedil;os Chile','chile_consolidado','Semana, Ano, M&eacute;dia de preco_medio_usd','Preco_historico.xlsx + palta_santiago_precos.csv + odepa_abacate_historico2025.csv','ok'],
+  ['Pre&ccedil;os Uruguai','uruguai_consolidado','Semana, Ano, M&aacute;ximo de preco_medio_usd','Consolidado_forecast.xlsx (Pa&iacute;s = Uruguai) &mdash; sem 2026','parcial'],
+  ['Pre&ccedil;os Argentina','argentina_consolidado, palta_buenosaires_precos','Semana do Ano, Ano, M&eacute;dia de preco_medio_usd','Consolidado_forecast.xlsx + palta_buenosaires_precos.csv','ok'],
+  ['Pre&ccedil;os Europa','&mdash; (sem binding, 3 imagens)','&mdash;','prints do boletim CIRAD colados no PBI','falta'],
+  ['Tropisens CIRAD','Tropisens_summary','Resumo Executivo','Tropisens.py &rarr; Tropisens_summary.txt (arquivo n&atilde;o est&aacute; no projeto)','falta'],
+  ['Transit Time (global)','logistica','Pa&iacute;s, Pa&iacute;s Destino, Mediana / TT M&eacute;dio','TFRUITS Estudo de rotas.xlsx','ok'],
+  ['Transit Time (Brasil)','logistica_brasil','Modal, Porto, M&eacute;dia de Transit time','TFRUITS Estudo de rotas Brasil_v2.xlsx','ok'],
+  ['Produ&ccedil;&atilde;o Global','janela_avocado_ordenada_produca + DimMes','Pa&iacute;s, MesNome, Soma de N&iacute;velProdu&ccedil;&atilde;o','janela_avocado_ordenada_producao_ordempais.csv (13 de 15 pa&iacute;ses)','parcial'],
+  ['Share Brasil','Comexstat','Pa&iacute;s, M&ecirc;s, Containers, %','nenhum arquivo nem coletor','falta'],
+  ['Newsletter Brasil','historico_brasil, historico_brasil_cambio','Data, Tag, Impacto, Descri&ccedil;&atilde;o, Fonte','news_brasil.csv + news_brasil_cambio.csv','ok'],
+  ['Newsletter Chile','historico_chile (+ regulacao, logistica, cambio)','idem','news_chile.csv + regulacao_chile.csv + logistica_chile.csv + news_chile_cambio.csv','ok'],
+  ['Newsletter Marrocos','historico_marrocos*','idem','nenhum coletor','falta'],
+  ['Newsletter Israel','historico_israel*','idem','nenhum coletor','falta'],
+  ['Newsletter Col&ocirc;mbia','historico_colombia*','idem','nenhum coletor','falta'],
+  ['Newsletter Espanha','historico_espanha*','idem','nenhum coletor','falta'],
+  ['Newsletter Peru','historico_peru*','idem','nenhum coletor','falta'],
+  ['Clima (todas as newsletters)','Weather_Avocado, Weather_Local','Cidade, Temp, Chuva, Acumulado 7 dias','API consultada dentro do PBI &mdash; nenhum arquivo','falta']
+];
+const ST = {validado:['ntag val','Validado'], ok:['ntag','Fonte no projeto'], parcial:['ntag medio','Parcial'], falta:['ntag alto','Sem fonte']};
+
+RENDER.fontes = function(){
+  const va = DEPARA.filter(r=>r[4]==='validado').length;
+  const ok = DEPARA.filter(r=>r[4]==='ok').length, pa = DEPARA.filter(r=>r[4]==='parcial').length, fa = DEPARA.filter(r=>r[4]==='falta').length;
+  const arqs = Array.from(new Set([].concat.apply([], Object.keys(DATA.meta.fontes).map(k=>DATA.meta.fontes[k])))).sort();
+
+  $('page-fontes').innerHTML =
+    pageHeader('Sistema &middot; Rastreabilidade', 'Fontes &amp; Lacunas',
+               'De/Para entre cada visual do Power BI e o arquivo ou coletor que o alimenta neste projeto.')+
+    '<div class="kpi-grid">'+
+      kpi('Fonte validada', String(va), 'auditada contra o Power BI')+
+      kpi('Fonte identificada', String(ok), 'de '+DEPARA.length+' blocos, revis&atilde;o pendente')+
+      kpi('Parciais', String(pa), 'fonte existe, cobertura incompleta')+
+      kpi('Sem fonte', String(fa), 'dependem de snapshot do PBI')+
+    '</div>'+
+    card('<div class="chart-header"><span class="chart-title">De/Para &mdash; visual do Power BI &rarr; fonte</span></div>'+
+      '<div class="table-wrap"><table><thead><tr><th>P&aacute;gina / visual</th><th>Tabela do modelo</th><th>Campos</th><th>Fonte no projeto</th><th>Status</th></tr></thead><tbody>'+
+      DEPARA.map(r=>'<tr><td style="color:var(--text);font-weight:500">'+r[0]+'</td><td><code style="font-size:.68rem;color:var(--green)">'+r[1]+'</code></td>'+
+        '<td class="txt" style="min-width:12rem">'+r[2]+'</td><td class="txt" style="min-width:16rem">'+r[3]+'</td>'+
+        '<td><span class="'+ST[r[4]][0]+'">'+ST[r[4]][1]+'</span></td></tr>').join('')+
+      '</tbody></table></div>', 'chart-card')+
+    '<div class="two-col">'+
+      card('<div class="chart-header"><span class="chart-title">Pr&oacute;ximos passos sugeridos</span></div>'+
+        '<div class="cirad-sec"><h4>1. Clima</h4><ul>'+
+        '<li>Reaproveitar <code>etl_clima_openweather.py</code> do BI Lim&atilde;o para as regi&otilde;es produtoras dos 7 pa&iacute;ses.</li></ul></div>'+
+        '<div class="cirad-sec"><h4>2. Share Brasil</h4><ul>'+
+        '<li>Adaptar <code>etl_comexstat.py</code> do BI Lim&atilde;o para o NCM 0804.40.00 (abacate).</li></ul></div>'+
+        '<div class="cirad-sec"><h4>3. Newsletters faltantes</h4><ul>'+
+        '<li>Replicar <code>news_chile.py</code> e as variantes de regula&ccedil;&atilde;o/log&iacute;stica para Marrocos, Israel, Col&ocirc;mbia, Espanha e Peru.</li>'+
+        '<li>C&acirc;mbio: <code>yfinance</code> com MAD=X, ILS=X, COP=X, EUR=X, PEN=X.</li></ul></div>'+
+        '<div class="cirad-sec"><h4>4. Produ&ccedil;&atilde;o e Uruguai</h4><ul>'+
+        '<li>Acrescentar Chile e EUA (Canad&aacute;) ao CSV da janela de produ&ccedil;&atilde;o.</li>'+
+        '<li>Estender a s&eacute;rie do Uruguai para 2025&ndash;2026.</li></ul></div>', 'chart-card')+
+      card('<div class="chart-header"><span class="chart-title">Arquivos lidos nesta vers&atilde;o</span></div>'+
+        '<div class="fontes-list">'+arqs.map(a=>'<code>'+esc(a)+'</code>').join('<br>')+'</div>'+
+        aviso('Snapshot do export PDF (15/06/2026) alimenta: newsletters de Marrocos, Israel, Col&ocirc;mbia, Espanha e Peru; clima; Comexstat; resumo CIRAD; refer&ecirc;ncia EU.'), 'chart-card')+
+    '</div>';
+};
+
+/* ══ INIT ════════════════════════════════════════════════════ */
+function atualizaRodape(){
+  const g = new Date(DATA.meta.gerado_em);
+  const base = 'Dados de '+g.toLocaleDateString('pt-BR')+' · S'+semanaISO(g)+'/'+g.getFullYear();
+  $('last-update').textContent = base + (FONTE_DADOS.modo === 'ao vivo' ? ' · ao vivo' : ' · embutido');
+  $('last-update').title = FONTE_DADOS.detalhe;
+}
+
+async function init(){
+  atualizaRodape();
+  document.querySelectorAll('.nav-item,.mb-item').forEach(el=>el.addEventListener('click',()=>irPara(el.dataset.page)));
+  RENDER.precos(); jaRenderizou.precos = true;
+
+  // tenta o Supabase depois de pintar a tela: se responder, repinta com o dado vivo
+  const vivo = await carregarSupabase();
+  atualizaRodape();
+  if(vivo){
+    // invalida tudo e repinta so a aba visivel; as outras renderizam ao abrir
+    Object.keys(jaRenderizou).forEach(k => jaRenderizou[k] = false);
+    const ativa = document.querySelector('.page.active');
+    const key = ativa ? ativa.id.replace('page-','') : 'precos';
+    if(RENDER[key]){ RENDER[key](); jaRenderizou[key] = true; }
+  }
+}
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

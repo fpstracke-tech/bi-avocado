@@ -1,0 +1,99 @@
+name: ETL Preços — Brasil
+
+on:
+  schedule:
+    # 12:00 UTC = 09:00 BRT, de segunda a sábado.
+    # A Notícias Agrícolas publica o fechamento em dia útil; o sábado pega o
+    # fechamento de sexta caso a publicação atrase.
+    - cron: '0 12 * * 1-6'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Só mostrar o que faria, sem gravar no Supabase'
+        type: boolean
+        required: false
+        default: false
+
+# Duas execuções ao mesmo tempo escreveriam na mesma tabela. O upsert é
+# idempotente, mas serializar evita log confuso e requests desperdiçados.
+concurrency:
+  group: etl-precos-brasil
+  cancel-in-progress: false
+
+jobs:
+  brasil:
+    name: Preços Brasil (Notícias Agrícolas → Supabase)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      issues: write
+      contents: read
+
+    env:
+      SUPABASE_URL:     ${{ secrets.SUPABASE_URL }}
+      SUPABASE_KEY:     ${{ secrets.SUPABASE_KEY }}
+      PYTHONIOENCODING: utf-8
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Instalar dependências
+        run: pip install --upgrade pip && pip install -r requirements.txt
+
+      - name: Conferir secrets
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_KEY" ]; then
+            echo "::error::SUPABASE_URL ou SUPABASE_KEY não configurados nos secrets do repositório."
+            exit 1
+          fi
+          echo "Supabase: ${SUPABASE_URL}"
+
+      - name: ETL Preços Brasil
+        id: brasil
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            python etl_brasil_precos.py --dry-run
+          else
+            python etl_brasil_precos.py
+          fi
+
+      - name: Resumo
+        if: always()
+        run: |
+          echo "### ETL Preços Brasil" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Etapa | Resultado |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| Brasil | ${{ steps.brasil.outcome }} |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Abrir issue em caso de falha
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const titulo = `Falha ETL Preços Brasil — ${new Date().toISOString().slice(0,16).replace('T',' ')} UTC`;
+            const corpo = [
+              '**ETL:** Preços Brasil (Notícias Agrícolas → Supabase `brasil_precos`)',
+              `**Run:** https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              '',
+              'Causas mais comuns, em ordem de probabilidade:',
+              '1. A página da Notícias Agrícolas mudou de layout — o scraper devolve 0 registros.',
+              '2. Bloqueio por User-Agent ou rate limit (HTTP 403).',
+              '3. Secret `SUPABASE_KEY` expirado ou rotacionado.',
+              '',
+              'Para reproduzir local: `python etl_brasil_precos.py --dry-run`',
+            ].join('\n');
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: titulo,
+              body: corpo,
+              labels: ['etl-falha', 'precos'],
+            });

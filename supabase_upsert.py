@@ -19,6 +19,7 @@ Configuração:
 
 import os
 import json
+import time
 import requests
 from pathlib import Path
 
@@ -95,18 +96,51 @@ def upsert(table: str, records: list[dict], batch_size: int = 500,
     total    = 0
     errors   = []
 
+    # Falhas transitórias observadas em produção (11/08/2026): o job da
+    # Argentina no GitHub Actions tomou
+    #   HTTP 401 {"code":"PGRST303","message":"JWT issued at future"}
+    # enquanto Chile e Uruguai, com a MESMA chave e nos mesmos minutos,
+    # gravaram. PGRST303 é desvio de relógio entre quem emite o token e o
+    # PostgREST — não é chave inválida, e uma nova tentativa resolve.
+    # Sem retry, meia hora de trabalho de scraping era jogada fora por um
+    # segundo de skew.
+    TRANSITORIOS = {408, 429, 500, 502, 503, 504}
+
+    def _transitorio(resp) -> bool:
+        if resp.status_code in TRANSITORIOS:
+            return True
+        if resp.status_code == 401 and "PGRST303" in (resp.text or ""):
+            return True
+        return False
+
     for i in range(0, len(records), batch_size):
         batch = _safe_batch(records[i : i + batch_size])
-        r = requests.post(base_url, headers=headers, params=params,
-                          data=json.dumps(batch), timeout=30)
-        if r.status_code in (200, 201):
-            total += len(batch)
-        else:
-            errors.append({
-                "batch_start": i,
-                "status":      r.status_code,
-                "detail":      r.text[:300],
-            })
+        ultima = None
+        for tentativa in range(4):
+            try:
+                r = requests.post(base_url, headers=headers, params=params,
+                                  data=json.dumps(batch), timeout=60)
+            except requests.RequestException as e:
+                ultima = {"batch_start": i, "status": "rede", "detail": str(e)[:300]}
+                time.sleep(2 ** tentativa)
+                continue
+
+            if r.status_code in (200, 201):
+                total += len(batch)
+                ultima = None
+                break
+
+            ultima = {"batch_start": i, "status": r.status_code,
+                      "detail": r.text[:300]}
+            if not _transitorio(r):
+                break                      # erro real: não insiste
+            espera = 2 ** tentativa         # 1s, 2s, 4s, 8s
+            print(f"    lote {i}: HTTP {r.status_code} transitório, "
+                  f"nova tentativa em {espera}s", flush=True)
+            time.sleep(espera)
+
+        if ultima:
+            errors.append(ultima)
 
     return {"inserted": total, "errors": errors}
 

@@ -213,16 +213,23 @@ def main() -> int:
         print("  ERRO: nenhum registro. A página provavelmente mudou de layout.")
         return 1
 
+    # extracted_at vai NO PAYLOAD de propósito. Sem ele, o upsert
+    # merge-duplicates só atualiza as colunas enviadas e o extracted_at fica
+    # congelado na primeira carga — a view v_ultima_atualizacao passa a mentir
+    # e um cron morto fica indistinguível de um cron que rodou sem novidade.
+    agora = datetime.now(timezone.utc).isoformat()
+
     registros = []
     for r in scraped:
         d, m, a = r["data_br"].split("/")
         registros.append({
-            "data":     f"{a}-{m}-{d}",
-            "mercado":  r["mercado"],
-            "produto":  PRODUTO_CANON,
-            "unidade":  "kg",
-            "preco_kg": r["preco"],
-            "fonte":    FONTE,
+            "data":         f"{a}-{m}-{d}",
+            "mercado":      r["mercado"],
+            "produto":      PRODUTO_CANON,
+            "unidade":      "kg",
+            "preco_kg":     r["preco"],
+            "fonte":        FONTE,
+            "extracted_at": agora,
         })
 
     datas = sorted({x["data"] for x in registros})
@@ -236,7 +243,7 @@ def main() -> int:
         return 0
 
     res = supabase_upsert.upsert(TABELA, registros, on_conflict="data,mercado,produto")
-    print(f"  Supabase {TABELA}: {res['inserted']} registros enviados")
+    print(f"  Supabase {TABELA}: {res['inserted']} registros enviados (extracted_at={agora})")
     if res["errors"]:
         for e in res["errors"]:
             print(f"  ERRO no lote {e['batch_start']}: HTTP {e['status']} — {e['detail']}")

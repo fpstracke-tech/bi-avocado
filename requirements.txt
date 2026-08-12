@@ -6,3 +6,5 @@ lxml
 xlrd
 pdfplumber
 yfinance
+pytesseract
+Pillow

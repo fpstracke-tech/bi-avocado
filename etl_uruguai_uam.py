@@ -77,6 +77,7 @@ PRODUTO = "Palta Hass"
 FONTE   = "UAM — boletín de precios mayoristas de referencia (uam.com.uy)"
 
 URL_LISTA  = "https://uam.com.uy/boletin-de-precios-mayoristas/"
+URL_API    = "https://uam.com.uy/wp-json/wp/v2/media"
 URL_CAMBIO = "https://open.er-api.com/v6/latest/USD"
 
 HEADERS = {
@@ -169,7 +170,76 @@ def _links_de_boletim(html: str) -> list[str]:
     return urls
 
 
-def listar_boletins(tentativas: int = 4) -> list[str]:
+def listar_boletins_api(desde: str | None = None) -> list[tuple[str, str]]:
+    """
+    [(data de publicação, url)] — acervo inteiro, mais novo primeiro.
+
+    A página pública mostra só os ~9 boletins mais recentes, o que limita a
+    série ao último mês. A API de mídia do WordPress devolve tudo: em
+    12/08/2026 eram 189 arquivos, de 24/10/2024 a 10/08/2026. É isso que
+    permite backfill — sem ela, o histórico do Uruguai depende de planilha,
+    que só traz um preço médio por semana.
+
+    `desde` filtra pela data de PUBLICAÇÃO do arquivo, não pela data do preço
+    (essa sai de dentro do PDF). Serve para cortar download, não para decidir
+    o que entra na série.
+    """
+    achados, pagina = [], 1
+    while pagina <= 20:                       # trava: 2.000 arquivos
+        try:
+            r = requests.get(URL_API, headers=HEADERS, timeout=90,
+                             params={"search": "boletin-de-precios", "per_page": 100,
+                                     "page": pagina, "_fields": "source_url,date"})
+            if r.status_code == 400:          # pediu página além do fim
+                break
+            r.raise_for_status()
+            lote = r.json()
+        except Exception as e:                # noqa: BLE001
+            print(f"  API de mídia falhou na página {pagina}: {e}", flush=True)
+            break
+        if not isinstance(lote, list) or not lote:
+            break
+        for x in lote:
+            u = (x.get("source_url") or "")
+            nome = u.rsplit("/", 1)[-1].lower()
+            if not nome.startswith("boletin-de-precios") or not nome.endswith(".pdf"):
+                continue
+            if "animales" in nome or "granja" in nome:
+                continue
+            pub = (x.get("date") or "")[:10]
+            if desde and pub and pub < desde:
+                continue
+            achados.append((pub, u))
+        total = int(r.headers.get("X-WP-TotalPages") or 1)
+        if pagina >= total:
+            break
+        pagina += 1
+    vistos, saida = set(), []
+    for pub, u in sorted(achados, reverse=True):
+        if u in vistos:
+            continue
+        vistos.add(u)
+        saida.append((pub, u))
+    return saida
+
+
+def listar_boletins(tentativas: int = 4, desde: str | None = None) -> list[str]:
+    """API de mídia primeiro; a página pública é o plano B."""
+    api = listar_boletins_api(desde)
+    if api:
+        print(f"  API de mídia: {len(api)} boletins"
+              + (f" publicados desde {desde}" if desde else "")
+              + f" ({api[-1][0]} a {api[0][0]})", flush=True)
+        return [u for _, u in api]
+    print("  API de mídia não devolveu nada — caindo para a página pública",
+          flush=True)
+    if desde:
+        print("  AVISO: a página pública lista só os boletins recentes, então "
+              "--desde não vai ser respeitado nesta rodada.", flush=True)
+    return listar_boletins_html(tentativas)
+
+
+def listar_boletins_html(tentativas: int = 4) -> list[str]:
     """
     A UAM é instável para IP de datacenter. Em 11/08/2026 o job do GitHub
     Actions recebeu HTTP 200 com uma página SEM nenhum link de boletim (no run
@@ -312,6 +382,20 @@ def main() -> int:
     if "--arquivo" in sys.argv:
         local = Path(sys.argv[sys.argv.index("--arquivo") + 1])
 
+    # backfill: --desde 2024-10-01 puxa o acervo todo pela API de mídia.
+    # --limite N corta a lista, para testar sem baixar 189 PDFs.
+    desde = None
+    if "--desde" in sys.argv:
+        desde = sys.argv[sys.argv.index("--desde") + 1]
+        try:
+            date.fromisoformat(desde)
+        except ValueError:
+            print(f"  ERRO: --desde precisa ser AAAA-MM-DD, veio {desde!r}.")
+            return 1
+    limite = None
+    if "--limite" in sys.argv:
+        limite = int(sys.argv[sys.argv.index("--limite") + 1])
+
     print(f"ETL Uruguai — Palta Hass atacado (UAM) · "
           f"{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
 
@@ -325,13 +409,16 @@ def main() -> int:
         if d and linhas:
             por_data[d] = linhas
     else:
-        urls = listar_boletins()
+        urls = listar_boletins(desde=desde)
         if not urls:
-            print("  ERRO: nenhum boletim encontrado na página.")
+            print("  ERRO: nenhum boletim encontrado.")
             return 1
-        print(f"  {len(urls)} boletins na página — baixando um a um", flush=True)
+        if limite:
+            urls = urls[:limite]
+            print(f"  --limite {limite}: só os {len(urls)} mais recentes", flush=True)
+        print(f"  {len(urls)} boletins — baixando um a um", flush=True)
         import io
-        for u in urls:
+        for n, u in enumerate(urls, 1):
             nome = u.rsplit("/", 1)[-1]
             try:
                 r = requests.get(u, headers=HEADERS, timeout=180)
@@ -342,9 +429,11 @@ def main() -> int:
                 continue
             if d and linhas:
                 por_data[d] = linhas
-                print(f"    {nome}: {d} · {len(linhas)} linhas", flush=True)
+                print(f"    [{n}/{len(urls)}] {nome}: {d} · {len(linhas)} linhas",
+                      flush=True)
             else:
-                print(f"    {nome}: sem Palta Hass (data={d})")
+                print(f"    [{n}/{len(urls)}] {nome}: sem Palta Hass (data={d})",
+                      flush=True)
 
     if not por_data:
         print("  ERRO: nada extraído.")
@@ -352,6 +441,20 @@ def main() -> int:
 
     fx, datado = carregar_cambio(sorted(por_data))
     if not fx:
+        return 1
+
+    # Câmbio não datado é tolerável numa rodada diária (1-2 semanas, erro
+    # pequeno, aviso basta) e inaceitável num backfill: aplicar a taxa de hoje
+    # a 22 meses de boletim inventa a série em dólar inteira. Nesse caso é
+    # melhor não gravar nada.
+    span = (date.fromisoformat(max(por_data)) - date.fromisoformat(min(por_data))).days
+    if not datado and span > 45:
+        print(f"\n  ERRO: {len(por_data)} boletins cobrindo {span} dias, e o câmbio "
+              f"veio SEM data\n  (taxa única para tudo). Aplicar a cotação de hoje a "
+              f"esse intervalo inventaria\n  a série em USD, então nada foi gravado.\n"
+              f"  Rode de novo quando o UYU=X do Yahoo responder — de preferência da "
+              f"sua\n  máquina, que o alcança. O container do Claude e alguns runners "
+              f"não alcançam.")
         return 1
 
     agora = datetime.now(timezone.utc).isoformat()

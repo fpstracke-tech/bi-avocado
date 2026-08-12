@@ -6,11 +6,14 @@ name: ETL Preços Europa — CIRAD
 #
 # Nenhuma credencial de e-mail entra aqui: o Actions só conhece o WebDAV.
 #
-# Roda todo dia útil de propósito. O relatório é semanal, mas o dia de chegada
-# varia e às vezes atrasa. O upsert é idempotente na chave (ano, semana, grade),
-# então reprocessar a mesma semana não duplica nem suja nada — só reescreve
-# valores idênticos. Por padrão o ETL baixa os 5 PDFs mais recentes da pasta,
-# não a pasta inteira.
+# O job precisa de tesseract-ocr. Motivo: o número oficial de cada semana está
+# nos RÓTULOS DO GRÁFICO DE BARRAS, que é imagem raster no PDF. A tabela de
+# texto da página 1 existe, mas em 12/08/2026 ela veio com o rótulo de semana
+# uma semana atrasado — o gráfico é a fonte confiável porque traz a semana ao
+# lado de cada número. O ETL cruza os dois e avisa quando divergem.
+#
+# Roda todo dia útil de propósito: o relatório é semanal mas o dia de chegada
+# varia. O upsert é idempotente na chave (ano, semana, grade).
 
 on:
   schedule:
@@ -37,7 +40,7 @@ jobs:
   europa:
     name: Europa (CIRAD / FruiTrop)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     permissions:
       issues: write
       contents: read
@@ -55,6 +58,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Instalar tesseract-ocr
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq tesseract-ocr
+          tesseract --version | head -1
 
       - name: Python 3.11
         uses: actions/setup-python@v5
@@ -104,14 +113,20 @@ jobs:
               'Causas mais comuns, em ordem de probabilidade:',
               '1. O flow do Power Automate parou e não há PDF novo na pasta do ownCloud.',
               '2. Credencial do WebDAV expirada (senha de aplicativo revogada).',
-              '3. A CIRAD mudou o layout do relatório. O ETL avisa qual etapa falhou:',
-              '   "não achei AVOCADO REPORT WEEK", "tabela do preço não encontrada"',
-              '   ou "página 4 sem a grade de calibres".',
-              '4. Preço fora da faixa 3–40 €/caixa: a guarda de sanidade recusou a leitura.',
-              '   Isso é erro de parsing, não de mercado — conferir o PDF na mão.',
+              '3. A CIRAD mudou o layout. O log diz qual etapa falhou:',
+              '   "não achei AVOCADO REPORT WEEK", "gráfico de X não localizado",',
+              '   "página 4 sem a grade de calibres".',
+              '4. OCR sem consenso: o log mostra a votação por semana. Se muitas',
+              '   semanas saírem sem consenso, provavelmente o gráfico mudou de',
+              '   tamanho ou de posição na página.',
+              '5. Preço fora da faixa de sanidade (3–40 €/caixa, 0,5–8 €/kg):',
+              '   erro de leitura, não de mercado. Conferir o PDF na mão.',
               '',
               'Para reproduzir local com um PDF baixado à mão:',
               '`python etl_europa_cirad.py --arquivo "CIRAD avocado report Week NN-AAAA.pdf" --dry-run`',
+              '',
+              'Para diagnosticar sem OCR (só as tabelas de texto):',
+              '`python etl_europa_cirad.py --arquivo "..." --sem-ocr --dry-run`',
             ].join('\n');
             await github.rest.issues.create({
               owner: context.repo.owner,

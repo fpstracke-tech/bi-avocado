@@ -50,14 +50,33 @@ def _base_headers(prefer: str = "resolution=merge-duplicates") -> dict:
 
 
 def _safe_batch(batch: list[dict]) -> list[dict]:
-    """Serializa valores não-JSON-nativos (datetime, NaN)."""
+    """
+    Serializa valores não-JSON-nativos (datetime, NaN) e NORMALIZA AS CHAVES.
+
+    O PostgREST exige que todos os objetos de um lote tenham exatamente o mesmo
+    conjunto de chaves; se um dicionário traz um campo que outro não traz, ele
+    devolve 400 com:
+
+        {"code":"PGRST102","message":"All object keys must match"}
+
+    Aconteceu em 12/08/2026 no ETL da Europa: as linhas vindas da tabela do PDF
+    tinham variacao_eur e variacao_media_pct, as vindas do gráfico não. Como é um
+    erro que qualquer ETL pode cometer sem perceber, o conserto fica aqui: uso a
+    UNIÃO das chaves do lote e preencho o que falta com None (que o Postgres
+    grava como NULL, o valor honesto para "esse dado não veio").
+    """
+    todas = set()
+    for row in batch:
+        todas.update(row.keys())
+
     result = []
     for row in batch:
         safe_row = {}
-        for k, v in row.items():
+        for k in todas:
+            v = row.get(k)
             if hasattr(v, "isoformat"):
                 safe_row[k] = v.isoformat()
-            elif v != v:  # NaN
+            elif isinstance(v, float) and v != v:      # NaN
                 safe_row[k] = None
             else:
                 safe_row[k] = v

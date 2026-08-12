@@ -153,11 +153,9 @@ def parse_pdf(caminho_ou_bytes, rotulo: str = "") -> tuple[str | None, list[dict
     return d, linhas
 
 
-def listar_boletins() -> list[str]:
-    r = requests.get(URL_LISTA, headers=HEADERS, timeout=120)
-    r.raise_for_status()
+def _links_de_boletim(html: str) -> list[str]:
     urls, vistos = [], set()
-    for href in re.findall(r'href="([^"]+\.pdf)"', r.text, re.I):
+    for href in re.findall(r'href="([^"]+\.pdf)"', html, re.I):
         nome = href.rsplit("/", 1)[-1].lower()
         # só o boletim de frutas e hortaliças; fora os de animais de granja,
         # informes semanais, mensais e especiais
@@ -169,6 +167,60 @@ def listar_boletins() -> list[str]:
             vistos.add(href)
             urls.append(href)
     return urls
+
+
+def listar_boletins(tentativas: int = 4) -> list[str]:
+    """
+    A UAM é instável para IP de datacenter. Em 11/08/2026 o job do GitHub
+    Actions recebeu HTTP 200 com uma página SEM nenhum link de boletim (no run
+    anterior, do mesmo dia, tinha funcionado) — comportamento de proteção
+    anti-bot, não de mudança de layout. Daí as tentativas com espera crescente
+    e o diagnóstico no fim: sem ele, "nenhum boletim encontrado" não distingue
+    bloqueio de mudança no site, e são consertos completamente diferentes.
+    """
+    import time
+    ultimo_html, ultimo_status = "", None
+    for i in range(tentativas):
+        try:
+            r = requests.get(URL_LISTA, headers=HEADERS, timeout=120)
+            ultimo_status = r.status_code
+            r.raise_for_status()
+            ultimo_html = r.text
+            urls = _links_de_boletim(ultimo_html)
+            if urls:
+                return urls
+            print(f"  tentativa {i+1}/{tentativas}: página veio sem boletins "
+                  f"({len(ultimo_html)} bytes)", flush=True)
+        except Exception as e:                         # noqa: BLE001
+            print(f"  tentativa {i+1}/{tentativas} falhou: {e}", flush=True)
+        if i < tentativas - 1:
+            espera = 5 * (i + 1)
+            print(f"    nova tentativa em {espera}s", flush=True)
+            time.sleep(espera)
+
+    # Diagnóstico: separar bloqueio de mudança de layout.
+    print("\n  DIAGNÓSTICO da última resposta:")
+    print(f"    HTTP status ............ {ultimo_status}")
+    print(f"    tamanho ................ {len(ultimo_html)} bytes")
+    if ultimo_html:
+        baixo = ultimo_html.lower()
+        n_pdf = len(re.findall(r'\.pdf', ultimo_html, re.I))
+        print(f"    ocorrências de .pdf .... {n_pdf}")
+        print(f"    contém 'boletin' ....... {'boletin' in baixo}")
+        print(f"    contém 'uam' ........... {'uam' in baixo}")
+        for pista, rotulo in [("cloudflare", "Cloudflare"),
+                              ("captcha", "CAPTCHA"),
+                              ("just a moment", "desafio JS"),
+                              ("access denied", "acesso negado"),
+                              ("attention required", "bloqueio WAF")]:
+            if pista in baixo:
+                print(f"    >>> indício de {rotulo} na resposta")
+        print(f"    início ................. {ultimo_html[:180]!r}")
+    print("\n  Se houver indício de bloqueio, o site está recusando o IP do "
+          "runner e o\n  conserto é fonte alternativa ou execução local — não "
+          "o parser.\n  Se a página vier íntegra e sem links, aí sim o layout "
+          "mudou.")
+    return []
 
 
 def cambio_yahoo(desde: str) -> dict:

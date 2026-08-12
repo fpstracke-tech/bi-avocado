@@ -3,3 +3,7 @@ __pycache__/
 *.pyc
 _debug_*.html
 .DS_Store
+# artefatos baixados pelos ETLs em tempo de execucao
+Precios_mayoristas_*.xlsx
+*.zip
+*.pdf

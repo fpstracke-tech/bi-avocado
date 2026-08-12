@@ -1,62 +1,69 @@
 """
-ETL Preços Europa — CIRAD / FruiTrop (PDF que chega por e-mail)
-================================================================
+ETL Preços Europa — CIRAD / FruiTrop / Tropisens (PDF que chega por e-mail)
+===========================================================================
 SUBSTITUI o processo manual: o relatório chega por e-mail, alguém salva o PDF e
-um PRINT vai para o Power BI. Não existe série histórica, só a foto da semana.
+um PRINT vai para o Power BI. Não existia série histórica, só a foto da semana.
 
-O fornecedor não tem API (já perguntado). O PDF resolve, mas NÃO pela via
-óbvia. Auditoria de 12/08/2026 sobre o relatório da semana 31/2026:
+O fornecedor não tem API (já perguntado). O PDF resolve — mas o relatório teve
+QUATRO GERAÇÕES DE LAYOUT entre 2023 e 2026, e cada uma quebra o parser da
+outra. Mapa levantado em 12/08/2026 sobre 6 relatórios de anos diferentes:
 
-  1. A tabela de texto da página 1 tem o RÓTULO DE SEMANA ERRADO.
-     Ela diz "Week 30 | Week 29" com "10.00 € | -0.22 €". Mas o gráfico de
-     barras do MESMO relatório mostra w30 = 10,22 e w31 = 10,00. E o print do
-     relatório da semana 30 mostra "Week 30 = 10,22", que bate com o gráfico.
-     Ou seja: o 10,00 é da semana 31, e -0,22 é a variação de w30 para w31
-     (10,00 - 10,22 = -0,22). Coerente.
-     => O VALOR DA TABELA É DA SEMANA DO RELATÓRIO, não da anterior.
-     Confiar no rótulo gravaria S30 = 10,00 por cima do correto 10,22 e
-     perderia a S31 inteira.
+    arquivo              pgs  cabeçalho da tabela p1              valor
+    Avocado 15-23.pdf     8   Week 15 | Week 15/14 | 2023/2022    14.01 €
+    Avocado 50-23.pdf     7   Week 50 | Week 50/49                13.52 €
+    Avocado 01-24.pdf     7   Week 01 | Week 01/52                14.02 €
+    Avocado 01-25.pdf     5   Week 01 | Week 01/52                (vazio)
+    Avocado 46-25.pdf    10   Week 46 | Week 46/ 45                9.36 €
+    Week 31-2026.pdf      8   Week 30 | Week 29                   10.00 €
 
-  2. O gráfico de barras traz os valores IMPRESSOS como rótulo de dado, e são
-     CINCO semanas por relatório (w27..w31). Um único PDF já preenche a
-     estrutura de "últimas 4 semanas". É a fonte mais confiável do documento:
-     cada número vem com a sua semana ao lado.
+O que isso obrigou:
 
-  3. Os gráficos são IMAGEM RASTER — nem texto nem vetor. Conferido: zero
-     rótulos "wNN" como texto na página 1 e zero objetos de linha. Então os
-     rótulos saem por OCR, com VOTAÇÃO entre 10 leituras (5 resoluções x 2
-     modos do tesseract). Não é preciosismo: em leitura única o gráfico GREEN
-     devolveu w31 = 3,75 em vez de 8,75 (confusão de 8 com 3). Na votação,
-     8,75 ganhou por 8 a 1.
+  1. SEMANA DO PREÇO = SEMANA DO RELATÓRIO. A notação antiga era explícita
+     ("Week 15 | Week 15/14" = valor da 15, variação de 14 para 15). O template
+     de 2026 degenerou para "Week 30 | Week 29" e o rótulo ficou uma semana
+     atrasado: o gráfico do mesmo PDF mostra w30 = 10,22 e w31 = 10,00, e o
+     relatório da semana 30 publicou "Week 30 = 10,22". Confiar no rótulo de
+     2026 gravaria S30 = 10,00 por cima do correto e perderia a S31.
 
-  4. A CIRAD REVISA valores de semanas passadas entre edições. Por isso o
-     desempate é pela edição de relatório mais recente, nunca pela ordem em que
-     os arquivos aparecem na pasta.
+  2. O VALOR SAI DO TEXTO, não da célula da tabela. Em 2025 semana 01 a tabela
+     é extraída vazia — os números moram fora das células. O texto funciona nos
+     6 layouts.
 
-O que sai de UM relatório:
-    europa_cirad_precos    5 semanas de Hass 18 + 5 de Green 18
-                           + os grupos de calibre da semana (12/14, 16/18/20,
-                             22/24, 26), da página 5
-    europa_cirad_calibre   ~24 linhas de calibre x origem, da página 4
+  3. A ÂNCORA DO TÍTULO MUDA. De "EU Reference Price—Hass grade 18" (CIRAD)
+     para "EU Barometer—Hass grade 18" (Tropisens, 2025 s39 em diante).
+
+  4. NÚMERO DE PÁGINAS VARIA DE 5 A 10. Nada pode ser buscado por índice de
+     página; tudo é por conteúdo.
+
+  5. OS GRÁFICOS MUDARAM DE NATUREZA. Em 2023-2025 os rótulos são TEXTO e saem
+     exatos. Em 2026 são IMAGEM RASTER (zero texto "wNN" na página) e exigem
+     OCR — com votação entre 10 leituras, porque numa leitura única o gráfico
+     GREEN devolveu 3,75 em vez de 8,75 (confusão de 8 com 3).
+
+  6. ZERO É "SEM DADO". Em 2025 semana 01 o gráfico mostra w2 e w3 = 0,00
+     porque o ano acabou de começar. A guarda de faixa já barra.
+
+  7. A CIRAD REVISA semanas passadas entre edições. O desempate é pela edição
+     de relatório mais recente, nunca pela ordem dos arquivos na pasta.
+
+O que sai de UM relatório: a semana do relatório pela tabela (exato, sempre) +
+até 5 semanas por gráfico (Hass e Green) + os grupos de calibre da semana +
+a grade calibre × origem.
 
 FONTES DE ENTRADA
     --arquivo a.pdf [b.pdf ...]   PDFs locais
-    --pasta   ./PDF               todos os .pdf de uma pasta
+    --pasta   ./PDF               recursivo, pega subpastas por ano
     (padrão)                      ownCloud via WebDAV
     --recentes N                  quantos do WebDAV processar (padrão 5)
     --todos                       a pasta inteira (backfill)
-    --sem-ocr                     só as tabelas de texto, sem ler gráficos
+    --sem-ocr                     só texto, sem OCR (mais rápido no histórico)
 
-Produção: o e-mail é Microsoft 365, um flow do Power Automate deposita o PDF na
-pasta do ownCloud, este ETL lê por WebDAV. Nenhuma credencial de e-mail entra
-no GitHub.
+Produção: e-mail Microsoft 365 -> Power Automate deposita na pasta do ownCloud
+-> este ETL lê por WebDAV. Nenhuma credencial de e-mail entra no GitHub.
 
-    OWNCLOUD_URL    https://owncloud.empresa.com/remote.php/dav/files/USUARIO
-    OWNCLOUD_PASTA  TFruits PowerBI/Projeto Report Avocado/Tropisens/PDF
-    OWNCLOUD_USER   usuario
-    OWNCLOUD_PASS   senha de APLICATIVO
+    OWNCLOUD_URL / OWNCLOUD_PASTA / OWNCLOUD_USER / OWNCLOUD_PASS
 
-Requer tesseract-ocr no sistema (apt-get install tesseract-ocr).
+OCR exige tesseract-ocr no sistema (apt-get install tesseract-ocr).
 """
 
 import io
@@ -88,30 +95,15 @@ TAB_CALIBRE   = "europa_cirad_calibre"
 CHAVE_PRECO   = "ano,semana,grade"
 CHAVE_CALIBRE = "ano,semana,variedade,origem,calibre"
 
-FONTE_GRAF = "CIRAD / FruiTrop — gráfico semanal (rótulos por OCR com votação)"
-FONTE_TAB  = "CIRAD / FruiTrop — tabela de referência"
-FONTE_CAL  = "CIRAD / FruiTrop — prices by grade"
+FONTE_TAB  = "CIRAD/Tropisens — tabela de referência (texto)"
+FONTE_TXT  = "CIRAD/Tropisens — rótulos do gráfico (texto)"
+FONTE_OCR  = "CIRAD/Tropisens — rótulos do gráfico (OCR com votação)"
+FONTE_CAL  = "CIRAD/Tropisens — prices by grade"
 
-# Faixa de sanidade em €/caixa 4kg. O histórico conhecido vai de ~5 a ~23.
+# €/caixa 4kg: histórico conhecido vai de ~7,5 a ~23. €/kg: calibres 26+.
 PRECO_MIN, PRECO_MAX = 3.0, 40.0
-# Calibres 26 e acima são cotados em €/KG, não por caixa — faixa própria. Sem
-# isso o GRADE 26 (2,50 €/kg) é descartado pela guarda do preço de caixa e a
-# linha desaparece em silêncio. Aconteceu no primeiro teste, 12/08/2026.
 PRECO_KG_MIN, PRECO_KG_MAX = 0.5, 8.0
-CALIBRE_EM_KG = 26        # deste calibre para cima, €/kg
-
-
-def _unidade_do_calibre(grade: str) -> str:
-    """'Hass 26' -> EUR/kg · 'Hass 18' / 'Hass 12/14' -> EUR/caixa 4kg"""
-    nums = [int(x) for x in re.findall(r"\d+", grade or "")]
-    return "EUR/kg" if nums and min(nums) >= CALIBRE_EM_KG else "EUR/caixa 4kg"
-
-
-def _faixa_ok(valor: float, unidade: str) -> bool:
-    if unidade == "EUR/kg":
-        return PRECO_KG_MIN <= valor <= PRECO_KG_MAX
-    return PRECO_MIN <= valor <= PRECO_MAX
-# Variação semanal acima disso é quase certamente erro de leitura, não mercado.
+CALIBRE_EM_KG = 26
 SALTO_MAX_PCT = 45.0
 
 OCR_DPIS = (200, 260, 300, 360, 420)
@@ -119,106 +111,233 @@ OCR_PSMS = ("6", "11")
 
 SIMBOLOS = "".join(chr(c) for c in range(0xF000, 0xF100))
 
+# Rótulos de variedade que às vezes aparecem na linha de origens do PDF.
+ORIGEM_NAO_E_PAIS = {"hass", "green", "greens", "varieties", "green varieties",
+                     "hass varieties", "variety", "grade", "grades", "-", "="}
+
+RE_ANCORA = re.compile(
+    r"EU\s+(?:Reference\s+Price|Barometer)\s*[—–-]\s*Hass\s+grade\s+18", re.I)
+RE_REF = re.compile(
+    r"([\d]{1,2}[.,]\d{2})\s*€\s*"
+    r"([+-]\s*[\d]{1,2}[.,]\d{2})\s*€?\s*"
+    r"([+-]?\s*\d{1,3})\s*%", re.S)
+RE_SEMANAS = (
+    re.compile(r"AVOCADO\s+REPORT\s+WEEK\s*\n?\s*(\d{1,2})", re.I),
+    re.compile(r"WEEK\s*\n?\s*(\d{1,2})\s*\n?\s*AVOCADO\s+MARKET\s+REPORT", re.I),
+    re.compile(r"WEEK\s*\n?\s*AVOCADO\s+MARKET\s+REPORT\s*\n?\s*(\d{1,2})", re.I),
+)
+RE_CAB_TABELA = re.compile(r"Week\s*0?(\d{1,2})", re.I)
+
 
 def limpa(s) -> str:
     if not s:
         return ""
-    s = re.sub(r"\(cid:\d+\)", "tt", str(s))       # ligadura tt do PDF
+    s = re.sub(r"\(cid:\d+\)", "tt", str(s))
     s = "".join(ch for ch in s if ch not in SIMBOLOS)
     return re.sub(r"\s+", " ", s).strip()
 
 
-def num(s):
-    m = re.search(r"(-?\d+[.,]?\d*)", s or "")
-    return float(m.group(1).replace(",", ".")) if m else None
+def _f(s):
+    return float(re.sub(r"[^\d.,-]", "", str(s)).replace(",", "."))
 
 
-def inteiro(s):
-    m = re.search(r"(\d+)", s or "")
-    return int(m.group(1)) if m else None
+def unidade_do_grade(grade: str) -> str:
+    nums = [int(x) for x in re.findall(r"\d+", grade or "")]
+    return "EUR/kg" if nums and min(nums) >= CALIBRE_EM_KG else "EUR/caixa 4kg"
+
+
+def faixa_ok(valor, unidade) -> bool:
+    if valor is None:
+        return False
+    if unidade == "EUR/kg":
+        return PRECO_KG_MIN <= valor <= PRECO_KG_MAX
+    return PRECO_MIN <= valor <= PRECO_MAX
+
+
+# Um gráfico cobre no máximo ~5 semanas para trás, então uma semana só um pouco
+# ADIANTE da do relatório nunca é virada de ano — é erro de cabeçalho. Virada de
+# ano de verdade dá salto grande (relatório S1 com barras w50, w51, w52).
+# Sem esse limiar, o Avocado 18-25.pdf (que traz "17" no cabeçalho por erro de
+# digitação da CIRAD) jogava a semana 18 para 2024.
+SALTO_VIRADA_ANO = 26
 
 
 def ano_da_semana(ano_rel: int, sem_rel: int, sem: int) -> int:
-    """Semana maior que a do relatório pertence ao ano anterior (virada de ano)."""
-    return ano_rel - 1 if sem > sem_rel else ano_rel
+    return ano_rel - 1 if (sem - sem_rel) >= SALTO_VIRADA_ANO else ano_rel
 
 
-def _origem_limpa(s: str) -> str:
-    s = re.sub(r"\([^)]*\)", "", limpa(s))
-    return re.sub(r"\s+", " ", s).strip(" /")
-
-
-def _faixa(celula: str):
-    """'(9.00) 9.50 / 10.50' -> (9.50, 10.50). Célula com sub-grupos -> (None, None)."""
-    t = limpa(celula)
-    if not t:
-        return None, None
-    principal = re.sub(r"\([^)]*\)", " ", t)
-    if principal.count(":") >= 2:
-        return None, None
-    nums = [float(x.replace(",", ".")) for x in re.findall(r"\d+[.,]?\d*", principal)]
-    if len(nums) == 1:
-        return nums[0], nums[0]
-    if len(nums) == 2:
-        return min(nums), max(nums)
-    return None, None
-
-
-# ── LEITURA DOS GRÁFICOS DE BARRAS ────────────────────────────────────────
-def _ocr_uma(pg, im, dpi, psm) -> dict:
-    """
-    {semana: valor} de UMA leitura.
-
-    Usa POSIÇÃO para separar rótulo de dado de rótulo de eixo: o eixo Y fica à
-    esquerda da primeira barra, e os valores ficam acima das barras alinhados no
-    x do rótulo da semana. Sem isso, "10,00" do eixo Y entra como se fosse dado.
-    """
-    bbox = (im["x0"], im["top"], im["x1"], im["bottom"])
-    pil = pg.crop(bbox).to_image(resolution=dpi).original
-    d = pytesseract.image_to_data(pil, config=f"--psm {psm}", output_type=Output.DICT)
-    itens = [{"t": (t or "").strip(),
-              "x": d["left"][i] + d["width"][i] / 2,
-              "y": d["top"][i] + d["height"][i] / 2}
-             for i, t in enumerate(d["text"]) if (t or "").strip()]
-
-    semanas = []
-    for it in itens:
-        m = re.fullmatch(r"w\s?(\d{1,2})", it["t"], re.I)
+# ── CABEÇALHO: SEMANA E ANO ───────────────────────────────────────────────
+def semana_ano(p1: str, nome: str, rotulo: str):
+    sem = ano = None
+    for r in RE_SEMANAS:
+        m = r.search(p1)
         if m:
-            semanas.append((int(m.group(1)), it["x"], it["y"]))
-    if not semanas:
-        return {}
-    semanas.sort(key=lambda s: s[1])
-    x_min = min(s[1] for s in semanas)
-    y_eixo = min(s[2] for s in semanas)
+            sem = int(m.group(1))
+            break
+    m = re.search(r"\b(20\d{2})\b", p1)
+    if m:
+        ano = int(m.group(1))
 
-    valores = []
-    for it in itens:
-        m = re.fullmatch(r"(\d{1,2})[.,](\d{2})", it["t"])
-        if not m:
-            continue
-        if it["y"] >= y_eixo - 5:          # na linha das semanas ou abaixo dela
-            continue
-        if it["x"] < x_min - 12:           # rótulo do eixo Y
-            continue
-        valores.append((float(f"{m.group(1)}.{m.group(2)}"), it["x"]))
+    # o nome do arquivo é a segunda opinião: "Avocado 15-23.pdf",
+    # "CIRAD avocado report Week 31-2026.pdf"
+    mf = re.search(r"(\d{1,2})\s*-\s*(\d{2,4})", nome)
+    sem_f = ano_f = None
+    if mf:
+        sem_f = int(mf.group(1))
+        a = mf.group(2)
+        ano_f = int(a) if len(a) == 4 else 2000 + int(a)
 
+    if sem and sem_f and sem != sem_f:
+        print(f"    {rotulo}: semana do documento ({sem}) difere do nome do "
+              f"arquivo ({sem_f}) — uso a do documento")
+    if ano and ano_f and ano != ano_f:
+        print(f"    {rotulo}: ano do documento ({ano}) difere do nome ({ano_f})")
+    return (sem or sem_f), (ano or ano_f)
+
+
+def ref_do_texto(p1: str):
+    """(valor, variacao_eur, variacao_pct) do bloco de preço de referência."""
+    m0 = RE_ANCORA.search(p1)
+    if not m0:
+        return None
+    m = RE_REF.search(p1[m0.end():m0.end() + 500])
+    if not m:
+        return None
+    return _f(m.group(1)), _f(m.group(2)), _f(m.group(3))
+
+
+def semana_declarada(pg1) -> int | None:
+    """Primeira célula 'Week NN' da tabela da página 1, só para conferência."""
+    for tb in pg1.extract_tables():
+        for row in tb:
+            for c in row:
+                m = RE_CAB_TABELA.fullmatch(limpa(c) or "")
+                if m:
+                    return int(m.group(1))
+    return None
+
+
+# ── GRÁFICOS ──────────────────────────────────────────────────────────────
+def _agrupa(marcas, folga=60):
+    """Separa os rótulos de semana em gráficos distintos por salto no eixo x."""
+    marcas = sorted(marcas, key=lambda m: m["x"])
+    grupos, atual = [], []
+    for m in marcas:
+        if atual and m["x"] - atual[-1]["x"] > folga:
+            grupos.append(atual)
+            atual = []
+        atual.append(m)
+    if atual:
+        grupos.append(atual)
+    return grupos
+
+
+def _casa(grupo, valores):
+    """Casa cada semana com o valor decimal alinhado no mesmo x."""
+    x0 = min(g["x"] for g in grupo) - 12
+    x1 = max(g["x"] for g in grupo) + 25
+    y_eixo = min(g["y"] for g in grupo)
+    cand = [v for v in valores if x0 <= v["x"] <= x1 and v["y"] < y_eixo - 5]
     out, usados = {}, set()
-    for s, xs, _ in semanas:
-        cand = sorted((abs(v[1] - xs), k)
-                      for k, v in enumerate(valores) if k not in usados)
-        if cand and cand[0][0] < 40:
-            usados.add(cand[0][1])
-            out[s] = valores[cand[0][1]][0]
+    for g in sorted(grupo, key=lambda g: g["x"]):
+        prox = sorted((abs(v["x"] - g["x"]), k)
+                      for k, v in enumerate(cand) if k not in usados)
+        if prox and prox[0][0] < 22:
+            usados.add(prox[0][1])
+            out[g["s"]] = cand[prox[0][1]]["v"]
     return out
 
 
-def ler_grafico(pg, im, rotulo: str) -> dict:
+def identifica_por_titulo(grupo, palavras) -> str | None:
     """
-    {semana: valor} com votação entre OCR_DPIS x OCR_PSMS.
+    'Hass 18' ou 'Green 18' pelo TÍTULO do gráfico.
 
-    Aceita um valor só com >=3 votos E >=60% entre as leituras que ACHARAM
-    aquela semana. Algumas leituras simplesmente não enxergam um rótulo; isso é
+    Necessário porque a posição não serve: em 2023 semana 15 existe UM gráfico
+    só (o do Green), e o do Hass está rotacionado e ilegível. Um "usa o
+    primeiro" gravou 8,66 do Green como se fosse Hass 18, quando a tabela do
+    mesmo PDF dizia 14,01. Título é o único critério que não chuta.
+
+    A janela é estreita de propósito: o texto corrido "EU Reference Price—Hass
+    grade 18" fica no alto da página e não pode ser confundido com o título de
+    um gráfico que está mais abaixo.
+    """
+    x0 = min(g["x"] for g in grupo) - 40
+    x1 = max(g["x"] for g in grupo) + 40
+    y_sem = min(g["y"] for g in grupo)
+    achados = []
+    for w in palavras:
+        t = (w["text"] or "").strip().upper()
+        if t not in ("HASS", "GREEN"):
+            continue
+        xm = (w["x0"] + w["x1"]) / 2
+        ym = (w["top"] + w["bottom"]) / 2
+        if x0 <= xm <= x1 and (y_sem - 220) <= ym <= (y_sem - 20):
+            achados.append((abs(ym - y_sem), t))
+    if not achados:
+        return None
+    achados.sort()
+    return "Hass 18" if achados[0][1] == "HASS" else "Green 18"
+
+
+def graficos_texto(pg) -> list[dict]:
+    """[{semana: valor}] por gráfico, quando os rótulos são TEXTO (2023-2025)."""
+    ws = pg.extract_words(keep_blank_chars=False)
+    marcas, valores = [], []
+    for w in ws:
+        t = w["text"]
+        xm, ym = (w["x0"] + w["x1"]) / 2, (w["top"] + w["bottom"]) / 2
+        m = re.fullmatch(r"w\s?(\d{1,2})", t, re.I)
+        if m:
+            marcas.append({"s": int(m.group(1)), "x": xm, "y": ym})
+            continue
+        m = re.fullmatch(r"(\d{1,2})[.,](\d{2})", t)
+        if m:
+            valores.append({"v": float(f"{m.group(1)}.{m.group(2)}"), "x": xm, "y": ym})
+    saida = []
+    for g in _agrupa(marcas):
+        s = _casa(g, valores)
+        if s:
+            saida.append((s, identifica_por_titulo(g, ws)))
+    return saida
+
+
+def _ocr_uma(pg, im, dpi, psm) -> dict:
+    bbox = (im["x0"], im["top"], im["x1"], im["bottom"])
+    pil = pg.crop(bbox).to_image(resolution=dpi).original
+    d = pytesseract.image_to_data(pil, config=f"--psm {psm}", output_type=Output.DICT)
+    marcas, valores = [], []
+    for i, t in enumerate(d["text"]):
+        t = (t or "").strip()
+        if not t:
+            continue
+        xm = d["left"][i] + d["width"][i] / 2
+        ym = d["top"][i] + d["height"][i] / 2
+        m = re.fullmatch(r"w\s?(\d{1,2})", t, re.I)
+        if m:
+            marcas.append({"s": int(m.group(1)), "x": xm, "y": ym})
+            continue
+        m = re.fullmatch(r"(\d{1,2})[.,](\d{2})", t)
+        if m:
+            valores.append({"v": float(f"{m.group(1)}.{m.group(2)}"), "x": xm, "y": ym})
+    if not marcas:
+        return {}
+    x0 = min(m["x"] for m in marcas) - 12
+    y_eixo = min(m["y"] for m in marcas)
+    cand = [v for v in valores if v["x"] >= x0 and v["y"] < y_eixo - 5]
+    out, usados = {}, set()
+    for g in sorted(marcas, key=lambda g: g["x"]):
+        prox = sorted((abs(v["x"] - g["x"]), k)
+                      for k, v in enumerate(cand) if k not in usados)
+        if prox and prox[0][0] < 40:
+            usados.add(prox[0][1])
+            out[g["s"]] = cand[prox[0][1]]["v"]
+    return out
+
+
+def grafico_ocr(pg, im, rotulo: str) -> dict:
+    """
+    Votação entre OCR_DPIS x OCR_PSMS. Aceita valor com >=3 votos e >=60% entre
+    as leituras que ACHARAM aquela semana — leitura que não enxerga o rótulo é
     ausência, não discordância, e não pode contar como voto contra.
     """
     leituras = []
@@ -230,15 +349,11 @@ def ler_grafico(pg, im, rotulo: str) -> dict:
                 continue
             if r:
                 leituras.append(r)
-    if not leituras:
-        return {}
-
     final = {}
     for s in sorted({k for r in leituras for k in r}):
         votos = Counter(r[s] for r in leituras if s in r)
         valor, n = votos.most_common(1)[0]
-        total = sum(votos.values())
-        if n < 3 or n / total < 0.6:
+        if n < 3 or n / sum(votos.values()) < 0.6:
             print(f"      {rotulo} w{s}: sem consenso {dict(votos)} — descartada")
             continue
         if len(votos) > 1:
@@ -247,117 +362,59 @@ def ler_grafico(pg, im, rotulo: str) -> dict:
     return final
 
 
-def _valida_serie(serie: dict, rotulo: str) -> dict:
-    """Tira valores fora da faixa e sinaliza saltos implausíveis."""
+def graficos_ocr(pg, rotulo: str) -> list[dict]:
+    ims = sorted([i for i in pg.images if i["width"] > 150 and i["height"] > 120],
+                 key=lambda i: (round(i["top"]), i["x0"]))
+    saida = []
+    for im in ims:
+        s = grafico_ocr(pg, im, rotulo)
+        if len(s) >= 2:
+            saida.append((s, None))       # título está dentro da imagem
+    return saida
+
+
+def valida_serie(serie: dict, unidade: str, rotulo: str) -> dict:
     ok = {}
     for s in sorted(serie):
-        v = serie[s]
-        if not (PRECO_MIN <= v <= PRECO_MAX):
-            print(f"      {rotulo} w{s}: {v} fora da faixa "
-                  f"{PRECO_MIN}-{PRECO_MAX} — descartado")
-            continue
-        ok[s] = v
+        if faixa_ok(serie[s], unidade):
+            ok[s] = serie[s]
+        elif serie[s]:
+            print(f"      {rotulo} w{s}: {serie[s]} fora da faixa de "
+                  f"{unidade} — descartado")
     semanas = sorted(ok)
     for a, b in zip(semanas, semanas[1:]):
-        if b - a != 1 or not ok[a]:
-            continue
-        salto = abs(ok[b] - ok[a]) / ok[a] * 100
-        if salto > SALTO_MAX_PCT:
-            print(f"      {rotulo} w{a}->w{b}: salto de {salto:.0f}% "
-                  f"({ok[a]} -> {ok[b]}) — confira o PDF na mão")
+        if b - a == 1 and ok[a]:
+            salto = abs(ok[b] - ok[a]) / ok[a] * 100
+            if salto > SALTO_MAX_PCT:
+                print(f"      {rotulo} w{a}->w{b}: salto de {salto:.0f}% "
+                      f"({ok[a]} -> {ok[b]}) — confira o PDF")
     return ok
 
 
-# ── PARSER DO RELATÓRIO ───────────────────────────────────────────────────
-def parse_pdf(fonte, rotulo: str, usar_ocr: bool = True) -> tuple[list, list]:
-    precos, calibres = [], []
-    with pdfplumber.open(fonte) as pdf:
-        if len(pdf.pages) < 5:
-            print(f"    {rotulo}: só {len(pdf.pages)} páginas — não parece o "
-                  f"relatório CIRAD")
-            return [], []
+# ── TABELAS POR CONTEÚDO (número de páginas varia de 5 a 10) ──────────────
+def grupos_de_calibre(pdf):
+    """
+    [(grade, valor, delta, pct)] das CAIXAS pequenas 'GRADES 12/14' etc.
 
-        pg1 = pdf.pages[0]
-        p1 = limpa(pg1.extract_text())
-        m = re.search(r"AVOCADO REPORT WEEK\s+(\d{1,2})", p1, re.I)
-        if not m:
-            print(f"    {rotulo}: não achei 'AVOCADO REPORT WEEK' na página 1")
-            return [], []
-        sem_rel = int(m.group(1))
-        m = re.search(r"\b(20\d{2})\b", p1)
-        if not m:
-            print(f"    {rotulo}: não achei o ano na página 1")
-            return [], []
-        ano_rel = int(m.group(1))
-        agora = datetime.now(timezone.utc).isoformat()
+    O filtro é estreito de propósito. Os layouts antigos rotulam as linhas da
+    grade calibre x origem como "Grade 12", "Grade 14" — e um filtro solto casa
+    com a grade inteira e grava a cotação de uma origem como se fosse preço de
+    referência do calibre. Aconteceu no teste de 12/08/2026: apareceram grades
+    "Hass 10" e "Hass 12" que eram, na verdade, a cotação da Colômbia e da RSA.
 
-        def base(sem, grade, valor, fonte_txt, **extra):
-            d = {"ano": ano_da_semana(ano_rel, sem_rel, sem), "semana": sem,
-                 "grade": grade, "preco_eur": round(valor, 2),
-                 "unidade": _unidade_do_calibre(grade), "relatorio_ano": ano_rel,
-                 "relatorio_semana": sem_rel, "arquivo": rotulo,
-                 "fonte": fonte_txt, "extracted_at": agora}
-            d.update(extra)
-            return d
-
-        # ── tabela da página 1: variação e comparativo ────────────────────
-        tab_valor = tab_semana = var_eur = var_pct = None
-        tabs1 = pg1.extract_tables()
-        if tabs1 and len(tabs1[0]) >= 2:
-            hdr = [limpa(c) for c in tabs1[0][0]]
-            val = [limpa(c) for c in tabs1[0][1]]
-            tab_semana = inteiro(hdr[1]) if len(hdr) > 1 else None
-            tab_valor = num(val[1]) if len(val) > 1 else None
-            var_eur = num(val[2]) if len(val) > 2 else None
-            var_pct = num(val[3]) if len(val) > 3 else None
-            if tab_semana is not None and tab_semana != sem_rel:
-                print(f"    {rotulo}: rótulo da tabela diz semana {tab_semana}, "
-                      f"relatório é da {sem_rel} — vale a do relatório")
-
-        # ── gráficos de barras rotulados (fonte primária) ─────────────────
-        series = {}
-        if usar_ocr and TEM_OCR:
-            for grade, x0 in (("Hass 18", 28), ("Green 18", 306)):
-                cand = [i for i in pg1.images
-                        if abs(i["x0"] - x0) < 12 and abs(i["top"] - 376) < 12
-                        and i["width"] > 150 and i["height"] > 120]
-                if not cand:
-                    print(f"    {rotulo}: gráfico de {grade} não localizado")
-                    continue
-                serie = _valida_serie(ler_grafico(pg1, cand[0], grade), grade)
-                if serie:
-                    series[grade] = serie
-                    print(f"    {rotulo}: {grade} -> " + " ".join(
-                        f"w{s}={serie[s]:.2f}" for s in sorted(serie)))
-        elif usar_ocr and not TEM_OCR:
-            print(f"    {rotulo}: pytesseract ausente — só tabelas de texto")
-
-        for grade, serie in series.items():
-            for s, v in serie.items():
-                extra = ({"variacao_eur": var_eur, "variacao_media_pct": var_pct}
-                         if s == sem_rel else {})
-                precos.append(base(s, grade, v, FONTE_GRAF, **extra))
-
-        # conferência cruzada: a tabela tem que bater com a barra da semana
-        alvo = series.get("Hass 18", {}).get(sem_rel)
-        if tab_valor is not None and alvo is not None and abs(tab_valor - alvo) > 0.011:
-            print(f"    {rotulo}: DIVERGÊNCIA tabela {tab_valor} x gráfico "
-                  f"w{sem_rel} {alvo} — fica o do gráfico, que traz a semana "
-                  f"ao lado do número")
-
-        # sem OCR (ou OCR falhou), cai para a tabela: uma semana é melhor que zero
-        if not series and tab_valor is not None:
-            if _faixa_ok(tab_valor, "EUR/caixa 4kg"):
-                precos.append(base(sem_rel, "Hass 18", tab_valor, FONTE_TAB,
-                                   variacao_eur=var_eur,
-                                   variacao_media_pct=var_pct))
-            else:
-                print(f"    {rotulo}: tabela com {tab_valor}, fora da faixa")
-
-        # ── página 5: preço por grupo de calibre ──────────────────────────
-        for tb in pdf.pages[4].extract_tables():
+    A caixa de verdade tem poucas linhas, um cabeçalho "Week NN" e um título que
+    é SÓ "GRADES <numeros>". A grade não tem cabeçalho de semana.
+    """
+    saida = []
+    for pg in pdf.pages:
+        for tb in pg.extract_tables():
+            if len(tb) > 5:
+                continue                       # grade grande, não é caixa
             plano = [limpa(c) for row in tb for c in row]
-            titulo = next((t for t in plano if re.match(r"GRADES?\s", t, re.I)), None)
+            if not any(re.match(r"Week\s*\d", c or "", re.I) for c in plano):
+                continue                       # caixa de referência tem semana
+            titulo = next((t for t in plano
+                           if re.fullmatch(r"GRADES?\s+[\d/\s]+", t or "", re.I)), None)
             if not titulo:
                 continue
             linha = next((row for row in tb
@@ -365,48 +422,206 @@ def parse_pdf(fonte, rotulo: str, usar_ocr: bool = True) -> tuple[list, list]:
             if not linha:
                 continue
             cels = [limpa(c) for c in linha if limpa(c)]
-            v = num(cels[0]) if cels else None
             grade = "Hass " + re.sub(r"^GRADES?\s+", "", titulo, flags=re.I).strip()
-            if v is None or not _faixa_ok(v, _unidade_do_calibre(grade)):
-                if v is not None:
-                    print(f"    {rotulo}: {grade} com {v} fora da faixa de "
-                          f"{_unidade_do_calibre(grade)} — descartado")
+            try:
+                v = _f(cels[0])
+            except Exception:                          # noqa: BLE001
                 continue
-            precos.append(base(sem_rel, grade, v, FONTE_TAB,
-                               variacao_eur=num(cels[1]) if len(cels) > 1 else None,
-                               variacao_media_pct=num(cels[2]) if len(cels) > 2 else None))
+            d = p = None
+            for extra in cels[1:3]:
+                try:
+                    if "%" in extra:
+                        p = _f(extra)
+                    elif d is None:
+                        d = _f(extra)
+                except Exception:                      # noqa: BLE001
+                    pass
+            saida.append((grade, v, d, p))
+    return saida
 
-        # ── página 4: calibre x origem ────────────────────────────────────
-        tabs4 = pdf.pages[3].extract_tables()
-        if tabs4 and len(tabs4[0]) > 2:
-            tb = tabs4[0]
+
+def grade_origem(pdf):
+    """A grade calibre x origem, achada por conteúdo em qualquer página."""
+    for pg in pdf.pages:
+        for tb in pg.extract_tables():
+            if len(tb) < 5:
+                continue
+            # os layouts antigos escrevem "Grade 12"; os novos, só "12"
+            primeira = [limpa(r[0]) if r else "" for r in tb]
+            n = sum(1 for c in primeira
+                    if re.fullmatch(r"(?:Grade\s*)?\d{2}(\s*\(.*\))?", c or "", re.I))
+            if n >= 4:
+                return tb
+    return None
+
+
+# ── PARSER ────────────────────────────────────────────────────────────────
+def parse_pdf(fonte, rotulo: str, usar_ocr: bool = True) -> tuple[list, list]:
+    precos, calibres = [], []
+    with pdfplumber.open(fonte) as pdf:
+        pg1 = pdf.pages[0]
+        p1 = limpa(pg1.extract_text())
+        sem_rel, ano_rel = semana_ano(pdf.pages[0].extract_text() or "", rotulo, rotulo)
+        if not sem_rel or not ano_rel:
+            print(f"    {rotulo}: não identifiquei semana/ano — pulando")
+            return [], []
+        agora = datetime.now(timezone.utc).isoformat()
+
+        def reg(sem, grade, valor, fonte_txt, **extra):
+            u = unidade_do_grade(grade)
+            # variacao_* SEMPRE presentes, mesmo vazias: o PostgREST rejeita
+            # lote cujos objetos não tenham o MESMO conjunto de chaves
+            # (PGRST102 "All object keys must match"). As linhas da tabela têm
+            # variação, as do gráfico não — e isso derrubou a carga em 12/08/2026.
+            d = {"ano": ano_da_semana(ano_rel, sem_rel, sem), "semana": sem,
+                 "grade": grade, "preco_eur": round(valor, 2), "unidade": u,
+                 "variacao_eur": None, "variacao_media_pct": None,
+                 "relatorio_ano": ano_rel, "relatorio_semana": sem_rel,
+                 "arquivo": rotulo, "fonte": fonte_txt, "extracted_at": agora}
+            d.update(extra)
+            return d
+
+        # ── preço de referência (texto: funciona nos 4 layouts) ───────────
+        ref = ref_do_texto(pdf.pages[0].extract_text() or "")
+        if not ref:
+            print(f"    {rotulo}: bloco de preço de referência não encontrado")
+        elif not faixa_ok(ref[0], "EUR/caixa 4kg"):
+            print(f"    {rotulo}: referência {ref[0]} fora da faixa — descartada")
+            ref = None
+
+        # ── gráficos: texto primeiro, OCR só se não houver texto ──────────
+        series = graficos_texto(pg1)
+        fonte_graf = FONTE_TXT
+        if not series and usar_ocr and TEM_OCR:
+            series = graficos_ocr(pg1, rotulo)
+            fonte_graf = FONTE_OCR
+        elif not series and usar_ocr and not TEM_OCR:
+            print(f"    {rotulo}: gráficos sem texto e pytesseract ausente")
+
+        # identifica qual gráfico é Hass: o que casa com a referência na
+        # semana do relatório. Sem isso teria que confiar em posição na página,
+        # que muda entre layouts.
+        # Cascata de identificação, sem chute:
+        #   1) título ao lado do gráfico (funciona nos layouts de texto)
+        #   2) o gráfico cujo valor na semana do relatório bate com a
+        #      referência é o Hass (funciona no raster de 2026)
+        #   3) se nenhum critério resolve, DESCARTA o gráfico e fica só a
+        #      tabela. Preferir uma semana certa a quatro semanas erradas.
+        alvo = ref[0] if ref else None
+        grades = [g for _, g in series]
+        if alvo is not None and "Hass 18" not in grades:
+            for i, (s, _) in enumerate(series):
+                if sem_rel in s and abs(s[sem_rel] - alvo) < 0.02:
+                    grades[i] = "Hass 18"
+                    break
+        # com exatamente 2 gráficos e um identificado, o outro é o par
+        if len(series) == 2 and grades.count(None) == 1:
+            conhecido = next(g for g in grades if g)
+            par = "Green 18" if conhecido == "Hass 18" else "Hass 18"
+            grades[grades.index(None)] = par
+
+        # ── a semana do relatório, conferida contra o gráfico ─────────────
+        # O cabeçalho erra: Avocado 18-25.pdf diz 17 e é da 18. A prova está no
+        # próprio PDF — a última barra do gráfico do Hass tem o mesmo valor da
+        # referência, e a semana dela é a verdadeira. Evidência, não chute.
+        idx_hass = grades.index("Hass 18") if "Hass 18" in grades else None
+        if ref and idx_hass is not None:
+            serie_h = series[idx_hass][0]
+            casam = [w for w, v in serie_h.items() if abs(v - ref[0]) < 0.011]
+            # O valor pode repetir em duas barras: no Avocado 03-24.pdf o 13,98
+            # aparece em w3 E em w52. Pegar "a maior" transformou a semana 3 em
+            # 52 e contaminou a S52. Então: candidato mais PRÓXIMO do cabeçalho,
+            # e só aceito se a distância for de no máximo 2 semanas — erro de
+            # digitação é de 1, coincidência de valor costuma estar a 40+.
+            if casam:
+                sem_graf = min(casam, key=lambda w: (abs(w - sem_rel), w))
+                dist = abs(sem_graf - sem_rel)
+                empate = sum(1 for w in casam if abs(w - sem_rel) == dist) > 1
+                if sem_graf != sem_rel and dist <= 2 and not empate:
+                    print(f"    {rotulo}: cabeçalho diz semana {sem_rel}, mas a "
+                          f"referência {ref[0]:.2f} é a barra w{sem_graf} do "
+                          f"gráfico — vale a do gráfico")
+                    sem_rel = sem_graf
+                elif sem_graf != sem_rel and dist > 2:
+                    print(f"    {rotulo}: referência {ref[0]:.2f} também aparece "
+                          f"em w{sem_graf}, longe do cabeçalho (w{sem_rel}) — "
+                          f"coincidência de valor, mantenho o cabeçalho")
+        decl = semana_declarada(pg1)
+        if decl is not None and decl != sem_rel:
+            print(f"    {rotulo}: rótulo da tabela diz semana {decl}, relatório "
+                  f"é da {sem_rel} — vale a do relatório")
+        if ref:
+            precos.append(reg(sem_rel, "Hass 18", ref[0], FONTE_TAB,
+                              variacao_eur=ref[1], variacao_media_pct=ref[2]))
+
+        for i, (s, _) in enumerate(series):
+            grade = grades[i]
+            if grade is None:
+                print(f"    {rotulo}: gráfico com {sorted(s)} sem título nem "
+                      f"casamento com a referência — descartado, fica a tabela")
+                continue
+            s = valida_serie(s, "EUR/caixa 4kg", grade)
+            if not s:
+                continue
+            print(f"    {rotulo}: {grade} -> " +
+                  " ".join(f"w{k}={s[k]:.2f}" for k in sorted(s)))
+            for k, v in s.items():
+                if grade == "Hass 18" and k == sem_rel and ref:
+                    continue        # a tabela já gravou esta, com variação
+                precos.append(reg(k, grade, v, fonte_graf))
+
+        # ── grupos de calibre ─────────────────────────────────────────────
+        for grade, v, d, p in grupos_de_calibre(pdf):
+            if faixa_ok(v, unidade_do_grade(grade)):
+                precos.append(reg(sem_rel, grade, v, FONTE_TAB,
+                                  variacao_eur=d, variacao_media_pct=p))
+            else:
+                print(f"    {rotulo}: {grade} com {v} fora da faixa — descartado")
+
+        # ── grade calibre x origem ────────────────────────────────────────
+        tb = grade_origem(pdf)
+        if tb:
             variedades = [limpa(c) for c in tb[0]]
-            origens = [_origem_limpa(c) for c in tb[1]]
+            origens = [re.sub(r"\s+", " ", re.sub(r"\([^)]*\)", "", limpa(c))).strip(" /")
+                       for c in tb[1]]
+            # Em alguns layouts a linha de origens vem deslocada e o que cai
+            # aqui é o rótulo de VARIEDADE do cabeçalho. Na conferência da carga
+            # de 12/08/2026 apareceram "origens" chamadas Hass (534 linhas) e
+            # Green Varieties (237). Não são origens; a coluna correspondente
+            # não dá para atribuir a país nenhum, então fica fora.
+            origens = ["" if o.lower() in ORIGEM_NAO_E_PAIS else o for o in origens]
             for row in tb[2:]:
                 cels = [limpa(c) for c in row]
-                if not cels or not cels[0]:
+                if not cels or not re.match(r"(?:Grade\s*)?\d{2}", cels[0] or "", re.I):
                     continue
                 unidade = "EUR/kg" if "/kg" in cels[0].lower() else "EUR/caixa 4kg"
-                cal = re.sub(r"\(.*?\)", "", cels[0]).strip()
+                cal = re.sub(r"^Grade\s*", "",
+                             re.sub(r"\(.*?\)", "", cels[0]), flags=re.I).strip()
                 for k in range(1, min(len(cels), len(origens))):
                     if not cels[k] or not origens[k]:
                         continue
-                    mn, mx = _faixa(cels[k])
+                    t = cels[k]
+                    principal = re.sub(r"\([^)]*\)", " ", t)
+                    nums = ([] if principal.count(":") >= 2
+                            else [float(x.replace(",", "."))
+                                  for x in re.findall(r"\d+[.,]?\d*", principal)])
+                    mn = mx = None
+                    if len(nums) == 1:
+                        mn = mx = nums[0]
+                    elif len(nums) == 2:
+                        mn, mx = min(nums), max(nums)
                     var = ("Green" if k < len(variedades)
                            and "green" in (variedades[k] or "").lower() else "Hass")
                     calibres.append({
                         "ano": ano_rel, "semana": sem_rel, "variedade": var,
-                        "origem": origens[k], "calibre": cal,
-                        "preco_min": mn, "preco_max": mx, "unidade": unidade,
-                        "texto_original": cels[k], "arquivo": rotulo,
-                        "fonte": FONTE_CAL, "extracted_at": agora})
-        else:
-            print(f"    {rotulo}: página 4 sem a grade de calibres")
-
+                        "origem": origens[k], "calibre": cal, "preco_min": mn,
+                        "preco_max": mx, "unidade": unidade, "texto_original": t,
+                        "arquivo": rotulo, "fonte": FONTE_CAL,
+                        "extracted_at": agora})
     return precos, calibres
 
 
-# ── ENTRADA: WEBDAV (ownCloud) ────────────────────────────────────────────
+# ── ENTRADA: WEBDAV ───────────────────────────────────────────────────────
 def webdav_config():
     url = os.environ.get("OWNCLOUD_URL", "").rstrip("/")
     pasta = os.environ.get("OWNCLOUD_PASTA", "").strip("/")
@@ -456,8 +671,7 @@ def webdav_listar_pdfs():
 
 def webdav_baixar(base_url, auth, href):
     nome = href.split("/")[-1]
-    r = requests.get(f"{base_url}{requests.utils.quote(nome)}", auth=auth,
-                     timeout=300)
+    r = requests.get(f"{base_url}{requests.utils.quote(nome)}", auth=auth, timeout=300)
     r.raise_for_status()
     return nome, io.BytesIO(r.content)
 
@@ -479,8 +693,9 @@ def main() -> int:
             i += 1
     elif "--pasta" in argv:
         d = Path(argv[argv.index("--pasta") + 1])
-        entradas = [(p.name, str(p)) for p in sorted(d.glob("*.pdf"))]
-        print(f"  pasta {d}: {len(entradas)} PDFs")
+        # rglob de propósito: o histórico vem organizado em subpastas por ano
+        entradas = [(p.name, str(p)) for p in sorted(d.rglob("*.pdf"))]
+        print(f"  pasta {d}: {len(entradas)} PDFs (incluindo subpastas)")
     else:
         base, auth, achados = webdav_listar_pdfs()
         limite = None if "--todos" in argv else 5
@@ -496,17 +711,22 @@ def main() -> int:
         print("  ERRO: nenhum PDF para processar.")
         return 1
 
-    print(f"ETL Europa — CIRAD · {len(entradas)} PDF(s) · OCR "
+    print(f"ETL Europa — CIRAD/Tropisens · {len(entradas)} PDF(s) · OCR "
           f"{'ligado' if usar_ocr and TEM_OCR else 'desligado'} · "
           f"{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}", flush=True)
 
-    precos, calibres = [], []
-    for rotulo, fonte in entradas:
+    precos, calibres, falhas = [], [], []
+    for n, (rotulo, fonte) in enumerate(entradas, 1):
+        if len(entradas) > 10 and n % 10 == 0:
+            print(f"  ... {n}/{len(entradas)}", flush=True)
         try:
             p, c = parse_pdf(fonte, rotulo, usar_ocr)
         except Exception as e:                          # noqa: BLE001
             print(f"    {rotulo}: erro de leitura ({e})")
+            falhas.append(rotulo)
             continue
+        if not p:
+            falhas.append(rotulo)
         precos += p
         calibres += c
 
@@ -514,37 +734,58 @@ def main() -> int:
         print("  ERRO: nenhum preço extraído.")
         return 1
 
-    # A CIRAD revisa semanas passadas entre edições. Vence a edição mais nova.
     def edicao(r):
         return (r.get("relatorio_ano") or 0, r.get("relatorio_semana") or 0)
 
-    porchave = {}
+    porchave, revisoes = {}, 0
     for r in sorted(precos, key=edicao):
         k = (r["ano"], r["semana"], r["grade"])
         ant = porchave.get(k)
         if ant and abs(ant["preco_eur"] - r["preco_eur"]) > 0.011:
-            print(f"  revisão em {k[2]} S{k[1]}/{k[0]}: {ant['preco_eur']:.2f} "
-                  f"(relatório S{ant['relatorio_semana']}) -> "
-                  f"{r['preco_eur']:.2f} (relatório S{r['relatorio_semana']}) "
-                  f"— fica o mais recente")
+            # preço revisado: o registro novo vale inteiro. A variação antiga
+            # se referia ao valor antigo e viraria mentira se fosse mantida.
+            revisoes += 1
+            if revisoes <= 8:
+                print(f"  revisão {k[2]} S{k[1]}/{k[0]}: {ant['preco_eur']:.2f} "
+                      f"(rel S{ant['relatorio_semana']}) -> {r['preco_eur']:.2f} "
+                      f"(rel S{r['relatorio_semana']})")
+        elif ant:
+            # MESMO preço em edição mais nova. Só a caixa de referência publica
+            # variação e comparativo com a média; o gráfico traz apenas o valor.
+            # Como o relatório da semana N+1 repete a semana N no gráfico e é
+            # edição mais nova, sem esta fusão ele apagaria a variação que o
+            # relatório da semana N havia trazido — e o campo ficava preenchido
+            # em 18 de 274 linhas. O percentual vs média das safras anteriores
+            # não é recalculável a partir da série, então perdê-lo é perder dado.
+            for campo in ("variacao_eur", "variacao_media_pct"):
+                if r.get(campo) is None and ant.get(campo) is not None:
+                    r[campo] = ant[campo]
         porchave[k] = r
     precos = list(porchave.values())
 
     porcal = {}
     for c in sorted(calibres, key=lambda x: (x["ano"], x["semana"])):
-        porcal[(c["ano"], c["semana"], c["variedade"], c["origem"],
-                c["calibre"])] = c
+        porcal[(c["ano"], c["semana"], c["variedade"], c["origem"], c["calibre"])] = c
     calibres = list(porcal.values())
 
-    porgrade = {}
-    for r in precos:
-        porgrade.setdefault(r["grade"], []).append(r)
-    print(f"\n  {len(precos)} linhas de preço em {len(porgrade)} grades:")
-    for g in sorted(porgrade):
-        ss = sorted(porgrade[g], key=lambda r: (r["ano"], r["semana"]))
-        print(f"    {g:16s} " + " ".join(
-            f"S{r['semana']}/{str(r['ano'])[2:]}={r['preco_eur']:.2f}" for r in ss))
-    print(f"  {len(calibres)} linhas de calibre x origem")
+    if revisoes > 8:
+        print(f"  ... e mais {revisoes - 8} revisões (fica sempre a edição mais nova)")
+
+    # cobertura por grade e ano, com os buracos explícitos
+    print(f"\n  {len(precos)} linhas de preço · {len(calibres)} de calibre x origem")
+    if falhas:
+        print(f"  {len(falhas)} PDF(s) sem preço: "
+              f"{falhas[:6]}{' ...' if len(falhas) > 6 else ''}")
+    for grade in sorted({r["grade"] for r in precos}):
+        for ano in sorted({r["ano"] for r in precos if r["grade"] == grade}):
+            ss = sorted(r["semana"] for r in precos
+                        if r["grade"] == grade and r["ano"] == ano)
+            faltam = [w for w in range(min(ss), max(ss) + 1) if w not in ss]
+            txt = f"    {grade:16s} {ano}: {len(ss):2d} semanas (S{min(ss)}-S{max(ss)})"
+            if faltam:
+                txt += f" · faltam {faltam}" if len(faltam) <= 12 else \
+                       f" · faltam {len(faltam)} semanas"
+            print(txt)
 
     if dry:
         print("\n  --dry-run: nada foi gravado.")

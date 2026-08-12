@@ -324,7 +324,10 @@ def main() -> int:
     dry = "--dry-run" in argv
     forcar = "--forcar" in argv
     sem_modelo = "--sem-modelo" in argv
-    modelo = os.environ.get("ANTHROPIC_MODELO", MODELO_PADRAO)
+    # `or` em vez do default do .get: no GitHub Actions, `${{ vars.X }}` de uma
+    # variável que não existe chega como string VAZIA, e aí a chave existe no
+    # ambiente — o default do .get nunca entra e a API recebe model="".
+    modelo = (os.environ.get("ANTHROPIC_MODELO") or "").strip() or MODELO_PADRAO
 
     print(f"ETL Resumo CIRAD · {datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC")
 

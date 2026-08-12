@@ -361,6 +361,15 @@
   a.src svg { width: 13px; height: 13px; vertical-align: middle; }
 
   /* CIRAD */
+  /* texto do resumo executivo: linha um pouco mais alta e largura de leitura,
+     porque aqui e paragrafo para ler, nao rotulo para bater o olho */
+  .resumo-p { font-size: .82rem; line-height: 1.75; color: var(--text-2); max-width: 68ch; }
+  .resumo-p + .resumo-ul { margin-top: .6rem; }
+  .resumo-ul { list-style: none; }
+  .resumo-ul li { font-size: .82rem; line-height: 1.7; color: var(--text-2);
+                  padding-left: .95rem; position: relative; }
+  .resumo-ul li::before { content: ''; position: absolute; left: .18rem; top: .68rem;
+                          width: 4px; height: 4px; border-radius: 50%; background: var(--green); }
   .cirad-sec { margin-bottom: 1.1rem; }
   .cirad-sec:last-child { margin-bottom: 0; }
   .cirad-sec h4 { font-size: .72rem; font-weight: 700; color: var(--green); margin-bottom: .35rem; letter-spacing: .02em; }
@@ -474,6 +483,7 @@
 
     <div class="nav-section">MERCADOS</div>
     <div class="nav-item active" data-page="precos"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16l4-4 4 4 4-4"/></svg>Preços</div>
+    <div class="nav-item" data-page="resumo"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>Resumo CIRAD</div>
     <div class="nav-item" data-page="news"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h13a2 2 0 0 1 2 2v12a2 2 0 0 0 2-2V8"/><path d="M4 4v14a2 2 0 0 0 2 2h13"/><line x1="8" y1="9" x2="14" y2="9"/><line x1="8" y1="13" x2="14" y2="13"/></svg>Newsletters</div>
     <div class="nav-section" style="margin-top:.75rem">LOGÍSTICA</div>
     <div class="nav-item" data-page="logistica"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15l2-6h14l2 6"/><path d="M4 15c2 3 4 4 8 4s6-1 8-4"/><line x1="12" y1="3" x2="12" y2="9"/></svg>Transit Time</div>
@@ -491,6 +501,7 @@
 
   <main class="main">
     <section class="page active" id="page-precos"></section>
+    <section class="page" id="page-resumo"></section>
     <section class="page" id="page-news"></section>
     <section class="page" id="page-logistica"></section>
     <section class="page" id="page-share"></section>
@@ -501,6 +512,7 @@
 
 <div class="mobile-bar">
     <div class="mb-item active" data-page="precos"><svg class="mb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16l4-4 4 4 4-4"/></svg><span>Preços</span></div>
+    <div class="mb-item" data-page="resumo"><svg class="mb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg><span>Resumo</span></div>
     <div class="mb-item" data-page="news"><svg class="mb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h13a2 2 0 0 1 2 2v12a2 2 0 0 0 2-2V8"/><path d="M4 4v14a2 2 0 0 0 2 2h13"/><line x1="8" y1="9" x2="14" y2="9"/><line x1="8" y1="13" x2="14" y2="13"/></svg><span>Newsletters</span></div>
     <div class="mb-item" data-page="logistica"><svg class="mb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15l2-6h14l2 6"/><path d="M4 15c2 3 4 4 8 4s6-1 8-4"/><line x1="12" y1="3" x2="12" y2="9"/></svg><span>Transit</span></div>
     <div class="mb-item" data-page="share"><svg class="mb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 21H3V3"/><rect x="7" y="10" width="4" height="11"/><rect x="13" y="6" width="4" height="15"/></svg><span>Share</span></div>
@@ -559,12 +571,25 @@ const NOGRID = {display:false};
 /* rotulo de valor no topo da barra (paridade com o Power BI) */
 const barLabels = { id:'barLabels', afterDatasetsDraw(chart,a,opts){
   const ctx=chart.ctx, pfx=(opts&&opts.prefix)||'', dec=(opts&&opts.dec!=null)?opts.dec:2;
-  ctx.save(); ctx.font='600 10px "Plus Jakarta Sans", sans-serif'; ctx.fillStyle='#ADADAD';
-  ctx.textAlign='center'; ctx.textBaseline='bottom';
+  // opts.destaque = indice da barra que deve ler mais forte (a semana mais
+  // recente). Fonte e cor por item, nao uma vez fora do laco.
+  const dest = (opts && opts.destaque!=null) ? opts.destaque : -1;
+  ctx.save(); ctx.textAlign='center'; ctx.textBaseline='bottom';
   chart.data.datasets.forEach((ds,di)=>{ const m=chart.getDatasetMeta(di); if(m.hidden) return;
     m.data.forEach((el,i)=>{ const v=ds.data[i]; if(v==null) return;
+      const q = (i===dest);
+      ctx.font=(q?'800 11px':'600 10px')+' "Plus Jakarta Sans", sans-serif';
+      ctx.fillStyle=q?'#FFFFFF':'#ADADAD';
       ctx.fillText(pfx+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:dec,maximumFractionDigits:dec}), el.x, el.y-4); }); });
   ctx.restore(); } };
+
+/* Cor das barras de "04 ultimas semanas": a semana mais recente solida, as
+   anteriores no mesmo verde translucido. Serve para o olho achar o numero de
+   agora sem ler o eixo. O literal 141,198,63 e trocado pela paleta no build. */
+const CORES_U4  = n => Array.from({length:n}, (_,i) =>
+  i===n-1 ? '#8DC63F' : 'rgba(141,198,63,.34)');
+const HOVER_U4  = n => Array.from({length:n}, (_,i) =>
+  i===n-1 ? '#A5D95C' : 'rgba(141,198,63,.55)');
 
 const charts = {};
 function mk(id, cfg){
@@ -757,13 +782,33 @@ async function carregaCambio(){
   return l.length;
 }
 
+/* Resumo executivo. O texto e escrito por modelo de linguagem a partir do
+   boletim + dos numeros do banco (etl_cirad_resumo.py), entao a procedencia
+   (modelo, metodo, conferencia de cifras) faz parte do dado e vai para a tela.
+   A view v_cirad_resumo_atual ja devolve so a semana mais recente; se ela
+   ainda nao existir no banco (schema v4 nao aplicado), cai na tabela e segue
+   sem a procedencia em vez de deixar a aba vazia. */
 async function carregaCirad(){
-  const l = await sbFetch('cirad_resumo',
-    {select:'ano,semana,ordem,secao,texto', order:'ano.desc,semana.desc,ordem.asc'});
-  if(!l.length) throw new Error('tabela vazia');
-  const ano = l[0].ano, semana = l[0].semana;
-  const desta = l.filter(r => r.ano===ano && r.semana===semana);
-  SNAP.cirad = { titulo: SNAP.cirad.titulo, ano, semana,
+  const campos = 'ano,semana,ordem,secao,texto,arquivo,relatorio_semana,modelo,metodo,conferido,extracted_at';
+  let desta = null, temMeta = true;
+  try {
+    desta = await sbFetch('v_cirad_resumo_atual', {select:campos, order:'ordem.asc'});
+  } catch(e){
+    console.warn('[supabase] v_cirad_resumo_atual indisponivel ('+e.message+') — usando cirad_resumo');
+    temMeta = false;
+    const l = await sbFetch('cirad_resumo',
+      {select:'ano,semana,ordem,secao,texto,extracted_at', order:'ano.desc,semana.desc,ordem.asc'});
+    if(!l.length) throw new Error('tabela vazia');
+    desta = l.filter(r => r.ano===l[0].ano && r.semana===l[0].semana)
+             .sort((a,b)=>a.ordem-b.ordem);
+  }
+  if(!desta || !desta.length) throw new Error('tabela vazia');
+  const p = desta[0];
+  SNAP.cirad = { titulo: SNAP.cirad.titulo, ano:p.ano, semana:p.semana,
+    meta: { temMeta:temMeta, arquivo:p.arquivo||null,
+            relatorio_semana:(p.relatorio_semana==null?null:+p.relatorio_semana),
+            modelo:p.modelo||null, metodo:p.metodo||null,
+            conferido:(p.conferido===true), em:p.extracted_at },
     secoes: desta.map(r => {
       const linhas = String(r.texto).split('\n').map(x=>x.trim()).filter(Boolean);
       const itens = linhas.filter(x => x.startsWith('-')).map(x => x.replace(/^-\s*/,''));
@@ -799,24 +844,37 @@ async function carregaEuropa(){
   if(!Object.keys(hass).length) throw new Error('sem Hass 18 na view');
 
   const h18 = caixa.filter(r => r.grade === 'Hass 18');
-  const ult = h18[h18.length-1], pen = h18[h18.length-2];
 
   const E = DATA.precos.europa;
   E.series = hass;
   E.green  = serie('Green 18');
-  E.referencia = {
-    ano:+ult.ano, semana:+ult.semana, valor:+ult.preco,
-    variacao_eur:       num(ult.variacao_eur),
-    variacao_media_pct: num(ult.variacao_media_pct),
-    relatorio_semana:   num(ult.relatorio_semana),
-    anterior: pen ? {ano:+pen.ano, semana:+pen.semana, valor:+pen.preco} : null,
-    em: ult.extracted_at
-  };
-  // a caixa de referencia do boletim traz varias grades na semana corrente
-  E.grades = l.filter(r => +r.ano===+ult.ano && +r.semana===+ult.semana)
+
+  // Referencia e grade guardadas POR ANO: com o filtro de ano ligado, a caixa
+  // de referencia tem que ser a da ultima semana daquele ano, nao a da ultima
+  // semana do banco. `anterior` sai da lista global, para a variacao continuar
+  // certa na virada de ano.
+  const grades = (ano, sem) => l
+    .filter(r => +r.ano === ano && +r.semana === sem)
     .map(r => ({grade:r.grade, preco:+r.preco, unidade:r.unidade,
                 variacao_eur:num(r.variacao_eur), variacao_media_pct:num(r.variacao_media_pct)}))
-    .sort((a,b)=>a.grade.localeCompare(b.grade,'pt-BR'));
+    .sort((a,b) => a.grade.localeCompare(b.grade,'pt-BR'));
+
+  E.ref_por_ano = {}; E.grades_por_ano = {};
+  h18.forEach((r, i) => {
+    const pen = i > 0 ? h18[i-1] : null;
+    E.ref_por_ano[String(r.ano)] = {
+      ano:+r.ano, semana:+r.semana, valor:+r.preco,
+      variacao_eur:       num(r.variacao_eur),
+      variacao_media_pct: num(r.variacao_media_pct),
+      relatorio_semana:   num(r.relatorio_semana),
+      anterior: pen ? {ano:+pen.ano, semana:+pen.semana, valor:+pen.preco} : null,
+      em: r.extracted_at
+    };
+    E.grades_por_ano[String(r.ano)] = grades(+r.ano, +r.semana);
+  });
+  const ult = h18[h18.length-1];
+  E.referencia = E.ref_por_ano[String(ult.ano)];
+  E.grades     = E.grades_por_ano[String(ult.ano)];
   E.vivo = true;
   return l.length;
 }
@@ -973,7 +1031,7 @@ const RESSALVA_ORIGEM = {
            'que vinham de <code>Consolidado_forecast.xlsx</code> sa&iacute;ram: nas 63 semanas em comum '+
            'com o boletim real, a planilha fica de <b>2,6x a 8,6x abaixo</b> (mediana 2,8x), e a raz&atilde;o '+
            'n&atilde;o &eacute; constante &mdash; ent&atilde;o n&atilde;o &eacute; convers&atilde;o de unidade, &eacute; outro indicador.',
-  argentina: '<b>2024 e 2025 s&atilde;o proje&ccedil;&atilde;o, n&atilde;o medi&ccedil;&atilde;o</b> &mdash; est&atilde;o tracejados no gr&aacute;fico. '+
+  argentina: '<b>2024 e 2025 s&atilde;o proje&ccedil;&atilde;o, n&atilde;o medi&ccedil;&atilde;o</b> &mdash; s&atilde;o as linhas <b>tracejadas</b> do gr&aacute;fico. '+
            'Vêm de <code>Consolidado_forecast.xlsx</code> e t&ecirc;m assinatura de curva constru&iacute;da: 40 dos 51 '+
            'passos semanais s&atilde;o m&uacute;ltiplos exatos de 0,05, o mesmo passo repete at&eacute; 6 vezes seguidas, '+
            'o trecho mon&oacute;tono chega a <b>25 semanas</b> e os dois anos t&ecirc;m a mesma assinatura. '+
@@ -981,9 +1039,33 @@ const RESSALVA_ORIGEM = {
            'de 8. O site publica s&oacute; o ano corrente, ent&atilde;o n&atilde;o h&aacute; como refazer 2024&ndash;2025.'
 };
 
-/* Anos que sao curva construida, nao medicao. Entram no grafico tracejados e
-   em cinza, fora da paleta de ano, para nao serem lidos como par do dado real. */
+/* Anos que sao curva construida, nao medicao. Entram no grafico tracejados. */
 const projecaoDe = key => (DATA.precos[key] && DATA.precos[key].projecao) || [];
+
+/* ── Filtro de ano por clique ───────────────────────────────────────────
+   Clicar num ano deixa a aba inteira naquele ano: KPI, ultimas 4 semanas,
+   grafico e tabela. Clicar de novo no mesmo ano limpa. Guardado por origem —
+   escolher 2024 no Chile nao mexe no Brasil. Um ano que nao existe na origem
+   atual e ignorado, entao trocar de aba nunca deixa a tela vazia. */
+const anoSel = {};
+const anoAtivo = (key, anos) => {
+  const a = anoSel[key];
+  return (a && anos.indexOf(a) >= 0) ? a : null;
+};
+function chipsAno(key, anos, proj){
+  proj = proj || [];
+  const sel = anoAtivo(key, anos);
+  return anos.map(a => {
+    const c = ANO_COR[a] || '#8DC63F', ativo = (a === sel), ehP = proj.indexOf(a) >= 0;
+    return '<button type="button" class="badge" data-ano="'+a+'" title="'+
+      (ativo ? 'mostrando s&oacute; '+a+' — clique para ver todos' : 'ver s&oacute; '+a)+
+      '" style="cursor:pointer;font-family:inherit;border-color:'+c+
+      ';color:'+(ativo ? '#0d0f0d' : c)+';background:'+(ativo ? c : 'transparent')+
+      ';font-weight:'+(ativo ? 800 : 600)+(ehP ? ';border-style:dashed' : '')+'">'+
+      a+(ehP ? ' proj.' : '')+'</button>';
+  }).join('');
+}
+const NOTA_FILTRO = 'Clique num ano para ver s&oacute; ele; clique de novo para voltar a todos.';
 
 let precoAtual = 'brasil';
 const anosDe = o => Object.keys((o&&o.series)||{}).sort();
@@ -1013,6 +1095,17 @@ RENDER.precos = function(){
     document.querySelectorAll('#chips-precos .filter-chip').forEach(c=>c.classList.toggle('active', c===b));
     corpoPreco(precoAtual);
   });
+  // delegado em #page-precos, que persiste entre repaints — em #precos-body o
+  // listener morreria a cada troca de innerHTML. Amarrado uma vez.
+  if(!RENDER.precos._ligado){
+    $('page-precos').addEventListener('click', ev => {
+      const b = ev.target.closest('[data-ano]'); if(!b) return;
+      const a = b.dataset.ano;
+      anoSel[precoAtual] = (anoSel[precoAtual] === a) ? null : a;
+      corpoPreco(precoAtual);
+    });
+    RENDER.precos._ligado = true;
+  }
   corpoPreco(precoAtual);
 };
 RENDER.precosCharts = function(){ corpoPreco(precoAtual); };
@@ -1068,8 +1161,13 @@ function notaFonte(key, m, fonte){
 function corpoPreco(key){
   const m = ORIGENS.find(o=>o.key===key);
   if(key==='europa'){ $('precos-body').innerHTML = corpoEuropa(); chartEuropa(); return; }
-  const o = DATA.precos[key], anos = anosDe(o), u4 = ult4(key);
-  const sAt = o.series[ultimoAno(o)], anoAt = ultimoAno(o);
+  const o = DATA.precos[key], anos = anosDe(o);
+  const sel = anoAtivo(key, anos);
+  const anoAt = sel || ultimoAno(o), anosVis = sel ? [sel] : anos;
+  const sAt = o.series[anoAt];
+  const u4 = sel
+    ? {origem:'serie', valores: sAt.slice(-4).map(x => ({ano:+sel, semana:x.semana, valor:x.valor}))}
+    : ult4(key);
   const ultimo = sAt[sAt.length-1], penult = sAt[sAt.length-2];
   const d = penult ? (ultimo.valor-penult.valor)/penult.valor : null;
   const media = sAt.reduce((a,b)=>a+b.valor,0)/sAt.length;
@@ -1083,7 +1181,9 @@ function corpoPreco(key){
       kpi('M&eacute;dia '+anoAt, m.moeda+'&nbsp;'+nf(media), m.unid)+
       kpi('M&aacute;ximo '+anoAt, m.moeda+'&nbsp;'+nf(max.valor), 'semana '+max.semana)+
       kpi('M&iacute;nimo '+anoAt, m.moeda+'&nbsp;'+nf(min.valor), 'semana '+min.semana)+
-      kpi('Cobertura', anos.length+' anos', anos.join(' &middot; '))+
+      (sel
+        ? kpi('Filtrado', sel, 'de '+anos.length+' anos &middot; clique no ano para limpar')
+        : kpi('Cobertura', anos.length+' anos', anos.join(' &middot; ')))+
     '</div>'+
     '<div class="col-1-2">'+
       chartCard('04 &uacute;ltimas semanas', 'chartU4', '<span class="badge">'+m.unid+'</span>',
@@ -1091,36 +1191,37 @@ function corpoPreco(key){
           ? 'Valores do export do Power BI (semana 24/2026) &mdash; as planilhas do projeto n&atilde;o t&ecirc;m '+m.label+' em 2026.'
           : 'Semanas mais recentes da s&eacute;rie, agrega&ccedil;&atilde;o '+m.agg+'.')+
       chartCard('M&eacute;dia hist&oacute;rica | KG', 'chartHist',
-        anos.map(a=>{ const ehP = projecaoDe(key).indexOf(a)>=0;
-          const c = ehP ? '#909090' : (ANO_COR[a]||'#8DC63F');
-          return '<span class="badge" style="background:transparent;border-color:'+c+';color:'+c+'">'+
-                 a+(ehP?' proj.':'')+'</span>';}).join(''),
-        projecaoDe(key).length
-          ? 'A linha tracejada em cinza &eacute; <b>proje&ccedil;&atilde;o</b> (' + projecaoDe(key).join(', ') +
-            '), n&atilde;o medi&ccedil;&atilde;o &mdash; ver a ressalva no p&eacute; da tabela.'
-          : null, 'tall')+
+        chipsAno(key, anos, projecaoDe(key)),
+        (projecaoDe(key).length
+          ? 'A linha <b>tracejada</b> &eacute; proje&ccedil;&atilde;o (' + projecaoDe(key).join(', ') +
+            '), n&atilde;o medi&ccedil;&atilde;o &mdash; ver a ressalva no p&eacute; da tabela. '
+          : '') + NOTA_FILTRO, 'tall')+
     '</div>'+
-    card('<div class="chart-header"><span class="chart-title">S&eacute;rie semanal</span><span class="badge">'+m.unid+'</span></div>'+
-      '<div class="table-wrap scroll-y-lg">'+tblSerie(o, anos, m, projecaoDe(key))+'</div>'+
+    card('<div class="chart-header"><span class="chart-title">S&eacute;rie semanal'+
+      (sel?' &middot; '+sel:'')+'</span><span class="badge">'+m.unid+'</span></div>'+
+      '<div class="table-wrap scroll-y-lg">'+tblSerie(o, anosVis, m, projecaoDe(key))+'</div>'+
       '<div class="chart-note">'+notaFonte(key, m, fonte)+'</div>');
 
   mk('chartU4', {type:'bar', plugins:[barLabels], data:{
       labels: u4.valores.map(v=>[String(v.ano),'S'+v.semana]),
-      datasets:[{data:u4.valores.map(v=>v.valor), backgroundColor:'#8DC63F', hoverBackgroundColor:'#A5D95C', borderRadius:4, maxBarThickness:46}]},
+      datasets:[{data:u4.valores.map(v=>v.valor), backgroundColor:CORES_U4(u4.valores.length),
+                 hoverBackgroundColor:HOVER_U4(u4.valores.length), borderRadius:4, maxBarThickness:46}]},
     options:{layout:{padding:{top:18}},
-      plugins:{legend:{display:false}, barLabels:{prefix:m.moeda+' ', dec:2},
+      plugins:{legend:{display:false}, barLabels:{prefix:m.moeda+' ', dec:2, destaque:u4.valores.length-1},
                tooltip:{callbacks:{label:c=>m.moeda+' '+nf(c.parsed.y)}}},
       scales:{x:{grid:NOGRID}, y:{grid:GRID, beginAtZero:true, ticks:{callback:v=>m.moeda+' '+v}}}}});
 
   const semanas = Array.from({length:53},(_,i)=>i+1);
   const proj = projecaoDe(key);
   mk('chartHist', {type:'line', data:{labels:semanas,
-      datasets:anos.map(a=>{ const map={}; o.series[a].forEach(x=>map[x.semana]=x.valor);
+      datasets:anosVis.map(a=>{ const map={}; o.series[a].forEach(x=>map[x.semana]=x.valor);
         const ehProj = proj.indexOf(a) >= 0;
-        const cor = ehProj ? '#909090' : (ANO_COR[a]||PALETTE[anos.indexOf(a)%11]);
+        // projecao fica na cor do proprio ano; o que a marca e o tracejado,
+        // nao a cor. Cinza tirava o ano da leitura junto com a ressalva.
+        const cor = ANO_COR[a]||PALETTE[anos.indexOf(a)%11];
         return {label:a + (ehProj?' (projeção)':''), data:semanas.map(s=>map[s]!=null?map[s]:null), spanGaps:true,
           borderColor:cor, backgroundColor:cor, borderDash: ehProj ? [5,4] : undefined,
-          borderWidth:a===anoAt?2.4:(ehProj?1.2:1.5), pointRadius:0, pointHoverRadius:4, tension:.3};})},
+          borderWidth:a===anoAt?2.4:1.5, pointRadius:0, pointHoverRadius:4, tension:.3};})},
     options:{interaction:{mode:'index',intersect:false},
       plugins:{legend:{display:false}, tooltip:{callbacks:{title:c=>'Semana '+c[0].label, label:c=>c.dataset.label+': '+m.moeda+' '+nf(c.parsed.y)}}},
       scales:{x:{grid:NOGRID, title:{display:true,text:'Semanas',color:'#909090',font:{size:10}}, ticks:{maxTicksLimit:27}},
@@ -1155,14 +1256,18 @@ const sgn = (v, dec, suf) => v==null ? '&mdash;'
 function corpoEuropa(){
   const E = DATA.precos.europa;
   if(!E.vivo || !E.series) return corpoEuropaSnapshot();
-  const r = E.referencia, anos = Object.keys(E.series).sort();
+  const anos = Object.keys(E.series).sort();
+  const sel = anoAtivo('europa', anos);
+  const r = (sel && E.ref_por_ano && E.ref_por_ano[sel]) ? E.ref_por_ano[sel] : E.referencia;
+  const anosVis = sel ? [sel] : anos;
+  const gradesVis = (sel && E.grades_por_ano) ? (E.grades_por_ano[sel] || []) : E.grades;
   const sAt = E.series[String(r.ano)] || [];
   const media = mediaDe(sAt.map(x=>x.valor));
   const max = sAt.reduce((a,b)=>b.valor>a.valor?b:a, sAt[0]);
   const min = sAt.reduce((a,b)=>b.valor<a.valor?b:a, sAt[0]);
   const d = (r.anterior && r.anterior.valor) ? (r.valor-r.anterior.valor)/r.anterior.valor : null;
   const m = {moeda:EU_HTML, unid:EU_HTML+'/caixa 4kg', agg:'refer&ecirc;ncia CIRAD'};
-  const buracos = anos.filter(a => {
+  const buracos = anosVis.filter(a => {
     const s = E.series[a]; if(s.length<2) return false;
     return (s[s.length-1].semana - s[0].semana + 1) !== s.length;
   });
@@ -1173,7 +1278,9 @@ function corpoEuropa(){
       kpi('M&eacute;dia '+r.ano, EU_HTML+'&nbsp;'+nf(media), m.unid)+
       kpi('M&aacute;ximo '+r.ano, EU_HTML+'&nbsp;'+nf(max.valor), 'semana '+max.semana)+
       kpi('M&iacute;nimo '+r.ano, EU_HTML+'&nbsp;'+nf(min.valor), 'semana '+min.semana)+
-      kpi('Cobertura', anos.length+' anos', anos.join(' &middot; '))+
+      (sel
+        ? kpi('Filtrado', sel, 'de '+anos.length+' anos &middot; clique no ano para limpar')
+        : kpi('Cobertura', anos.length+' anos', anos.join(' &middot; ')))+
     '</div>'+
     '<div class="col-1-2">'+
       chartCard('04 &uacute;ltimas semanas', 'chartEuU4', '<span class="badge">'+m.unid+'</span>',
@@ -1182,18 +1289,19 @@ function corpoEuropa(){
           ? ', n&atilde;o a da edi&ccedil;&atilde;o: este pre&ccedil;o saiu no boletim da S'+r.relatorio_semana+'.'
           : '.'))+
       chartCard('M&eacute;dia hist&oacute;rica | caixa 4kg', 'chartEuHist',
-        anos.map(a=>'<span class="badge" style="background:transparent;border-color:'+(ANO_COR[a]||'#8DC63F')+';color:'+(ANO_COR[a]||'#8DC63F')+'">'+a+'</span>').join(''),
+        chipsAno('europa', anos),
         (buracos.length
-          ? 'A linha de '+buracos.join(' e ')+' aparece <b>interrompida</b> onde o boletim n&atilde;o foi recuperado &mdash; a s&eacute;rie n&atilde;o &eacute; costurada por interpola&ccedil;&atilde;o.'
-          : null), 'tall')+
+          ? 'A linha de '+buracos.join(' e ')+' aparece <b>interrompida</b> onde o boletim n&atilde;o foi recuperado &mdash; a s&eacute;rie n&atilde;o &eacute; costurada por interpola&ccedil;&atilde;o. '
+          : '') + NOTA_FILTRO, 'tall')+
     '</div>'+
     '<div class="col-2-1">'+
-      card('<div class="chart-header"><span class="chart-title">S&eacute;rie semanal &middot; Hass 18</span><span class="badge">'+m.unid+'</span></div>'+
-        '<div class="table-wrap scroll-y-lg">'+tblSerie({series:E.series}, anos, m)+'</div>'+
+      card('<div class="chart-header"><span class="chart-title">S&eacute;rie semanal &middot; Hass 18'+
+        (sel?' &middot; '+sel:'')+'</span><span class="badge">'+m.unid+'</span></div>'+
+        '<div class="table-wrap scroll-y-lg">'+tblSerie({series:E.series}, anosVis, m)+'</div>'+
         '<div class="chart-note">'+notaFonteEuropa(E)+'</div>')+
       card('<div class="chart-header"><span class="chart-title">Caixa de refer&ecirc;ncia</span>'+
         '<span class="badge">semana '+r.semana+'/'+r.ano+'</span></div>'+
-        '<div class="table-wrap">'+tblGradesEuropa(E)+'</div>'+
+        '<div class="table-wrap">'+tblGradesEuropa(gradesVis)+'</div>'+
         '<div class="chart-note"><b>&Delta; semana</b> e <b>vs. m&eacute;dia</b> s&atilde;o os dois n&uacute;meros '+
         'que o pr&oacute;prio boletim imprime ao lado do pre&ccedil;o: varia&ccedil;&atilde;o em euro sobre a semana '+
         'anterior e varia&ccedil;&atilde;o percentual sobre a m&eacute;dia das duas safras anteriores. '+
@@ -1202,16 +1310,11 @@ function corpoEuropa(){
           : 'Esta semana o boletim n&atilde;o imprimiu a compara&ccedil;&atilde;o.')+'</div>'+
         aviso('Estas duas pe&ccedil;as eram <b>prints</b> colados no Power BI &mdash; n&atilde;o havia s&eacute;rie, s&oacute; a foto da semana. '+
               'Agora vêm de <code>europa_cirad_precos</code>, lida do PDF do boletim por <code>etl_europa_cirad.py</code>.', true))+
-    '</div>'+
-    card('<div class="chart-header"><span class="chart-title">Resumo executivo CIRAD / Tropisens</span><span class="badge">semana '+SNAP.cirad.semana+'/'+SNAP.cirad.ano+'</span></div>'+
-      '<div class="two-col" style="align-items:start">'+
-        '<div>'+SNAP.cirad.secoes.filter((_,i)=>i%2===0).map(secCirad).join('')+'</div>'+
-        '<div>'+SNAP.cirad.secoes.filter((_,i)=>i%2===1).map(secCirad).join('')+'</div>'+
-      '</div>', 'chart-card');
+    '</div>';
 }
 
-function tblGradesEuropa(E){
-  const g = E.grades||[];
+function tblGradesEuropa(g){
+  g = g || [];
   if(!g.length) return '<div class="fontes-list">Sem grade publicada nesta semana.</div>';
   return '<table class="table-mes"><thead><tr><th class="col-pais">Grade</th>'+
     '<th class="col-num">Pre&ccedil;o</th><th class="col-num col-zebra">&Delta; semana</th>'+
@@ -1241,20 +1344,24 @@ function notaFonteEuropa(E){
 }
 
 function chartEuropaLive(){
-  const E = DATA.precos.europa, r = E.referencia;
+  const E = DATA.precos.europa;
+  const anos = Object.keys(E.series).sort();
+  const sel = anoAtivo('europa', anos);
+  const r = (sel && E.ref_por_ano && E.ref_por_ano[sel]) ? E.ref_por_ano[sel] : E.referencia;
   const sAt = E.series[String(r.ano)] || [], u4 = sAt.slice(-4);
   mk('chartEuU4', {type:'bar', plugins:[barLabels], data:{
       labels:u4.map(v=>[String(r.ano),'S'+v.semana]),
-      datasets:[{data:u4.map(v=>v.valor), backgroundColor:'#8DC63F',
-                 hoverBackgroundColor:'#A5D95C', borderRadius:4, maxBarThickness:46}]},
+      datasets:[{data:u4.map(v=>v.valor), backgroundColor:CORES_U4(u4.length),
+                 hoverBackgroundColor:HOVER_U4(u4.length), borderRadius:4, maxBarThickness:46}]},
     options:{layout:{padding:{top:18}},
-      plugins:{legend:{display:false}, barLabels:{prefix:EU_TXT+' ', dec:2},
+      plugins:{legend:{display:false}, barLabels:{prefix:EU_TXT+' ', dec:2, destaque:u4.length-1},
                tooltip:{callbacks:{label:c=>EU_TXT+' '+nf(c.parsed.y)}}},
       scales:{x:{grid:NOGRID}, y:{grid:GRID, beginAtZero:true, ticks:{callback:v=>EU_TXT+' '+v}}}}});
 
-  const anos = Object.keys(E.series).sort(), semanas = Array.from({length:53},(_,i)=>i+1);
+  const semanas = Array.from({length:53},(_,i)=>i+1);
+  const anosVis = sel ? [sel] : anos;
   mk('chartEuHist', {type:'line', data:{labels:semanas,
-      datasets:anos.map(a=>{ const map={}; E.series[a].forEach(x=>map[x.semana]=x.valor);
+      datasets:anosVis.map(a=>{ const map={}; E.series[a].forEach(x=>map[x.semana]=x.valor);
         const cor = ANO_COR[a]||PALETTE[anos.indexOf(a)%11];
         // spanGaps:false de proposito — 2023 tem semanas nao recuperadas e uma
         // reta por cima do buraco pareceria dado que nao temos
@@ -1302,11 +1409,119 @@ function corpoEuropaSnapshot(){
         'Unidade: '+esc(g.unidade)+'<br>Eixo: '+g.semanas.map(esc).join(' &middot; ')+'<br>S&eacute;ries: '+g.anos.join(' &middot; ')+'</div>'+
         aviso('A p&aacute;gina <b>Pre&ccedil;os Europa</b> do Power BI n&atilde;o tem modelo de dados &mdash; s&atilde;o dois prints do boletim CIRAD colados no relat&oacute;rio. Para virar gr&aacute;fico nativo, precisamos da s&eacute;rie semanal do CIRAD em planilha ou de um coletor sobre o PDF do boletim.'))+
     '</div>'+
-    card('<div class="chart-header"><span class="chart-title">Resumo executivo CIRAD / Tropisens</span><span class="badge">semana '+SNAP.cirad.semana+'/'+SNAP.cirad.ano+'</span></div>'+
-      '<div class="two-col" style="align-items:start">'+
-        '<div>'+SNAP.cirad.secoes.filter((_,i)=>i%2===0).map(secCirad).join('')+'</div>'+
-        '<div>'+SNAP.cirad.secoes.filter((_,i)=>i%2===1).map(secCirad).join('')+'</div>'+
-      '</div>', 'chart-card');
+    '';
+}
+
+/* ══ RESUMO EXECUTIVO (CIRAD / Tropisens) ════════════════════
+   No Power BI isto e pagina propria, alimentada por um TXT que o Tropisens.py
+   sobrescrevia a cada execucao — existia so a ultima semana e nada dizia como
+   o texto tinha sido produzido.
+   Aqui vem de cirad_resumo. A procedencia esta na tela de proposito: este e o
+   UNICO dado do projeto escrito por modelo de linguagem, e quem le precisa
+   distinguir o que e boletim, o que e banco e o que e redacao. */
+RENDER.resumo = function(){
+  const c = SNAP.cirad || {}, meta = c.meta || {}, E = DATA.precos.europa || {};
+  const secoes = c.secoes || [];
+  if(!secoes.length){
+    $('page-resumo').innerHTML =
+      pageHeader('Mercados &middot; Boletim CIRAD / Tropisens', 'Resumo Executivo', '') +
+      card(aviso('Nenhum resumo carregado. O texto vem da tabela <code>cirad_resumo</code>, '+
+                 'alimentada por <code>etl_cirad_resumo.py</code> a cada boletim novo.'));
+    return;
+  }
+
+  // A serie de preco e a mesma da aba Europa. Se o resumo for de uma semana
+  // anterior ao ultimo preco publicado, isso e sinal de que o boletim novo
+  // entrou e o resumo nao — vale dizer na cara, nao esconder.
+  const serie = (E.series && E.series[String(c.ano)]) || [];
+  const ponto = serie.filter(x => x.semana === c.semana)[0] || null;
+  const ref   = (E.ref_por_ano && E.ref_por_ano[String(c.ano)]) || null;
+  const ult   = E.referencia || null;
+  const mesmaSemana = ult && ult.ano === c.ano && ult.semana === c.semana;
+  const atrasado = ult && !mesmaSemana &&
+    (ult.ano > c.ano || (ult.ano === c.ano && ult.semana > c.semana));
+
+  const conclusao = secoes.filter(s => /produtor/i.test(s.titulo || ''));
+  const corpo = secoes.filter(s => !/produtor/i.test(s.titulo || ''));
+
+  const selo = meta.conferido
+    ? aviso('<b>Cifras conferidas.</b> Todo pre&ccedil;o em euro citado neste resumo foi '+
+            'encontrado em <code>europa_cirad_precos</code> / <code>europa_cirad_calibre</code> '+
+            'da mesma semana. O ETL n&atilde;o grava resumo que cite valor fora do banco.', true)
+    : aviso('<b>Sem conferência de cifras.</b> Este texto entrou antes da trava que '+
+            'compara cada valor em euro com o banco &mdash; provavelmente a carga manual '+
+            'do <code>Tropisens_summary.txt</code>. Os n&uacute;meros dele podem n&atilde;o bater com a aba de pre&ccedil;os.');
+
+  $('page-resumo').innerHTML =
+    pageHeader('Mercados &middot; Boletim CIRAD / Tropisens', 'Resumo Executivo',
+      'Leitura da semana para o produtor brasileiro. O texto &eacute; redigido a partir do '+
+      'boletim, e os pre&ccedil;os citados vêm do banco do projeto &mdash; os mesmos da aba Pre&ccedil;os.') +
+    '<div class="kpi-grid">'+
+      kpi('Semana do resumo', 'S'+c.semana+'/'+c.ano,
+          meta.relatorio_semana == null
+            ? 'edi&ccedil;&atilde;o n&atilde;o registrada'
+            : (meta.relatorio_semana !== c.semana
+                ? 'edi&ccedil;&atilde;o da semana '+meta.relatorio_semana
+                : 'edi&ccedil;&atilde;o da mesma semana'))+
+      kpi('Refer&ecirc;ncia Hass 18',
+          ponto ? '&euro;&nbsp;'+nf(ponto.valor) : '&mdash;',
+          ponto ? '&euro;/caixa 4kg &middot; da aba Pre&ccedil;os' : 'sem pre&ccedil;o desta semana no banco',
+          (ref && ref.semana === c.semana && ref.anterior && ref.anterior.valor)
+            ? trendTag((ref.valor - ref.anterior.valor)/ref.anterior.valor) : '')+
+      kpi('vs. m&eacute;dia 2 safras',
+          (ref && ref.semana === c.semana && ref.variacao_media_pct != null)
+            ? sgn(ref.variacao_media_pct, 1, '%') : '&mdash;',
+          'como o boletim publica')+
+      kpi('Redigido por', esc(meta.modelo || 'carga manual'),
+          meta.em ? 'em '+dtBR(meta.em) : '&mdash;')+
+    '</div>'+
+    (atrasado
+      ? card(aviso('O &uacute;ltimo pre&ccedil;o publicado &eacute; da <b>semana '+ult.semana+'/'+ult.ano+
+                   '</b>, mas o resumo mais novo &eacute; da <b>semana '+c.semana+'/'+c.ano+'</b>. '+
+                   'Chegou boletim novo e o resumo n&atilde;o foi gerado &mdash; conferir o job '+
+                   '<code>Resumo executivo</code> no GitHub Actions.'))
+      : '')+
+    '<div class="two-col" style="align-items:start">'+
+      '<div>'+corpo.filter((_,i)=>i%2===0).map(cardCirad).join('')+'</div>'+
+      '<div>'+corpo.filter((_,i)=>i%2===1).map(cardCirad).join('')+'</div>'+
+    '</div>'+
+    (conclusao.length
+      ? card('<div class="chart-header"><span class="chart-title">'+esc(conclusao[0].titulo)+
+             '</span><span class="badge">conclus&atilde;o</span></div>'+
+             (conclusao[0].texto ? '<p class="resumo-p">'+esc(conclusao[0].texto)+'</p>' : '')+
+             (conclusao[0].itens ? '<ul class="resumo-ul">'+conclusao[0].itens.map(i=>'<li>'+esc(i)+'</li>').join('')+'</ul>' : ''),
+             'chart-card')
+      : '')+
+    '<div class="col-2-1">'+
+      card('<div class="chart-header"><span class="chart-title">N&uacute;meros que o resumo cita</span>'+
+        '<span class="badge">semana '+c.semana+'/'+c.ano+'</span></div>'+
+        (mesmaSemana
+          ? '<div class="table-wrap">'+tblGradesEuropa(E.grades)+'</div>'
+          : '<div class="fontes-list">A grade guardada &eacute; da semana '+
+            (ult?ult.semana+'/'+ult.ano:'&mdash;')+', diferente da semana deste resumo. '+
+            'Ver a aba <b>Pre&ccedil;os &rarr; Europa</b>.</div>')+
+        '<div class="chart-note"><b>Fonte dos n&uacute;meros:</b> <code>europa_cirad_precos</code> e '+
+        '<code>europa_cirad_calibre</code>, boletim CIRAD / FruiTrop. '+
+        'S&atilde;o os mesmos valores da aba Pre&ccedil;os &mdash; por constru&ccedil;&atilde;o, n&atilde;o por coincidência.</div>')+
+      card('<div class="chart-header"><span class="chart-title">Como este texto foi feito</span></div>'+
+        selo+
+        '<div class="chart-note">'+
+        (meta.metodo ? '<b>M&eacute;todo:</b> '+esc(meta.metodo)+'<br>' : '')+
+        (meta.arquivo ? '<b>Boletim:</b> <code>'+esc(meta.arquivo)+'</code><br>' : '')+
+        '<b>Fonte:</b> <code>cirad_resumo</code> no Supabase'+
+        (meta.temMeta === false
+          ? ' &mdash; a view <code>v_cirad_resumo_atual</code> ainda n&atilde;o existe no banco, '+
+            'ent&atilde;o a procedência veio incompleta (rodar <code>supabase_schema_v4_resumo.sql</code>)'
+          : '')+
+        '</div>')+
+    '</div>';
+};
+
+function cardCirad(s){
+  return card('<div class="chart-header"><span class="chart-title">'+esc(s.titulo)+'</span></div>'+
+    (s.texto ? '<p class="resumo-p">'+esc(s.texto)+'</p>' : '')+
+    (s.itens ? '<ul class="resumo-ul">'+s.itens.map(i=>'<li>'+esc(i)+'</li>').join('')+'</ul>' : ''),
+    'chart-card');
 }
 
 function secCirad(s){

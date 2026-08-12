@@ -6,11 +6,18 @@ name: ETL Preços Europa — CIRAD
 #
 # Nenhuma credencial de e-mail entra aqui: o Actions só conhece o WebDAV.
 #
-# O job precisa de tesseract-ocr. Motivo: o número oficial de cada semana está
-# nos RÓTULOS DO GRÁFICO DE BARRAS, que é imagem raster no PDF. A tabela de
-# texto da página 1 existe, mas em 12/08/2026 ela veio com o rótulo de semana
-# uma semana atrasado — o gráfico é a fonte confiável porque traz a semana ao
-# lado de cada número. O ETL cruza os dois e avisa quando divergem.
+# São dois jobs em sequência sobre o MESMO PDF:
+#   europa  → preço de referência e grade por calibre (números)
+#   resumo  → o resumo executivo (prosa), que CITA aqueles números
+# O segundo depende do primeiro de propósito: o etl_cirad_resumo.py se recusa a
+# escrever sobre uma semana que não está em europa_cirad_precos, então rodar
+# fora de ordem só produziria uma falha com log pior.
+#
+# O job de preço precisa de tesseract-ocr. Motivo: o número oficial de cada
+# semana está nos RÓTULOS DO GRÁFICO DE BARRAS, que é imagem raster no PDF. A
+# tabela de texto da página 1 existe, mas em 12/08/2026 ela veio com o rótulo de
+# semana uma semana atrasado — o gráfico é a fonte confiável porque traz a
+# semana ao lado de cada número. O ETL cruza os dois e avisa quando divergem.
 #
 # Roda todo dia útil de propósito: o relatório é semanal mas o dia de chegada
 # varia. O upsert é idempotente na chave (ano, semana, grade).
@@ -28,6 +35,11 @@ on:
         default: false
       todos:
         description: 'Processar a pasta inteira (backfill do histórico)'
+        type: boolean
+        required: false
+        default: false
+      refazer_resumo:
+        description: 'Regerar o resumo mesmo se a semana já estiver no banco'
         type: boolean
         required: false
         default: false
@@ -134,4 +146,111 @@ jobs:
               title: titulo,
               body: corpo,
               labels: ['etl-falha', 'precos'],
+            });
+
+  resumo:
+    name: Resumo executivo (CIRAD / Tropisens)
+    needs: europa
+    # Não roda no backfill: --todos processa a pasta inteira, e gerar resumo de
+    # 119 boletins antigos custa dinheiro e não serve a ninguém — a tela mostra
+    # só a semana corrente.
+    if: needs.europa.result == 'success' && inputs.todos != 'true' && inputs.dry_run != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      issues: write
+      contents: read
+
+    env:
+      SUPABASE_URL:     ${{ secrets.SUPABASE_URL }}
+      SUPABASE_KEY:     ${{ secrets.SUPABASE_KEY }}
+      OWNCLOUD_URL:     ${{ secrets.OWNCLOUD_URL }}
+      OWNCLOUD_PASTA:   ${{ secrets.OWNCLOUD_PASTA }}
+      OWNCLOUD_USER:    ${{ secrets.OWNCLOUD_USER }}
+      OWNCLOUD_PASS:    ${{ secrets.OWNCLOUD_PASS }}
+      OPENAI_API_KEY:   ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_MODELO:    ${{ vars.OPENAI_MODELO }}
+      PYTHONIOENCODING: utf-8
+      PYTHONUNBUFFERED: '1'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Instalar dependências
+        run: pip install --upgrade pip && pip install -r requirements.txt
+
+      # Sem a chave, o job termina verde avisando — não falha. Enquanto o
+      # secret não existir, o preço continua entrando todo dia e só o resumo
+      # fica parado; um job vermelho todo dia treinaria a gente a ignorar
+      # e-mail de falha.
+      - name: Conferir OPENAI_API_KEY
+        id: chave
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "tem=nao" >> $GITHUB_OUTPUT
+            echo "::warning::OPENAI_API_KEY não configurada — resumo não gerado."
+            echo "### Resumo executivo" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Pulado: falta o secret \`OPENAI_API_KEY\`." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "tem=sim" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Gerar resumo
+        id: etl
+        if: steps.chave.outputs.tem == 'sim'
+        run: |
+          args=""
+          if [ "${{ inputs.refazer_resumo }}" = "true" ]; then args="$args --forcar"; fi
+          python etl_cirad_resumo.py $args
+
+      - name: Resumo do job
+        if: always() && steps.chave.outputs.tem == 'sim'
+        run: |
+          echo "### Resumo executivo (CIRAD / Tropisens)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Resultado: \`${{ steps.etl.outcome }}\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Abrir issue em caso de falha
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const titulo = `Falha resumo CIRAD — ${new Date().toISOString().slice(0,16).replace('T',' ')} UTC`;
+            const corpo = [
+              '**ETL:** Resumo executivo → Supabase `cirad_resumo`',
+              `**Run:** https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              '',
+              'O resumo é o único dado do projeto escrito por um modelo de linguagem,',
+              'e as travas existem para ele não contradizer a aba de preços.',
+              'Causas, em ordem de probabilidade:',
+              '',
+              '1. **Cifra que não está no banco.** O log lista o valor citado e as',
+              '   cifras aceitas da semana. Nada foi gravado. Rodar de novo costuma',
+              '   resolver; se repetir, o prompt ou o bloco de números está errado.',
+              '2. **Menos de 3 seções reconhecidas** — a saída fugiu do formato de',
+              '   cinco cabeçalhos `## `. O log traz o começo da resposta.',
+              '3. **Preço da semana ausente em `europa_cirad_precos`.** O job de',
+              '   preço passou mas não gravou aquela edição. Conferir o job acima.',
+              '4. Chave da OpenAI sem crédito, expirada ou modelo indisponível.',
+              '',
+              'Para reproduzir local:',
+              '`python etl_cirad_resumo.py --arquivo "CIRAD avocado report Week NN-AAAA.pdf" --dry-run --forcar`',
+              '',
+              'Para ver só os números que o modelo receberia, sem gastar chamada:',
+              '`python etl_cirad_resumo.py --arquivo "..." --sem-modelo`',
+            ].join('\n');
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: titulo,
+              body: corpo,
+              labels: ['etl-falha', 'resumo'],
             });

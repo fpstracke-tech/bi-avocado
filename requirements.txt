@@ -8,3 +8,4 @@ pdfplumber
 yfinance
 pytesseract
 Pillow
+openai

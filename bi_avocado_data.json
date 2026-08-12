@@ -1,4878 +1,3826 @@
 {
-  "meta": {
-    "gerado_em": "2026-08-10T19:23:34.847463+00:00",
-    "fontes": {
-      "precos.brasil": [
-        "Brasil_historico.xlsx (2024-2025)",
-        "abacate_preco_brasil_agrolink.csv (2026)"
-      ],
-      "precos.chile": [
-        "Preco_historico.xlsx (2023-2025)",
-        "palta_santiago_precos.csv (2026)"
-      ],
-      "precos.uruguai": [
-        "Consolidado_forecast.xlsx"
-      ],
-      "precos.argentina": [
-        "Consolidado_forecast.xlsx (2024-2025)",
-        "palta_buenosaires_precos.csv (2026)"
-      ],
-      "precos.europa": [
-        "Consolidado_forecast.xlsx"
-      ],
-      "logistica.global": [
-        "TFRUITS_Estudo_de_rotas.xlsx"
-      ],
-      "logistica.brasil": [
-        "TFRUITS_Estudo_de_rotas__Brasil_v2.xlsx"
-      ],
-      "producao_global": [
-        "janela_avocado_ordenada_producao_ordempais.csv"
-      ],
-      "news.brasil": [
-        "news_brasil.csv",
-        "news_brasil_cambio.csv"
-      ],
-      "news.chile": [
-        "news_chile.csv",
-        "regulacao_chile.csv",
-        "logistica_chile.csv",
-        "news_chile_cambio.csv"
-      ]
-    }
+ "meta": {
+  "gerado_em": "2026-08-10T19:23:34.847463+00:00",
+  "fontes": {
+   "precos.brasil": [
+    "Brasil_historico.xlsx (2024-2025)",
+    "abacate_preco_brasil_agrolink.csv (2026)"
+   ],
+   "precos.chile": [
+    "Preco_historico.xlsx (2023-2025, recalculado em 12/08/2026)"
+   ],
+   "precos.uruguai": [
+    "UAM — boletim de precos mayoristas (S43/2024 em diante)"
+   ],
+   "precos.argentina": [
+    "Consolidado_forecast.xlsx (2024-2025, projecao)"
+   ],
+   "precos.europa": [
+    "CIRAD / FruiTrop — EU Reference Price (2023-2026)"
+   ],
+   "logistica.global": [
+    "TFRUITS_Estudo_de_rotas.xlsx"
+   ],
+   "logistica.brasil": [
+    "TFRUITS_Estudo_de_rotas__Brasil_v2.xlsx"
+   ],
+   "producao_global": [
+    "janela_avocado_ordenada_producao_ordempais.csv"
+   ],
+   "news.brasil": [
+    "news_brasil.csv",
+    "news_brasil_cambio.csv"
+   ],
+   "news.chile": [
+    "news_chile.csv",
+    "regulacao_chile.csv",
+    "logistica_chile.csv",
+    "news_chile_cambio.csv"
+   ]
   },
-  "precos": {
-    "brasil": {
-      "unidade": "R$/kg",
-      "series": {
-        "2024": [
-          {
-            "semana": 1,
-            "valor": 6.54
-          },
-          {
-            "semana": 2,
-            "valor": 5.83
-          },
-          {
-            "semana": 3,
-            "valor": 5.83
-          },
-          {
-            "semana": 4,
-            "valor": 5.92
-          },
-          {
-            "semana": 5,
-            "valor": 5.42
-          },
-          {
-            "semana": 6,
-            "valor": 5.81
-          },
-          {
-            "semana": 7,
-            "valor": 4.98
-          },
-          {
-            "semana": 8,
-            "valor": 5.92
-          },
-          {
-            "semana": 9,
-            "valor": 5.59
-          },
-          {
-            "semana": 10,
-            "valor": 5.59
-          },
-          {
-            "semana": 11,
-            "valor": 6.0
-          },
-          {
-            "semana": 12,
-            "valor": 5.06
-          },
-          {
-            "semana": 13,
-            "valor": 5.68
-          },
-          {
-            "semana": 14,
-            "valor": 5.81
-          },
-          {
-            "semana": 15,
-            "valor": 5.7
-          },
-          {
-            "semana": 16,
-            "valor": 5.89
-          },
-          {
-            "semana": 17,
-            "valor": 5.7
-          },
-          {
-            "semana": 18,
-            "valor": 5.89
-          },
-          {
-            "semana": 19,
-            "valor": 5.7
-          },
-          {
-            "semana": 20,
-            "valor": 5.65
-          },
-          {
-            "semana": 21,
-            "valor": 5.65
-          },
-          {
-            "semana": 22,
-            "valor": 4.72
-          },
-          {
-            "semana": 23,
-            "valor": 5.31
-          },
-          {
-            "semana": 24,
-            "valor": 5.05
-          },
-          {
-            "semana": 25,
-            "valor": 5.31
-          },
-          {
-            "semana": 26,
-            "valor": 5.58
-          },
-          {
-            "semana": 27,
-            "valor": 5.67
-          },
-          {
-            "semana": 28,
-            "valor": 6.69
-          },
-          {
-            "semana": 29,
-            "valor": 6.19
-          },
-          {
-            "semana": 30,
-            "valor": 7.33
-          },
-          {
-            "semana": 31,
-            "valor": 6.67
-          },
-          {
-            "semana": 32,
-            "valor": 6.41
-          },
-          {
-            "semana": 33,
-            "valor": 7.03
-          },
-          {
-            "semana": 34,
-            "valor": 7.03
-          },
-          {
-            "semana": 35,
-            "valor": 8.39
-          },
-          {
-            "semana": 36,
-            "valor": 7.89
-          },
-          {
-            "semana": 37,
-            "valor": 7.46
-          },
-          {
-            "semana": 38,
-            "valor": 7.78
-          },
-          {
-            "semana": 39,
-            "valor": 8.97
-          },
-          {
-            "semana": 40,
-            "valor": 10.0
-          },
-          {
-            "semana": 41,
-            "valor": 10.5
-          },
-          {
-            "semana": 42,
-            "valor": 11.25
-          },
-          {
-            "semana": 43,
-            "valor": 14.03
-          },
-          {
-            "semana": 44,
-            "valor": 16.67
-          },
-          {
-            "semana": 45,
-            "valor": 16.98
-          },
-          {
-            "semana": 46,
-            "valor": 23.33
-          },
-          {
-            "semana": 47,
-            "valor": 21.66
-          },
-          {
-            "semana": 48,
-            "valor": 18.56
-          },
-          {
-            "semana": 49,
-            "valor": 18.57
-          },
-          {
-            "semana": 50,
-            "valor": 16.81
-          },
-          {
-            "semana": 51,
-            "valor": 14.24
-          },
-          {
-            "semana": 52,
-            "valor": 11.11
-          },
-          {
-            "semana": 53,
-            "valor": 11.22
-          }
-        ],
-        "2025": [
-          {
-            "semana": 1,
-            "valor": 13.8
-          },
-          {
-            "semana": 2,
-            "valor": 10.21
-          },
-          {
-            "semana": 3,
-            "valor": 8.85
-          },
-          {
-            "semana": 4,
-            "valor": 10.09
-          },
-          {
-            "semana": 5,
-            "valor": 7.61
-          },
-          {
-            "semana": 6,
-            "valor": 6.83
-          },
-          {
-            "semana": 7,
-            "valor": 7.11
-          },
-          {
-            "semana": 8,
-            "valor": 6.09
-          },
-          {
-            "semana": 9,
-            "valor": 6.21
-          },
-          {
-            "semana": 10,
-            "valor": 6.82
-          },
-          {
-            "semana": 11,
-            "valor": 5.91
-          },
-          {
-            "semana": 12,
-            "valor": 6.61
-          },
-          {
-            "semana": 13,
-            "valor": 5.92
-          },
-          {
-            "semana": 14,
-            "valor": 6.73
-          },
-          {
-            "semana": 15,
-            "valor": 21.64
-          },
-          {
-            "semana": 16,
-            "valor": 6.11
-          },
-          {
-            "semana": 17,
-            "valor": 5.32
-          },
-          {
-            "semana": 18,
-            "valor": 6.05
-          },
-          {
-            "semana": 19,
-            "valor": 6.33
-          },
-          {
-            "semana": 20,
-            "valor": 6.67
-          },
-          {
-            "semana": 21,
-            "valor": 6.55
-          },
-          {
-            "semana": 22,
-            "valor": 6.55
-          },
-          {
-            "semana": 23,
-            "valor": 6.11
-          },
-          {
-            "semana": 24,
-            "valor": 6.11
-          },
-          {
-            "semana": 25,
-            "valor": 7.08
-          },
-          {
-            "semana": 26,
-            "valor": 7.08
-          },
-          {
-            "semana": 27,
-            "valor": 6.53
-          },
-          {
-            "semana": 28,
-            "valor": 6.53
-          },
-          {
-            "semana": 29,
-            "valor": 7.55
-          },
-          {
-            "semana": 30,
-            "valor": 6.11
-          },
-          {
-            "semana": 31,
-            "valor": 6.7
-          },
-          {
-            "semana": 32,
-            "valor": 6.83
-          },
-          {
-            "semana": 33,
-            "valor": 6.67
-          },
-          {
-            "semana": 34,
-            "valor": 7.86
-          },
-          {
-            "semana": 35,
-            "valor": 7.58
-          },
-          {
-            "semana": 36,
-            "valor": 7.3
-          },
-          {
-            "semana": 37,
-            "valor": 7.58
-          },
-          {
-            "semana": 38,
-            "valor": 7.22
-          },
-          {
-            "semana": 39,
-            "valor": 7.99
-          },
-          {
-            "semana": 40,
-            "valor": 7.78
-          },
-          {
-            "semana": 41,
-            "valor": 7.85
-          },
-          {
-            "semana": 42,
-            "valor": 7.58
-          },
-          {
-            "semana": 43,
-            "valor": 7.66
-          },
-          {
-            "semana": 44,
-            "valor": 7.94
-          },
-          {
-            "semana": 45,
-            "valor": 7.89
-          },
-          {
-            "semana": 46,
-            "valor": 8.92
-          },
-          {
-            "semana": 47,
-            "valor": 10.59
-          },
-          {
-            "semana": 48,
-            "valor": 12.78
-          },
-          {
-            "semana": 49,
-            "valor": 11.11
-          },
-          {
-            "semana": 50,
-            "valor": 10.44
-          },
-          {
-            "semana": 51,
-            "valor": 10.09
-          },
-          {
-            "semana": 52,
-            "valor": 10.56
-          },
-          {
-            "semana": 53,
-            "valor": 9.0
-          }
-        ],
-        "2026": [
-          {
-            "semana": 6,
-            "valor": 12.51
-          },
-          {
-            "semana": 7,
-            "valor": 12.62
-          },
-          {
-            "semana": 8,
-            "valor": 13.14
-          },
-          {
-            "semana": 9,
-            "valor": 13.59
-          },
-          {
-            "semana": 10,
-            "valor": 12.76
-          },
-          {
-            "semana": 11,
-            "valor": 10.07
-          },
-          {
-            "semana": 12,
-            "valor": 10.1
-          },
-          {
-            "semana": 13,
-            "valor": 9.97
-          },
-          {
-            "semana": 14,
-            "valor": 9.83
-          },
-          {
-            "semana": 15,
-            "valor": 9.08
-          },
-          {
-            "semana": 16,
-            "valor": 9.02
-          },
-          {
-            "semana": 17,
-            "valor": 8.72
-          },
-          {
-            "semana": 18,
-            "valor": 8.7
-          },
-          {
-            "semana": 19,
-            "valor": 7.35
-          },
-          {
-            "semana": 20,
-            "valor": 7.4
-          },
-          {
-            "semana": 21,
-            "valor": 6.46
-          },
-          {
-            "semana": 22,
-            "valor": 6.31
-          },
-          {
-            "semana": 23,
-            "valor": 6.6
-          },
-          {
-            "semana": 24,
-            "valor": 7.89
-          },
-          {
-            "semana": 25,
-            "valor": 6.18
-          },
-          {
-            "semana": 26,
-            "valor": 6.24
-          },
-          {
-            "semana": 27,
-            "valor": 4.97
-          },
-          {
-            "semana": 28,
-            "valor": 5.84
-          },
-          {
-            "semana": 29,
-            "valor": 5.62
-          },
-          {
-            "semana": 30,
-            "valor": 5.95
-          },
-          {
-            "semana": 31,
-            "valor": 5.95
-          },
-          {
-            "semana": 32,
-            "valor": 5.8
-          }
-        ]
-      }
-    },
-    "chile": {
-      "unidade": "USD/kg",
-      "series": {
-        "2023": [
-          {
-            "semana": 1,
-            "valor": 3.32
-          },
-          {
-            "semana": 2,
-            "valor": 3.26
-          },
-          {
-            "semana": 3,
-            "valor": 3.39
-          },
-          {
-            "semana": 4,
-            "valor": 3.44
-          },
-          {
-            "semana": 5,
-            "valor": 3.47
-          },
-          {
-            "semana": 6,
-            "valor": 3.28
-          },
-          {
-            "semana": 7,
-            "valor": 3.45
-          },
-          {
-            "semana": 8,
-            "valor": 3.36
-          },
-          {
-            "semana": 9,
-            "valor": 3.94
-          },
-          {
-            "semana": 10,
-            "valor": 4.39
-          },
-          {
-            "semana": 11,
-            "valor": 3.51
-          },
-          {
-            "semana": 12,
-            "valor": 3.37
-          },
-          {
-            "semana": 13,
-            "valor": 3.04
-          },
-          {
-            "semana": 14,
-            "valor": 3.02
-          },
-          {
-            "semana": 15,
-            "valor": 2.78
-          },
-          {
-            "semana": 16,
-            "valor": 2.92
-          },
-          {
-            "semana": 17,
-            "valor": 2.96
-          },
-          {
-            "semana": 18,
-            "valor": 3.05
-          },
-          {
-            "semana": 19,
-            "valor": 3.14
-          },
-          {
-            "semana": 20,
-            "valor": 3.03
-          },
-          {
-            "semana": 21,
-            "valor": 2.98
-          },
-          {
-            "semana": 22,
-            "valor": 2.87
-          },
-          {
-            "semana": 23,
-            "valor": 2.92
-          },
-          {
-            "semana": 24,
-            "valor": 2.79
-          },
-          {
-            "semana": 25,
-            "valor": 2.92
-          },
-          {
-            "semana": 26,
-            "valor": 2.76
-          },
-          {
-            "semana": 27,
-            "valor": 2.43
-          },
-          {
-            "semana": 28,
-            "valor": 2.52
-          },
-          {
-            "semana": 29,
-            "valor": 2.49
-          },
-          {
-            "semana": 30,
-            "valor": 2.54
-          },
-          {
-            "semana": 31,
-            "valor": 2.55
-          },
-          {
-            "semana": 32,
-            "valor": 2.51
-          },
-          {
-            "semana": 33,
-            "valor": 2.62
-          },
-          {
-            "semana": 34,
-            "valor": 2.66
-          },
-          {
-            "semana": 35,
-            "valor": 2.82
-          },
-          {
-            "semana": 36,
-            "valor": 2.73
-          },
-          {
-            "semana": 37,
-            "valor": 2.54
-          },
-          {
-            "semana": 38,
-            "valor": 2.78
-          },
-          {
-            "semana": 39,
-            "valor": 2.68
-          },
-          {
-            "semana": 40,
-            "valor": 2.7
-          },
-          {
-            "semana": 41,
-            "valor": 2.71
-          },
-          {
-            "semana": 42,
-            "valor": 2.67
-          },
-          {
-            "semana": 43,
-            "valor": 2.76
-          },
-          {
-            "semana": 44,
-            "valor": 2.69
-          },
-          {
-            "semana": 45,
-            "valor": 1.96
-          },
-          {
-            "semana": 46,
-            "valor": 2.9
-          },
-          {
-            "semana": 47,
-            "valor": 3.15
-          },
-          {
-            "semana": 48,
-            "valor": 3.07
-          },
-          {
-            "semana": 49,
-            "valor": 3.44
-          },
-          {
-            "semana": 50,
-            "valor": 2.16
-          },
-          {
-            "semana": 51,
-            "valor": 3.38
-          },
-          {
-            "semana": 52,
-            "valor": 3.71
-          }
-        ],
-        "2024": [
-          {
-            "semana": 1,
-            "valor": 3.75
-          },
-          {
-            "semana": 2,
-            "valor": 5.37
-          },
-          {
-            "semana": 3,
-            "valor": 5.53
-          },
-          {
-            "semana": 4,
-            "valor": 0.55
-          },
-          {
-            "semana": 5,
-            "valor": 4.08
-          },
-          {
-            "semana": 6,
-            "valor": 4.76
-          },
-          {
-            "semana": 7,
-            "valor": 4.18
-          },
-          {
-            "semana": 8,
-            "valor": 3.3
-          },
-          {
-            "semana": 9,
-            "valor": 3.53
-          },
-          {
-            "semana": 10,
-            "valor": 4.4
-          },
-          {
-            "semana": 11,
-            "valor": 4.83
-          },
-          {
-            "semana": 12,
-            "valor": 4.33
-          },
-          {
-            "semana": 13,
-            "valor": 4.18
-          },
-          {
-            "semana": 14,
-            "valor": 3.95
-          },
-          {
-            "semana": 15,
-            "valor": 3.75
-          },
-          {
-            "semana": 16,
-            "valor": 3.88
-          },
-          {
-            "semana": 17,
-            "valor": 3.84
-          },
-          {
-            "semana": 18,
-            "valor": 3.85
-          },
-          {
-            "semana": 19,
-            "valor": 3.87
-          },
-          {
-            "semana": 20,
-            "valor": 4.02
-          },
-          {
-            "semana": 21,
-            "valor": 3.88
-          },
-          {
-            "semana": 22,
-            "valor": 3.88
-          },
-          {
-            "semana": 23,
-            "valor": 3.88
-          },
-          {
-            "semana": 24,
-            "valor": 4.0
-          },
-          {
-            "semana": 25,
-            "valor": 3.94
-          },
-          {
-            "semana": 26,
-            "valor": 3.78
-          },
-          {
-            "semana": 27,
-            "valor": 3.82
-          },
-          {
-            "semana": 28,
-            "valor": 3.81
-          },
-          {
-            "semana": 29,
-            "valor": 3.63
-          },
-          {
-            "semana": 30,
-            "valor": 3.83
-          },
-          {
-            "semana": 31,
-            "valor": 3.79
-          },
-          {
-            "semana": 32,
-            "valor": 3.8
-          },
-          {
-            "semana": 33,
-            "valor": 3.72
-          },
-          {
-            "semana": 34,
-            "valor": 3.82
-          },
-          {
-            "semana": 35,
-            "valor": 3.93
-          },
-          {
-            "semana": 36,
-            "valor": 3.91
-          },
-          {
-            "semana": 37,
-            "valor": 3.85
-          },
-          {
-            "semana": 38,
-            "valor": 3.84
-          },
-          {
-            "semana": 39,
-            "valor": 3.84
-          },
-          {
-            "semana": 40,
-            "valor": 3.9
-          },
-          {
-            "semana": 41,
-            "valor": 4.01
-          },
-          {
-            "semana": 42,
-            "valor": 3.28
-          },
-          {
-            "semana": 43,
-            "valor": 3.32
-          },
-          {
-            "semana": 44,
-            "valor": 3.45
-          },
-          {
-            "semana": 45,
-            "valor": 3.62
-          },
-          {
-            "semana": 46,
-            "valor": 3.37
-          },
-          {
-            "semana": 47,
-            "valor": 3.62
-          },
-          {
-            "semana": 48,
-            "valor": 3.56
-          },
-          {
-            "semana": 49,
-            "valor": 3.46
-          },
-          {
-            "semana": 50,
-            "valor": 3.39
-          },
-          {
-            "semana": 51,
-            "valor": 3.36
-          },
-          {
-            "semana": 52,
-            "valor": 3.48
-          }
-        ],
-        "2025": [
-          {
-            "semana": 2,
-            "valor": 3.68
-          },
-          {
-            "semana": 3,
-            "valor": 3.75
-          },
-          {
-            "semana": 4,
-            "valor": 3.84
-          },
-          {
-            "semana": 5,
-            "valor": 3.72
-          },
-          {
-            "semana": 6,
-            "valor": 3.05
-          },
-          {
-            "semana": 7,
-            "valor": 3.48
-          },
-          {
-            "semana": 8,
-            "valor": 3.45
-          },
-          {
-            "semana": 9,
-            "valor": 3.37
-          },
-          {
-            "semana": 10,
-            "valor": 3.51
-          },
-          {
-            "semana": 11,
-            "valor": 3.44
-          },
-          {
-            "semana": 12,
-            "valor": 3.49
-          },
-          {
-            "semana": 13,
-            "valor": 3.45
-          },
-          {
-            "semana": 14,
-            "valor": 3.44
-          },
-          {
-            "semana": 15,
-            "valor": 3.26
-          },
-          {
-            "semana": 16,
-            "valor": 2.94
-          },
-          {
-            "semana": 17,
-            "valor": 2.78
-          },
-          {
-            "semana": 18,
-            "valor": 2.62
-          },
-          {
-            "semana": 19,
-            "valor": 2.56
-          },
-          {
-            "semana": 20,
-            "valor": 2.8
-          },
-          {
-            "semana": 21,
-            "valor": 2.59
-          },
-          {
-            "semana": 22,
-            "valor": 2.73
-          },
-          {
-            "semana": 23,
-            "valor": 2.72
-          },
-          {
-            "semana": 24,
-            "valor": 2.82
-          },
-          {
-            "semana": 25,
-            "valor": 2.59
-          },
-          {
-            "semana": 26,
-            "valor": 2.56
-          },
-          {
-            "semana": 27,
-            "valor": 2.57
-          },
-          {
-            "semana": 28,
-            "valor": 2.9
-          },
-          {
-            "semana": 29,
-            "valor": 2.85
-          },
-          {
-            "semana": 30,
-            "valor": 2.83
-          },
-          {
-            "semana": 31,
-            "valor": 2.73
-          },
-          {
-            "semana": 32,
-            "valor": 2.59
-          },
-          {
-            "semana": 33,
-            "valor": 2.65
-          },
-          {
-            "semana": 34,
-            "valor": 2.62
-          },
-          {
-            "semana": 35,
-            "valor": 2.58
-          },
-          {
-            "semana": 36,
-            "valor": 2.71
-          },
-          {
-            "semana": 37,
-            "valor": 2.65
-          },
-          {
-            "semana": 38,
-            "valor": 2.62
-          },
-          {
-            "semana": 39,
-            "valor": 2.72
-          },
-          {
-            "semana": 40,
-            "valor": 3.16
-          },
-          {
-            "semana": 41,
-            "valor": 3.28
-          },
-          {
-            "semana": 42,
-            "valor": 3.31
-          },
-          {
-            "semana": 43,
-            "valor": 3.29
-          },
-          {
-            "semana": 44,
-            "valor": 3.37
-          },
-          {
-            "semana": 45,
-            "valor": 3.47
-          },
-          {
-            "semana": 46,
-            "valor": 2.29
-          },
-          {
-            "semana": 47,
-            "valor": 2.23
-          },
-          {
-            "semana": 48,
-            "valor": 2.12
-          },
-          {
-            "semana": 49,
-            "valor": 2.39
-          },
-          {
-            "semana": 50,
-            "valor": 2.87
-          }
-        ],
-        "2026": [
-          {
-            "semana": 1,
-            "valor": 3.48
-          },
-          {
-            "semana": 2,
-            "valor": 3.61
-          },
-          {
-            "semana": 3,
-            "valor": 3.76
-          },
-          {
-            "semana": 4,
-            "valor": 3.79
-          },
-          {
-            "semana": 5,
-            "valor": 3.86
-          },
-          {
-            "semana": 6,
-            "valor": 3.79
-          },
-          {
-            "semana": 7,
-            "valor": 3.94
-          },
-          {
-            "semana": 8,
-            "valor": 3.51
-          },
-          {
-            "semana": 9,
-            "valor": 3.69
-          },
-          {
-            "semana": 10,
-            "valor": 4.39
-          },
-          {
-            "semana": 11,
-            "valor": 4.28
-          },
-          {
-            "semana": 12,
-            "valor": 4.33
-          },
-          {
-            "semana": 13,
-            "valor": 4.25
-          },
-          {
-            "semana": 14,
-            "valor": 4.32
-          },
-          {
-            "semana": 15,
-            "valor": 4.08
-          },
-          {
-            "semana": 16,
-            "valor": 4.21
-          },
-          {
-            "semana": 17,
-            "valor": 4.24
-          },
-          {
-            "semana": 18,
-            "valor": 4.07
-          },
-          {
-            "semana": 19,
-            "valor": 4.11
-          },
-          {
-            "semana": 20,
-            "valor": 4.11
-          },
-          {
-            "semana": 21,
-            "valor": 4.51
-          },
-          {
-            "semana": 22,
-            "valor": 4.39
-          },
-          {
-            "semana": 23,
-            "valor": 4.21
-          },
-          {
-            "semana": 24,
-            "valor": 4.3
-          },
-          {
-            "semana": 25,
-            "valor": 4.42
-          },
-          {
-            "semana": 26,
-            "valor": 4.07
-          },
-          {
-            "semana": 27,
-            "valor": 4.84
-          },
-          {
-            "semana": 28,
-            "valor": 4.42
-          },
-          {
-            "semana": 29,
-            "valor": 3.95
-          },
-          {
-            "semana": 30,
-            "valor": 4.41
-          },
-          {
-            "semana": 31,
-            "valor": 2.98
-          },
-          {
-            "semana": 32,
-            "valor": 3.27
-          }
-        ]
-      }
-    },
-    "uruguai": {
-      "unidade": "USD/kg",
-      "series": {
-        "2023": [
-          {
-            "semana": 1,
-            "valor": 3.75
-          },
-          {
-            "semana": 2,
-            "valor": 3.66
-          },
-          {
-            "semana": 3,
-            "valor": 3.8
-          },
-          {
-            "semana": 4,
-            "valor": 3.59
-          },
-          {
-            "semana": 5,
-            "valor": 3.69
-          },
-          {
-            "semana": 6,
-            "valor": 3.41
-          },
-          {
-            "semana": 7,
-            "valor": 3.32
-          },
-          {
-            "semana": 8,
-            "valor": 3.48
-          },
-          {
-            "semana": 9,
-            "valor": 3.29
-          },
-          {
-            "semana": 10,
-            "valor": 3.06
-          },
-          {
-            "semana": 11,
-            "valor": 2.95
-          },
-          {
-            "semana": 12,
-            "valor": 3.11
-          },
-          {
-            "semana": 13,
-            "valor": 2.9
-          },
-          {
-            "semana": 14,
-            "valor": 2.8
-          },
-          {
-            "semana": 15,
-            "valor": 2.69
-          },
-          {
-            "semana": 16,
-            "valor": 2.83
-          },
-          {
-            "semana": 17,
-            "valor": 2.64
-          },
-          {
-            "semana": 18,
-            "valor": 2.74
-          },
-          {
-            "semana": 19,
-            "valor": 3.19
-          },
-          {
-            "semana": 20,
-            "valor": 3.08
-          },
-          {
-            "semana": 21,
-            "valor": 3.22
-          },
-          {
-            "semana": 22,
-            "valor": 3.05
-          },
-          {
-            "semana": 23,
-            "valor": 2.54
-          },
-          {
-            "semana": 24,
-            "valor": 2.43
-          },
-          {
-            "semana": 25,
-            "valor": 2.57
-          },
-          {
-            "semana": 26,
-            "valor": 2.43
-          },
-          {
-            "semana": 27,
-            "valor": 1.85
-          },
-          {
-            "semana": 28,
-            "valor": 1.76
-          },
-          {
-            "semana": 29,
-            "valor": 1.88
-          },
-          {
-            "semana": 30,
-            "valor": 1.74
-          },
-          {
-            "semana": 31,
-            "valor": 1.81
-          },
-          {
-            "semana": 32,
-            "valor": 1.1
-          },
-          {
-            "semana": 33,
-            "valor": 1.04
-          },
-          {
-            "semana": 34,
-            "valor": 1.12
-          },
-          {
-            "semana": 35,
-            "valor": 1.04
-          },
-          {
-            "semana": 36,
-            "valor": 0.97
-          },
-          {
-            "semana": 37,
-            "valor": 0.91
-          },
-          {
-            "semana": 38,
-            "valor": 1.0
-          },
-          {
-            "semana": 39,
-            "valor": 0.93
-          },
-          {
-            "semana": 40,
-            "valor": 0.8
-          },
-          {
-            "semana": 41,
-            "valor": 0.76
-          },
-          {
-            "semana": 42,
-            "valor": 0.82
-          },
-          {
-            "semana": 43,
-            "valor": 0.73
-          },
-          {
-            "semana": 44,
-            "valor": 0.78
-          },
-          {
-            "semana": 45,
-            "valor": 0.99
-          },
-          {
-            "semana": 46,
-            "valor": 0.91
-          },
-          {
-            "semana": 47,
-            "valor": 1.02
-          },
-          {
-            "semana": 48,
-            "valor": 0.86
-          },
-          {
-            "semana": 49,
-            "valor": 1.54
-          },
-          {
-            "semana": 50,
-            "valor": 1.45
-          },
-          {
-            "semana": 51,
-            "valor": 1.58
-          },
-          {
-            "semana": 52,
-            "valor": 1.41
-          },
-          {
-            "semana": 53,
-            "valor": 1.51
-          }
-        ],
-        "2024": [
-          {
-            "semana": 2,
-            "valor": 3.16
-          },
-          {
-            "semana": 3,
-            "valor": 3.04
-          },
-          {
-            "semana": 4,
-            "valor": 3.21
-          },
-          {
-            "semana": 5,
-            "valor": 2.97
-          },
-          {
-            "semana": 6,
-            "valor": 2.88
-          },
-          {
-            "semana": 7,
-            "valor": 2.77
-          },
-          {
-            "semana": 8,
-            "valor": 2.93
-          },
-          {
-            "semana": 9,
-            "valor": 2.73
-          },
-          {
-            "semana": 10,
-            "valor": 2.43
-          },
-          {
-            "semana": 11,
-            "valor": 2.28
-          },
-          {
-            "semana": 12,
-            "valor": 2.49
-          },
-          {
-            "semana": 13,
-            "valor": 2.2
-          },
-          {
-            "semana": 14,
-            "valor": 2.35
-          },
-          {
-            "semana": 15,
-            "valor": 2.2
-          },
-          {
-            "semana": 16,
-            "valor": 2.1
-          },
-          {
-            "semana": 17,
-            "valor": 2.23
-          },
-          {
-            "semana": 18,
-            "valor": 2.09
-          },
-          {
-            "semana": 19,
-            "valor": 2.24
-          },
-          {
-            "semana": 20,
-            "valor": 2.1
-          },
-          {
-            "semana": 21,
-            "valor": 2.28
-          },
-          {
-            "semana": 22,
-            "valor": 2.05
-          },
-          {
-            "semana": 23,
-            "valor": 2.72
-          },
-          {
-            "semana": 24,
-            "valor": 2.56
-          },
-          {
-            "semana": 25,
-            "valor": 2.8
-          },
-          {
-            "semana": 26,
-            "valor": 2.46
-          },
-          {
-            "semana": 27,
-            "valor": 2.64
-          },
-          {
-            "semana": 28,
-            "valor": 1.54
-          },
-          {
-            "semana": 29,
-            "valor": 1.43
-          },
-          {
-            "semana": 30,
-            "valor": 1.56
-          },
-          {
-            "semana": 31,
-            "valor": 1.37
-          },
-          {
-            "semana": 32,
-            "valor": 1.37
-          },
-          {
-            "semana": 33,
-            "valor": 1.28
-          },
-          {
-            "semana": 34,
-            "valor": 1.41
-          },
-          {
-            "semana": 35,
-            "valor": 1.19
-          },
-          {
-            "semana": 36,
-            "valor": 1.1
-          },
-          {
-            "semana": 37,
-            "valor": 1.04
-          },
-          {
-            "semana": 38,
-            "valor": 1.12
-          },
-          {
-            "semana": 39,
-            "valor": 1.04
-          },
-          {
-            "semana": 40,
-            "valor": 1.06
-          },
-          {
-            "semana": 41,
-            "valor": 0.86
-          },
-          {
-            "semana": 42,
-            "valor": 0.8
-          },
-          {
-            "semana": 43,
-            "valor": 0.89
-          },
-          {
-            "semana": 44,
-            "valor": 0.78
-          },
-          {
-            "semana": 45,
-            "valor": 1.1
-          },
-          {
-            "semana": 46,
-            "valor": 1.04
-          },
-          {
-            "semana": 47,
-            "valor": 1.15
-          },
-          {
-            "semana": 48,
-            "valor": 0.99
-          },
-          {
-            "semana": 49,
-            "valor": 1.64
-          },
-          {
-            "semana": 50,
-            "valor": 1.5
-          },
-          {
-            "semana": 51,
-            "valor": 1.68
-          },
-          {
-            "semana": 52,
-            "valor": 1.42
-          },
-          {
-            "semana": 53,
-            "valor": 1.56
-          }
-        ],
-        "2025": [
-          {
-            "semana": 2,
-            "valor": 3.75
-          },
-          {
-            "semana": 3,
-            "valor": 3.66
-          },
-          {
-            "semana": 4,
-            "valor": 3.8
-          },
-          {
-            "semana": 5,
-            "valor": 3.59
-          },
-          {
-            "semana": 6,
-            "valor": 3.41
-          },
-          {
-            "semana": 7,
-            "valor": 3.32
-          },
-          {
-            "semana": 8,
-            "valor": 3.48
-          },
-          {
-            "semana": 9,
-            "valor": 3.29
-          },
-          {
-            "semana": 10,
-            "valor": 3.06
-          },
-          {
-            "semana": 11,
-            "valor": 2.95
-          },
-          {
-            "semana": 12,
-            "valor": 3.11
-          },
-          {
-            "semana": 13,
-            "valor": 2.9
-          },
-          {
-            "semana": 14,
-            "valor": 3.0
-          },
-          {
-            "semana": 15,
-            "valor": 2.8
-          },
-          {
-            "semana": 16,
-            "valor": 2.69
-          },
-          {
-            "semana": 17,
-            "valor": 2.83
-          },
-          {
-            "semana": 18,
-            "valor": 2.64
-          },
-          {
-            "semana": 19,
-            "valor": 3.19
-          },
-          {
-            "semana": 20,
-            "valor": 3.08
-          },
-          {
-            "semana": 21,
-            "valor": 3.22
-          },
-          {
-            "semana": 22,
-            "valor": 3.05
-          },
-          {
-            "semana": 23,
-            "valor": 2.54
-          },
-          {
-            "semana": 24,
-            "valor": 2.43
-          },
-          {
-            "semana": 25,
-            "valor": 2.57
-          },
-          {
-            "semana": 26,
-            "valor": 2.43
-          },
-          {
-            "semana": 27,
-            "valor": 2.49
-          },
-          {
-            "semana": 28,
-            "valor": 1.85
-          },
-          {
-            "semana": 29,
-            "valor": 1.76
-          },
-          {
-            "semana": 30,
-            "valor": 1.88
-          },
-          {
-            "semana": 31,
-            "valor": 1.74
-          },
-          {
-            "semana": 32,
-            "valor": 1.1
-          },
-          {
-            "semana": 33,
-            "valor": 1.04
-          },
-          {
-            "semana": 34,
-            "valor": 1.12
-          },
-          {
-            "semana": 35,
-            "valor": 1.04
-          },
-          {
-            "semana": 36,
-            "valor": 1.07
-          },
-          {
-            "semana": 37,
-            "valor": 0.97
-          },
-          {
-            "semana": 38,
-            "valor": 0.91
-          },
-          {
-            "semana": 39,
-            "valor": 1.0
-          },
-          {
-            "semana": 40,
-            "valor": 0.93
-          },
-          {
-            "semana": 41,
-            "valor": 0.8
-          },
-          {
-            "semana": 42,
-            "valor": 0.76
-          },
-          {
-            "semana": 43,
-            "valor": 0.82
-          },
-          {
-            "semana": 44,
-            "valor": 0.73
-          },
-          {
-            "semana": 45,
-            "valor": 0.99
-          },
-          {
-            "semana": 46,
-            "valor": 0.91
-          },
-          {
-            "semana": 47,
-            "valor": 1.02
-          },
-          {
-            "semana": 48,
-            "valor": 0.86
-          },
-          {
-            "semana": 49,
-            "valor": 0.95
-          },
-          {
-            "semana": 50,
-            "valor": 1.54
-          },
-          {
-            "semana": 51,
-            "valor": 1.45
-          },
-          {
-            "semana": 52,
-            "valor": 1.58
-          },
-          {
-            "semana": 53,
-            "valor": 1.41
-          }
-        ],
-        "2026": [
-          {
-            "semana": 28,
-            "valor": 3.85
-          },
-          {
-            "semana": 29,
-            "valor": 3.87
-          },
-          {
-            "semana": 30,
-            "valor": 4.07
-          },
-          {
-            "semana": 31,
-            "valor": 4.18
-          },
-          {
-            "semana": 32,
-            "valor": 4.35
-          },
-          {
-            "semana": 33,
-            "valor": 4.35
-          }
-        ]
-      }
-    },
-    "argentina": {
-      "unidade": "USD/kg",
-      "series": {
-        "2024": [
-          {
-            "semana": 1,
-            "valor": 4.5
-          },
-          {
-            "semana": 2,
-            "valor": 4.55
-          },
-          {
-            "semana": 3,
-            "valor": 4.6
-          },
-          {
-            "semana": 4,
-            "valor": 4.65
-          },
-          {
-            "semana": 5,
-            "valor": 4.72
-          },
-          {
-            "semana": 6,
-            "valor": 4.85
-          },
-          {
-            "semana": 7,
-            "valor": 4.98
-          },
-          {
-            "semana": 8,
-            "valor": 5.15
-          },
-          {
-            "semana": 9,
-            "valor": 5.3
-          },
-          {
-            "semana": 10,
-            "valor": 5.45
-          },
-          {
-            "semana": 11,
-            "valor": 5.55
-          },
-          {
-            "semana": 12,
-            "valor": 5.65
-          },
-          {
-            "semana": 13,
-            "valor": 5.7
-          },
-          {
-            "semana": 14,
-            "valor": 5.5
-          },
-          {
-            "semana": 15,
-            "valor": 5.2
-          },
-          {
-            "semana": 16,
-            "valor": 4.9
-          },
-          {
-            "semana": 17,
-            "valor": 4.55
-          },
-          {
-            "semana": 18,
-            "valor": 4.1
-          },
-          {
-            "semana": 19,
-            "valor": 3.85
-          },
-          {
-            "semana": 20,
-            "valor": 3.6
-          },
-          {
-            "semana": 21,
-            "valor": 3.35
-          },
-          {
-            "semana": 22,
-            "valor": 3.1
-          },
-          {
-            "semana": 23,
-            "valor": 2.9
-          },
-          {
-            "semana": 24,
-            "valor": 2.75
-          },
-          {
-            "semana": 25,
-            "valor": 2.6
-          },
-          {
-            "semana": 26,
-            "valor": 2.5
-          },
-          {
-            "semana": 27,
-            "valor": 2.5
-          },
-          {
-            "semana": 28,
-            "valor": 2.52
-          },
-          {
-            "semana": 29,
-            "valor": 2.55
-          },
-          {
-            "semana": 30,
-            "valor": 2.6
-          },
-          {
-            "semana": 31,
-            "valor": 2.8
-          },
-          {
-            "semana": 32,
-            "valor": 3.0
-          },
-          {
-            "semana": 33,
-            "valor": 3.2
-          },
-          {
-            "semana": 34,
-            "valor": 3.35
-          },
-          {
-            "semana": 35,
-            "valor": 3.5
-          },
-          {
-            "semana": 36,
-            "valor": 3.65
-          },
-          {
-            "semana": 37,
-            "valor": 3.8
-          },
-          {
-            "semana": 38,
-            "valor": 3.95
-          },
-          {
-            "semana": 39,
-            "valor": 4.1
-          },
-          {
-            "semana": 40,
-            "valor": 4.2
-          },
-          {
-            "semana": 41,
-            "valor": 4.3
-          },
-          {
-            "semana": 42,
-            "valor": 4.4
-          },
-          {
-            "semana": 43,
-            "valor": 4.45
-          },
-          {
-            "semana": 44,
-            "valor": 4.5
-          },
-          {
-            "semana": 45,
-            "valor": 4.55
-          },
-          {
-            "semana": 46,
-            "valor": 4.6
-          },
-          {
-            "semana": 47,
-            "valor": 4.65
-          },
-          {
-            "semana": 48,
-            "valor": 4.7
-          },
-          {
-            "semana": 49,
-            "valor": 4.72
-          },
-          {
-            "semana": 50,
-            "valor": 4.75
-          },
-          {
-            "semana": 51,
-            "valor": 4.78
-          },
-          {
-            "semana": 52,
-            "valor": 4.8
-          }
-        ],
-        "2025": [
-          {
-            "semana": 1,
-            "valor": 4.6
-          },
-          {
-            "semana": 2,
-            "valor": 4.65
-          },
-          {
-            "semana": 3,
-            "valor": 4.7
-          },
-          {
-            "semana": 4,
-            "valor": 4.78
-          },
-          {
-            "semana": 5,
-            "valor": 4.88
-          },
-          {
-            "semana": 6,
-            "valor": 5.05
-          },
-          {
-            "semana": 7,
-            "valor": 5.2
-          },
-          {
-            "semana": 8,
-            "valor": 5.4
-          },
-          {
-            "semana": 9,
-            "valor": 5.55
-          },
-          {
-            "semana": 10,
-            "valor": 5.68
-          },
-          {
-            "semana": 11,
-            "valor": 5.75
-          },
-          {
-            "semana": 12,
-            "valor": 5.85
-          },
-          {
-            "semana": 13,
-            "valor": 5.9
-          },
-          {
-            "semana": 14,
-            "valor": 5.7
-          },
-          {
-            "semana": 15,
-            "valor": 5.4
-          },
-          {
-            "semana": 16,
-            "valor": 5.1
-          },
-          {
-            "semana": 17,
-            "valor": 4.7
-          },
-          {
-            "semana": 18,
-            "valor": 4.3
-          },
-          {
-            "semana": 19,
-            "valor": 4.0
-          },
-          {
-            "semana": 20,
-            "valor": 3.75
-          },
-          {
-            "semana": 21,
-            "valor": 3.45
-          },
-          {
-            "semana": 22,
-            "valor": 3.2
-          },
-          {
-            "semana": 23,
-            "valor": 3.0
-          },
-          {
-            "semana": 24,
-            "valor": 2.85
-          },
-          {
-            "semana": 25,
-            "valor": 2.75
-          },
-          {
-            "semana": 26,
-            "valor": 2.65
-          },
-          {
-            "semana": 27,
-            "valor": 2.65
-          },
-          {
-            "semana": 28,
-            "valor": 2.68
-          },
-          {
-            "semana": 29,
-            "valor": 2.75
-          },
-          {
-            "semana": 30,
-            "valor": 2.85
-          },
-          {
-            "semana": 31,
-            "valor": 3.05
-          },
-          {
-            "semana": 32,
-            "valor": 3.25
-          },
-          {
-            "semana": 33,
-            "valor": 3.45
-          },
-          {
-            "semana": 34,
-            "valor": 3.6
-          },
-          {
-            "semana": 35,
-            "valor": 3.75
-          },
-          {
-            "semana": 36,
-            "valor": 3.9
-          },
-          {
-            "semana": 37,
-            "valor": 4.05
-          },
-          {
-            "semana": 38,
-            "valor": 4.2
-          },
-          {
-            "semana": 39,
-            "valor": 4.35
-          },
-          {
-            "semana": 40,
-            "valor": 4.45
-          },
-          {
-            "semana": 41,
-            "valor": 4.55
-          },
-          {
-            "semana": 42,
-            "valor": 4.65
-          },
-          {
-            "semana": 43,
-            "valor": 4.7
-          },
-          {
-            "semana": 44,
-            "valor": 4.75
-          },
-          {
-            "semana": 45,
-            "valor": 4.8
-          },
-          {
-            "semana": 46,
-            "valor": 4.85
-          },
-          {
-            "semana": 47,
-            "valor": 4.9
-          },
-          {
-            "semana": 48,
-            "valor": 4.92
-          },
-          {
-            "semana": 49,
-            "valor": 4.95
-          },
-          {
-            "semana": 50,
-            "valor": 4.98
-          },
-          {
-            "semana": 51,
-            "valor": 5.0
-          },
-          {
-            "semana": 52,
-            "valor": 5.05
-          }
-        ],
-        "2026": [
-          {
-            "semana": 1,
-            "valor": 4.53
-          },
-          {
-            "semana": 2,
-            "valor": 4.61
-          },
-          {
-            "semana": 3,
-            "valor": 4.52
-          },
-          {
-            "semana": 4,
-            "valor": 4.18
-          },
-          {
-            "semana": 5,
-            "valor": 3.96
-          },
-          {
-            "semana": 6,
-            "valor": 3.62
-          },
-          {
-            "semana": 7,
-            "valor": 3.67
-          },
-          {
-            "semana": 8,
-            "valor": 4.48
-          },
-          {
-            "semana": 9,
-            "valor": 5.28
-          },
-          {
-            "semana": 10,
-            "valor": 6.61
-          },
-          {
-            "semana": 11,
-            "valor": 6.48
-          },
-          {
-            "semana": 12,
-            "valor": 5.19
-          },
-          {
-            "semana": 13,
-            "valor": 5.05
-          },
-          {
-            "semana": 14,
-            "valor": 4.72
-          },
-          {
-            "semana": 15,
-            "valor": 4.06
-          },
-          {
-            "semana": 16,
-            "valor": 3.99
-          },
-          {
-            "semana": 17,
-            "valor": 3.89
-          },
-          {
-            "semana": 18,
-            "valor": 3.6
-          },
-          {
-            "semana": 19,
-            "valor": 3.6
-          },
-          {
-            "semana": 20,
-            "valor": 3.6
-          },
-          {
-            "semana": 21,
-            "valor": 3.54
-          },
-          {
-            "semana": 22,
-            "valor": 3.49
-          },
-          {
-            "semana": 23,
-            "valor": 3.4
-          },
-          {
-            "semana": 24,
-            "valor": 3.47
-          },
-          {
-            "semana": 25,
-            "valor": 3.25
-          },
-          {
-            "semana": 26,
-            "valor": 3.59
-          },
-          {
-            "semana": 27,
-            "valor": 3.67
-          },
-          {
-            "semana": 28,
-            "valor": 3.82
-          },
-          {
-            "semana": 29,
-            "valor": 4.03
-          },
-          {
-            "semana": 30,
-            "valor": 4.05
-          },
-          {
-            "semana": 31,
-            "valor": 3.2
-          },
-          {
-            "semana": 32,
-            "valor": 3.71
-          },
-          {
-            "semana": 33,
-            "valor": 3.67
-          }
-        ]
-      }
-    },
-    "europa": {
-      "unidade": "USD/kg",
-      "paises": {
-        "Espanha": {
-          "2025": [
-            {
-              "semana": 3,
-              "valor": 59729.8
-            },
-            {
-              "semana": 4,
-              "valor": 33800.9
-            },
-            {
-              "semana": 5,
-              "valor": 54785.4
-            },
-            {
-              "semana": 6,
-              "valor": 44569.69
-            },
-            {
-              "semana": 7,
-              "valor": 40641.45
-            },
-            {
-              "semana": 8,
-              "valor": 43994.15
-            },
-            {
-              "semana": 9,
-              "valor": 43914.33
-            },
-            {
-              "semana": 10,
-              "valor": 45249.53
-            },
-            {
-              "semana": 11,
-              "valor": 42826.97
-            },
-            {
-              "semana": 12,
-              "valor": 45253.63
-            },
-            {
-              "semana": 13,
-              "valor": 39505.41
-            },
-            {
-              "semana": 14,
-              "valor": 39701.78
-            },
-            {
-              "semana": 15,
-              "valor": 44008.28
-            },
-            {
-              "semana": 16,
-              "valor": 43926.84
-            },
-            {
-              "semana": 17,
-              "valor": 38309.27
-            },
-            {
-              "semana": 18,
-              "valor": 39583.62
-            },
-            {
-              "semana": 19,
-              "valor": 41289.16
-            },
-            {
-              "semana": 20,
-              "valor": 39152.57
-            },
-            {
-              "semana": 21,
-              "valor": 35202.82
-            },
-            {
-              "semana": 22,
-              "valor": 36810.55
-            },
-            {
-              "semana": 23,
-              "valor": 33856.45
-            },
-            {
-              "semana": 24,
-              "valor": 34465.98
-            },
-            {
-              "semana": 25,
-              "valor": 33713.63
-            },
-            {
-              "semana": 26,
-              "valor": 34582.35
-            },
-            {
-              "semana": 27,
-              "valor": 31620.16
-            },
-            {
-              "semana": 28,
-              "valor": 30789.83
-            },
-            {
-              "semana": 29,
-              "valor": 31662.01
-            },
-            {
-              "semana": 30,
-              "valor": 29091.77
-            },
-            {
-              "semana": 31,
-              "valor": 31882.96
-            },
-            {
-              "semana": 32,
-              "valor": 34400.44
-            },
-            {
-              "semana": 33,
-              "valor": 34446.88
-            },
-            {
-              "semana": 34,
-              "valor": 36817.26
-            },
-            {
-              "semana": 35,
-              "valor": 38169.25
-            },
-            {
-              "semana": 36,
-              "valor": 36447.05
-            },
-            {
-              "semana": 37,
-              "valor": 38898.01
-            },
-            {
-              "semana": 38,
-              "valor": 41852.06
-            },
-            {
-              "semana": 39,
-              "valor": 35565.42
-            },
-            {
-              "semana": 40,
-              "valor": 39238.83
-            },
-            {
-              "semana": 41,
-              "valor": 34021.62
-            },
-            {
-              "semana": 42,
-              "valor": 46484.0
-            },
-            {
-              "semana": 43,
-              "valor": 30668.06
-            },
-            {
-              "semana": 48,
-              "valor": 46310.4
-            },
-            {
-              "semana": 51,
-              "valor": 52512.0
-            }
-          ]
-        },
-        "França": {
-          "2025": [
-            {
-              "semana": 17,
-              "valor": 63443.8
-            },
-            {
-              "semana": 18,
-              "valor": 54355.16
-            },
-            {
-              "semana": 19,
-              "valor": 55928.84
-            },
-            {
-              "semana": 20,
-              "valor": 35374.1
-            },
-            {
-              "semana": 21,
-              "valor": 45930.12
-            },
-            {
-              "semana": 22,
-              "valor": 38724.37
-            },
-            {
-              "semana": 23,
-              "valor": 45963.79
-            },
-            {
-              "semana": 24,
-              "valor": 31230.89
-            },
-            {
-              "semana": 25,
-              "valor": 33428.08
-            },
-            {
-              "semana": 26,
-              "valor": 31783.62
-            },
-            {
-              "semana": 27,
-              "valor": 16967.49
-            },
-            {
-              "semana": 28,
-              "valor": 24548.12
-            },
-            {
-              "semana": 29,
-              "valor": 20595.38
-            },
-            {
-              "semana": 30,
-              "valor": 20765.89
-            },
-            {
-              "semana": 31,
-              "valor": 21012.95
-            },
-            {
-              "semana": 32,
-              "valor": 25365.94
-            },
-            {
-              "semana": 33,
-              "valor": 14034.64
-            }
-          ]
-        },
-        "Holanda": {
-          "2025": [
-            {
-              "semana": 1,
-              "valor": 35268.39
-            },
-            {
-              "semana": 2,
-              "valor": 49356.0
-            },
-            {
-              "semana": 3,
-              "valor": 37184.81
-            },
-            {
-              "semana": 4,
-              "valor": 33062.1
-            },
-            {
-              "semana": 5,
-              "valor": 29665.01
-            },
-            {
-              "semana": 6,
-              "valor": 30329.26
-            },
-            {
-              "semana": 7,
-              "valor": 32805.62
-            },
-            {
-              "semana": 8,
-              "valor": 33929.93
-            },
-            {
-              "semana": 9,
-              "valor": 31875.21
-            },
-            {
-              "semana": 10,
-              "valor": 31840.95
-            },
-            {
-              "semana": 11,
-              "valor": 31460.93
-            },
-            {
-              "semana": 12,
-              "valor": 36053.98
-            },
-            {
-              "semana": 13,
-              "valor": 38117.09
-            },
-            {
-              "semana": 14,
-              "valor": 36363.73
-            },
-            {
-              "semana": 15,
-              "valor": 36677.2
-            },
-            {
-              "semana": 16,
-              "valor": 38828.82
-            },
-            {
-              "semana": 17,
-              "valor": 35818.61
-            },
-            {
-              "semana": 18,
-              "valor": 35073.34
-            },
-            {
-              "semana": 19,
-              "valor": 34571.5
-            },
-            {
-              "semana": 20,
-              "valor": 30905.45
-            },
-            {
-              "semana": 21,
-              "valor": 29326.17
-            },
-            {
-              "semana": 22,
-              "valor": 26282.65
-            },
-            {
-              "semana": 23,
-              "valor": 29315.08
-            },
-            {
-              "semana": 24,
-              "valor": 28228.91
-            },
-            {
-              "semana": 25,
-              "valor": 25455.68
-            },
-            {
-              "semana": 26,
-              "valor": 25351.78
-            },
-            {
-              "semana": 27,
-              "valor": 23498.88
-            },
-            {
-              "semana": 28,
-              "valor": 22492.8
-            },
-            {
-              "semana": 29,
-              "valor": 22609.6
-            },
-            {
-              "semana": 30,
-              "valor": 23680.58
-            },
-            {
-              "semana": 31,
-              "valor": 28000.2
-            },
-            {
-              "semana": 32,
-              "valor": 27659.9
-            },
-            {
-              "semana": 33,
-              "valor": 28570.11
-            },
-            {
-              "semana": 34,
-              "valor": 30902.91
-            },
-            {
-              "semana": 35,
-              "valor": 33560.19
-            },
-            {
-              "semana": 36,
-              "valor": 35887.84
-            },
-            {
-              "semana": 37,
-              "valor": 39279.84
-            },
-            {
-              "semana": 38,
-              "valor": 41914.01
-            },
-            {
-              "semana": 39,
-              "valor": 43197.26
-            },
-            {
-              "semana": 40,
-              "valor": 40274.98
-            },
-            {
-              "semana": 41,
-              "valor": 22015.01
-            },
-            {
-              "semana": 42,
-              "valor": 31799.37
-            },
-            {
-              "semana": 43,
-              "valor": 38765.44
-            },
-            {
-              "semana": 44,
-              "valor": 49975.0
-            },
-            {
-              "semana": 45,
-              "valor": 31204.73
-            },
-            {
-              "semana": 46,
-              "valor": 26718.15
-            },
-            {
-              "semana": 47,
-              "valor": 20509.1
-            },
-            {
-              "semana": 48,
-              "valor": 31898.8
-            },
-            {
-              "semana": 49,
-              "valor": 46411.2
-            },
-            {
-              "semana": 50,
-              "valor": 42997.6
-            },
-            {
-              "semana": 51,
-              "valor": 41220.0
-            },
-            {
-              "semana": 52,
-              "valor": 37750.44
-            }
-          ],
-          "2026": [
-            {
-              "semana": 1,
-              "valor": 37838.75
-            },
-            {
-              "semana": 2,
-              "valor": 24913.25
-            },
-            {
-              "semana": 3,
-              "valor": 46112.54
-            },
-            {
-              "semana": 4,
-              "valor": 51586.56
-            },
-            {
-              "semana": 5,
-              "valor": 48197.9
-            }
-          ]
-        },
-        "Itália": {
-          "2025": [
-            {
-              "semana": 6,
-              "valor": 26307.53
-            },
-            {
-              "semana": 9,
-              "valor": 55775.82
-            },
-            {
-              "semana": 10,
-              "valor": 50167.51
-            },
-            {
-              "semana": 11,
-              "valor": 53828.19
-            },
-            {
-              "semana": 12,
-              "valor": 52862.51
-            },
-            {
-              "semana": 13,
-              "valor": 52062.89
-            },
-            {
-              "semana": 14,
-              "valor": 46111.07
-            },
-            {
-              "semana": 15,
-              "valor": 53637.42
-            },
-            {
-              "semana": 16,
-              "valor": 41452.5
-            },
-            {
-              "semana": 17,
-              "valor": 41502.25
-            },
-            {
-              "semana": 18,
-              "valor": 46593.57
-            },
-            {
-              "semana": 19,
-              "valor": 49286.58
-            },
-            {
-              "semana": 20,
-              "valor": 43222.94
-            },
-            {
-              "semana": 21,
-              "valor": 42886.98
-            },
-            {
-              "semana": 22,
-              "valor": 47150.98
-            },
-            {
-              "semana": 23,
-              "valor": 34586.18
-            },
-            {
-              "semana": 24,
-              "valor": 39603.49
-            },
-            {
-              "semana": 25,
-              "valor": 42025.58
-            },
-            {
-              "semana": 26,
-              "valor": 36510.69
-            },
-            {
-              "semana": 27,
-              "valor": 33030.28
-            },
-            {
-              "semana": 28,
-              "valor": 37302.8
-            },
-            {
-              "semana": 29,
-              "valor": 36998.72
-            },
-            {
-              "semana": 30,
-              "valor": 34745.55
-            },
-            {
-              "semana": 31,
-              "valor": 35008.48
-            },
-            {
-              "semana": 32,
-              "valor": 33965.43
-            },
-            {
-              "semana": 33,
-              "valor": 25646.49
-            },
-            {
-              "semana": 34,
-              "valor": 37977.35
-            },
-            {
-              "semana": 35,
-              "valor": 36798.3
-            },
-            {
-              "semana": 36,
-              "valor": 38414.08
-            },
-            {
-              "semana": 37,
-              "valor": 39480.62
-            },
-            {
-              "semana": 38,
-              "valor": 38372.77
-            },
-            {
-              "semana": 39,
-              "valor": 47889.52
-            },
-            {
-              "semana": 40,
-              "valor": 51201.26
-            }
-          ]
-        },
-        "Uk": {
-          "2024": [
-            {
-              "semana": 1,
-              "valor": 6.21
-            },
-            {
-              "semana": 2,
-              "valor": 6.24
-            },
-            {
-              "semana": 3,
-              "valor": 6.28
-            },
-            {
-              "semana": 4,
-              "valor": 6.31
-            },
-            {
-              "semana": 5,
-              "valor": 6.35
-            },
-            {
-              "semana": 6,
-              "valor": 6.37
-            },
-            {
-              "semana": 7,
-              "valor": 6.39
-            },
-            {
-              "semana": 8,
-              "valor": 6.4
-            },
-            {
-              "semana": 9,
-              "valor": 6.42
-            },
-            {
-              "semana": 10,
-              "valor": 6.43
-            },
-            {
-              "semana": 11,
-              "valor": 6.45
-            },
-            {
-              "semana": 12,
-              "valor": 6.46
-            },
-            {
-              "semana": 13,
-              "valor": 6.48
-            },
-            {
-              "semana": 14,
-              "valor": 6.48
-            },
-            {
-              "semana": 15,
-              "valor": 6.46
-            },
-            {
-              "semana": 16,
-              "valor": 6.45
-            },
-            {
-              "semana": 17,
-              "valor": 6.43
-            },
-            {
-              "semana": 18,
-              "valor": 6.42
-            },
-            {
-              "semana": 19,
-              "valor": 6.4
-            },
-            {
-              "semana": 20,
-              "valor": 6.38
-            },
-            {
-              "semana": 21,
-              "valor": 6.37
-            },
-            {
-              "semana": 22,
-              "valor": 6.35
-            },
-            {
-              "semana": 23,
-              "valor": 6.31
-            },
-            {
-              "semana": 24,
-              "valor": 6.28
-            },
-            {
-              "semana": 25,
-              "valor": 6.24
-            },
-            {
-              "semana": 26,
-              "valor": 6.21
-            },
-            {
-              "semana": 27,
-              "valor": 6.21
-            },
-            {
-              "semana": 28,
-              "valor": 6.24
-            },
-            {
-              "semana": 29,
-              "valor": 6.28
-            },
-            {
-              "semana": 30,
-              "valor": 3.31
-            },
-            {
-              "semana": 31,
-              "valor": 6.35
-            },
-            {
-              "semana": 32,
-              "valor": 6.33
-            },
-            {
-              "semana": 33,
-              "valor": 6.31
-            },
-            {
-              "semana": 34,
-              "valor": 6.3
-            },
-            {
-              "semana": 35,
-              "valor": 6.28
-            },
-            {
-              "semana": 36,
-              "valor": 6.28
-            },
-            {
-              "semana": 37,
-              "valor": 6.3
-            },
-            {
-              "semana": 38,
-              "valor": 6.32
-            },
-            {
-              "semana": 39,
-              "valor": 6.33
-            },
-            {
-              "semana": 40,
-              "valor": 6.35
-            },
-            {
-              "semana": 41,
-              "valor": 6.33
-            },
-            {
-              "semana": 42,
-              "valor": 6.31
-            },
-            {
-              "semana": 43,
-              "valor": 6.3
-            },
-            {
-              "semana": 44,
-              "valor": 6.28
-            },
-            {
-              "semana": 45,
-              "valor": 6.28
-            },
-            {
-              "semana": 46,
-              "valor": 6.28
-            },
-            {
-              "semana": 47,
-              "valor": 6.28
-            },
-            {
-              "semana": 48,
-              "valor": 6.28
-            },
-            {
-              "semana": 49,
-              "valor": 6.28
-            },
-            {
-              "semana": 50,
-              "valor": 6.28
-            },
-            {
-              "semana": 51,
-              "valor": 6.28
-            },
-            {
-              "semana": 52,
-              "valor": 6.28
-            }
-          ],
-          "2025": [
-            {
-              "semana": 1,
-              "valor": 6.28
-            },
-            {
-              "semana": 2,
-              "valor": 6.3
-            },
-            {
-              "semana": 3,
-              "valor": 6.32
-            },
-            {
-              "semana": 4,
-              "valor": 6.33
-            },
-            {
-              "semana": 5,
-              "valor": 6.35
-            },
-            {
-              "semana": 6,
-              "valor": 6.37
-            },
-            {
-              "semana": 7,
-              "valor": 6.39
-            },
-            {
-              "semana": 8,
-              "valor": 6.4
-            },
-            {
-              "semana": 9,
-              "valor": 6.42
-            },
-            {
-              "semana": 10,
-              "valor": 6.43
-            },
-            {
-              "semana": 11,
-              "valor": 6.45
-            },
-            {
-              "semana": 12,
-              "valor": 6.46
-            },
-            {
-              "semana": 13,
-              "valor": 6.48
-            },
-            {
-              "semana": 14,
-              "valor": 6.48
-            },
-            {
-              "semana": 15,
-              "valor": 6.46
-            },
-            {
-              "semana": 16,
-              "valor": 6.45
-            },
-            {
-              "semana": 17,
-              "valor": 6.43
-            },
-            {
-              "semana": 18,
-              "valor": 6.42
-            },
-            {
-              "semana": 19,
-              "valor": 6.4
-            },
-            {
-              "semana": 20,
-              "valor": 6.38
-            },
-            {
-              "semana": 21,
-              "valor": 6.37
-            },
-            {
-              "semana": 22,
-              "valor": 6.35
-            },
-            {
-              "semana": 23,
-              "valor": 6.31
-            },
-            {
-              "semana": 24,
-              "valor": 6.28
-            },
-            {
-              "semana": 25,
-              "valor": 6.24
-            },
-            {
-              "semana": 26,
-              "valor": 6.21
-            },
-            {
-              "semana": 27,
-              "valor": 6.21
-            },
-            {
-              "semana": 28,
-              "valor": 6.24
-            },
-            {
-              "semana": 29,
-              "valor": 6.28
-            },
-            {
-              "semana": 30,
-              "valor": 6.31
-            },
-            {
-              "semana": 31,
-              "valor": 6.35
-            },
-            {
-              "semana": 32,
-              "valor": 6.33
-            },
-            {
-              "semana": 33,
-              "valor": 6.31
-            },
-            {
-              "semana": 34,
-              "valor": 6.3
-            },
-            {
-              "semana": 35,
-              "valor": 6.28
-            },
-            {
-              "semana": 36,
-              "valor": 6.28
-            },
-            {
-              "semana": 37,
-              "valor": 6.3
-            },
-            {
-              "semana": 38,
-              "valor": 6.32
-            },
-            {
-              "semana": 39,
-              "valor": 6.33
-            },
-            {
-              "semana": 40,
-              "valor": 6.35
-            },
-            {
-              "semana": 41,
-              "valor": 6.33
-            },
-            {
-              "semana": 42,
-              "valor": 6.31
-            },
-            {
-              "semana": 43,
-              "valor": 6.3
-            },
-            {
-              "semana": 44,
-              "valor": 6.28
-            },
-            {
-              "semana": 45,
-              "valor": 6.28
-            },
-            {
-              "semana": 46,
-              "valor": 6.28
-            },
-            {
-              "semana": 47,
-              "valor": 6.28
-            },
-            {
-              "semana": 48,
-              "valor": 6.28
-            },
-            {
-              "semana": 49,
-              "valor": 6.28
-            },
-            {
-              "semana": 50,
-              "valor": 6.28
-            },
-            {
-              "semana": 51,
-              "valor": 6.28
-            },
-            {
-              "semana": 52,
-              "valor": 6.28
-            }
-          ]
-        }
-      }
-    }
-  },
-  "logistica": {
-    "global": {
-      "rotas": [
-        {
-          "pais": "Peru",
-          "porto_origem": "Callao",
-          "rota": "Direto",
-          "pais_destino": "Holanda",
-          "porto_destino": "Rotterdam",
-          "transit_time": 19,
-          "fornecedor": "CMA CGM"
-        },
-        {
-          "pais": "Peru",
-          "porto_origem": "Callao",
-          "rota": "Direto",
-          "pais_destino": "Bélgica",
-          "porto_destino": "Antwerp",
-          "transit_time": 28,
-          "fornecedor": "CMA CGM"
-        },
-        {
-          "pais": "Peru",
-          "porto_origem": "Callao",
-          "rota": null,
-          "pais_destino": "UK",
-          "porto_destino": "Felixstowe",
-          "transit_time": null,
-          "fornecedor": null
-        },
-        {
-          "pais": "Peru",
-          "porto_origem": "Callao",
-          "rota": "Direto",
-          "pais_destino": "UK",
-          "porto_destino": "London",
-          "transit_time": 23,
-          "fornecedor": "CMA CGM"
-        },
-        {
-          "pais": "Peru",
-          "porto_origem": "Paita",
-          "rota": "Direto",
-          "pais_destino": "Holanda",
-          "porto_destino": "Rotterdam",
-          "transit_time": 20,
-          "fornecedor": "MSC"
-        },
-        {
-          "pais": "Peru",
-          "porto_origem": "Paita",
-          "rota": "Direto",
-          "pais_destino": "Bélgica",
-          "porto_destino": "Antwerp",
-          "transit_time": 21,
-          "fornecedor": "MSC"
-        },
-        {
-          "pais": "Peru",
-          "porto_origem": "Paita",
-          "rota": null,
-          "pais_destino": "UK",
-          "porto_destino": "Felixstowe",
-          "transit_time": null,
-          "fornecedor": null
-        },
-        {
-          "pais": "Peru",
-          "porto_origem": "Paita",
-          "rota": "Direto",
-          "pais_destino": "UK",
-          "porto_destino": "London",
-          "transit_time": 19,
-          "fornecedor": "MSC"
-        },
-        {
-          "pais": "Peru",
-          "porto_origem": "Callao",
-          "rota": "Direto",
-          "pais_destino": "Chile",
-          "porto_destino": "San Antonio",
-          "transit_time": 5,
-          "fornecedor": "MSC"
-        },
-        {
-          "pais": "Peru",
-          "porto_origem": "Callao",
-          "rota": "Cartagena",
-          "pais_destino": "Argentina",
-          "porto_destino": "Buenos Aires",
-          "transit_time": 29,
-          "fornecedor": "CMA CGM"
-        },
-        {
-          "pais": "Peru",
-          "porto_origem": "Callao",
-          "rota": null,
-          "pais_destino": "Costa Rica",
-          "porto_destino": null,
-          "transit_time": 12,
-          "fornecedor": "MAERSK"
-        },
-        {
-          "pais": "Colômbia",
-          "porto_origem": "Cartagena",
-          "rota": "Direto",
-          "pais_destino": "Holanda",
-          "porto_destino": "Rotterdam",
-          "transit_time": 12,
-          "fornecedor": "CMA CGM"
-        },
-        {
-          "pais": "Colômbia",
-          "porto_origem": "Cartagena",
-          "rota": "Direto",
-          "pais_destino": "Alemanha",
-          "porto_destino": "Hamburg",
-          "transit_time": 17,
-          "fornecedor": "CMA CGM"
-        },
-        {
-          "pais": "Colômbia",
-          "porto_origem": "Cartagena",
-          "rota": "Direto",
-          "pais_destino": "UK",
-          "porto_destino": "London",
-          "transit_time": 15,
-          "fornecedor": "CMA CGM"
-        },
-        {
-          "pais": "Colômbia",
-          "porto_origem": "Buenaventura",
-          "rota": "Posorja",
-          "pais_destino": "Holanda",
-          "porto_destino": "Rotterdam",
-          "transit_time": 26,
-          "fornecedor": "Hapag"
-        },
-        {
-          "pais": "Colômbia",
-          "porto_origem": "Buenaventura",
-          "rota": "Posorja",
-          "pais_destino": "Alemanha",
-          "porto_destino": "Hamburg",
-          "transit_time": 29,
-          "fornecedor": "Hapag"
-        },
-        {
-          "pais": "Colômbia",
-          "porto_origem": "Buenaventura",
-          "rota": "Posorja",
-          "pais_destino": "UK",
-          "porto_destino": "London",
-          "transit_time": 27,
-          "fornecedor": "Hapag"
-        },
-        {
-          "pais": "Colômbia",
-          "porto_origem": "Cartagena",
-          "rota": "Direto",
-          "pais_destino": "Chile",
-          "porto_destino": "San Antonio",
-          "transit_time": 16,
-          "fornecedor": "Hapag"
-        },
-        {
-          "pais": "Colômbia",
-          "porto_origem": "Buenaventura",
-          "rota": "Direto",
-          "pais_destino": "Chile",
-          "porto_destino": "San Antonio",
-          "transit_time": 8,
-          "fornecedor": "Hapag"
-        },
-        {
-          "pais": "Colômbia",
-          "porto_origem": "Cartagena",
-          "rota": "Direto",
-          "pais_destino": "Argentina",
-          "porto_destino": "Buenos Aires",
-          "transit_time": 23,
-          "fornecedor": "Hapag"
-        },
-        {
-          "pais": "Colômbia",
-          "porto_origem": "Buenaventura",
-          "rota": "Cartagena",
-          "pais_destino": "Argentina",
-          "porto_destino": "Buenos Aires",
-          "transit_time": 39,
-          "fornecedor": "CMA CGM"
-        },
-        {
-          "pais": "Chile",
-          "porto_origem": "San Antono",
-          "rota": "Santos",
-          "pais_destino": "Argentina",
-          "porto_destino": "Buenos Aires",
-          "transit_time": 26,
-          "fornecedor": "Hapag"
-        },
-        {
-          "pais": "Chile",
-          "porto_origem": "Valparaiso",
-          "rota": "San Antonio/Santos",
-          "pais_destino": "Argentina",
-          "porto_destino": "Buenos Aires",
-          "transit_time": 37,
-          "fornecedor": "Hapag"
-        },
-        {
-          "pais": "Chile",
-          "porto_origem": "San Antono",
-          "rota": "Direto",
-          "pais_destino": "Holanda",
-          "porto_destino": "Rotterdam",
-          "transit_time": 25,
-          "fornecedor": "Hapag"
-        },
-        {
-          "pais": "Chile",
-          "porto_origem": "San Antono",
-          "rota": "Direto",
-          "pais_destino": "Alemanha",
-          "porto_destino": "Hamburg",
-          "transit_time": 30,
-          "fornecedor": "Hapag"
-        },
-        {
-          "pais": "Chile",
-          "porto_origem": "San Antono",
-          "rota": "Direto",
-          "pais_destino": "UK",
-          "porto_destino": "London",
-          "transit_time": 28,
-          "fornecedor": "Hapag"
-        },
-        {
-          "pais": "Chile",
-          "porto_origem": "San Antono",
-          "rota": "Direto",
-          "pais_destino": "Argentina",
-          "porto_destino": "Buenos Aires",
-          "transit_time": 3,
-          "fornecedor": "Hapag"
-        },
-        {
-          "pais": "Israel",
-          "porto_origem": "Haifa",
-          "rota": "Direto",
-          "pais_destino": "Itália",
-          "porto_destino": "Genoa",
-          "transit_time": 6,
-          "fornecedor": "ZIM"
-        },
-        {
-          "pais": "Israel",
-          "porto_origem": "Haifa",
-          "rota": "Direto",
-          "pais_destino": "França",
-          "porto_destino": "Le Havre",
-          "transit_time": 20,
-          "fornecedor": "ZIM"
-        },
-        {
-          "pais": "Israel",
-          "porto_origem": "Haifa",
-          "rota": "Direto",
-          "pais_destino": "Holanda",
-          "porto_destino": "Rotterdam",
-          "transit_time": 15,
-          "fornecedor": "ZIM"
-        },
-        {
-          "pais": "Israel",
-          "porto_origem": "Haifa",
-          "rota": "Direto",
-          "pais_destino": "UK",
-          "porto_destino": "London",
-          "transit_time": 12,
-          "fornecedor": "ZIM"
-        },
-        {
-          "pais": "Israel",
-          "porto_origem": "Ashdod",
-          "rota": "Direto",
-          "pais_destino": "Itália",
-          "porto_destino": "Genoa",
-          "transit_time": 7,
-          "fornecedor": "ZIM"
-        },
-        {
-          "pais": "Israel",
-          "porto_origem": "Ashdod",
-          "rota": "Direto",
-          "pais_destino": "França",
-          "porto_destino": "Le Havre",
-          "transit_time": 10,
-          "fornecedor": "ZIM"
-        },
-        {
-          "pais": "Israel",
-          "porto_origem": "Ashdod",
-          "rota": "Direto",
-          "pais_destino": "Holanda",
-          "porto_destino": "Rotterdam",
-          "transit_time": 17,
-          "fornecedor": "ZIM"
-        },
-        {
-          "pais": "Israel",
-          "porto_origem": "Ashdod",
-          "rota": "Direto",
-          "pais_destino": "UK",
-          "porto_destino": "London",
-          "transit_time": 14,
-          "fornecedor": "ZIM"
-        },
-        {
-          "pais": "Marrocos",
-          "porto_origem": "Casablanca",
-          "rota": "Valência",
-          "pais_destino": "Itália",
-          "porto_destino": "Genoa",
-          "transit_time": 17,
-          "fornecedor": "MSC"
-        },
-        {
-          "pais": "Marrocos",
-          "porto_origem": "Casablanca",
-          "rota": "Sines",
-          "pais_destino": "França",
-          "porto_destino": "Le Havre",
-          "transit_time": 8,
-          "fornecedor": "MSC"
-        },
-        {
-          "pais": "Marrocos",
-          "porto_origem": "Casablanca",
-          "rota": "Las Palmas",
-          "pais_destino": "Holanda",
-          "porto_destino": "Rotterdam",
-          "transit_time": 15,
-          "fornecedor": "MSC"
-        },
-        {
-          "pais": "Marrocos",
-          "porto_origem": "Casablanca",
-          "rota": "Las Palmas",
-          "pais_destino": "UK",
-          "porto_destino": "London",
-          "transit_time": 19,
-          "fornecedor": "MSC"
-        },
-        {
-          "pais": "Marrocos",
-          "porto_origem": "Agadir",
-          "rota": "Antwerp",
-          "pais_destino": "Itália",
-          "porto_destino": "Gioaia Tauro",
-          "transit_time": 19,
-          "fornecedor": "MSC"
-        },
-        {
-          "pais": "Marrocos",
-          "porto_origem": "Agadir",
-          "rota": "Antwerp",
-          "pais_destino": "França",
-          "porto_destino": "Le Havre",
-          "transit_time": 10,
-          "fornecedor": "MSC"
-        },
-        {
-          "pais": "Marrocos",
-          "porto_origem": "Agadir",
-          "rota": "Antwerp",
-          "pais_destino": "Holanda",
-          "porto_destino": "Rotterdam",
-          "transit_time": 9,
-          "fornecedor": "MSC"
-        },
-        {
-          "pais": "Marrocos",
-          "porto_origem": "Agadir",
-          "rota": "Antwerp",
-          "pais_destino": "UK",
-          "porto_destino": "London",
-          "transit_time": 11,
-          "fornecedor": "MSC"
-        },
-        {
-          "pais": "Espanha",
-          "porto_origem": "Valência",
-          "rota": "Direto",
-          "pais_destino": "Holanda",
-          "porto_destino": "Rotterdam",
-          "transit_time": 7,
-          "fornecedor": "MSC"
-        },
-        {
-          "pais": "Espanha",
-          "porto_origem": "Valência",
-          "rota": "Direto",
-          "pais_destino": "Bélgica",
-          "porto_destino": "Antwerp",
-          "transit_time": 11,
-          "fornecedor": "MSC"
-        },
-        {
-          "pais": "Espanha",
-          "porto_origem": "Algeciras",
-          "rota": "Direto",
-          "pais_destino": "Holanda",
-          "porto_destino": "Rotterdam",
-          "transit_time": 4,
-          "fornecedor": "MSC"
-        },
-        {
-          "pais": "Espanha",
-          "porto_origem": "Algeciras",
-          "rota": "Direto",
-          "pais_destino": "Bélgica",
-          "porto_destino": "Antwerp",
-          "transit_time": 5,
-          "fornecedor": "CMA CGM"
-        },
-        {
-          "pais": "Portugal",
-          "porto_origem": "Lisboa",
-          "rota": "Tanger",
-          "pais_destino": "Holanda",
-          "porto_destino": "Rotterdam",
-          "transit_time": 12,
-          "fornecedor": "Hapag"
-        },
-        {
-          "pais": "Portugal",
-          "porto_origem": "Lisboa",
-          "rota": "Tanger",
-          "pais_destino": "Bélgica",
-          "porto_destino": "Antwerp",
-          "transit_time": 13,
-          "fornecedor": "Hapag"
-        },
-        {
-          "pais": "Portugal",
-          "porto_origem": "Leixões",
-          "rota": "Direto",
-          "pais_destino": "Holanda",
-          "porto_destino": "Rotterdam",
-          "transit_time": 8,
-          "fornecedor": "MSC"
-        },
-        {
-          "pais": "Portugal",
-          "porto_origem": "Leixões",
-          "rota": "Direto",
-          "pais_destino": "Bélgica",
-          "porto_destino": "Antwerp",
-          "transit_time": 9,
-          "fornecedor": "MSC"
-        }
-      ],
-      "matriz": {
-        "paises_origem": [
-          "Chile",
-          "Colômbia",
-          "Espanha",
-          "Israel",
-          "Marrocos",
-          "Peru",
-          "Portugal"
-        ],
-        "paises_destino": [
-          "Alemanha",
-          "Argentina",
-          "Bélgica",
-          "Chile",
-          "Costa Rica",
-          "França",
-          "Holanda",
-          "Itália",
-          "UK"
-        ],
-        "valores": {
-          "Chile": {
-            "Alemanha": 30,
-            "Argentina": 26,
-            "Holanda": 25,
-            "UK": 28
-          },
-          "Colômbia": {
-            "Alemanha": 23,
-            "Argentina": 31,
-            "Chile": 12,
-            "Holanda": 19,
-            "UK": 21
-          },
-          "Espanha": {
-            "Bélgica": 8,
-            "Holanda": 5.5
-          },
-          "Israel": {
-            "França": 15,
-            "Holanda": 16,
-            "Itália": 6.5,
-            "UK": 13
-          },
-          "Marrocos": {
-            "França": 9,
-            "Holanda": 12,
-            "Itália": 18,
-            "UK": 15
-          },
-          "Peru": {
-            "Argentina": 29,
-            "Bélgica": 24.5,
-            "Chile": 5,
-            "Costa Rica": 12,
-            "Holanda": 19.5,
-            "UK": 21
-          },
-          "Portugal": {
-            "Bélgica": 11,
-            "Holanda": 10
-          }
-        }
-      },
-      "ranking": [
-        {
-          "pais": "Espanha",
-          "portos": [
-            {
-              "porto": "Algeciras",
-              "tt": 4.5
-            },
-            {
-              "porto": "Valência",
-              "tt": 9.0
-            }
-          ]
-        },
-        {
-          "pais": "Portugal",
-          "portos": [
-            {
-              "porto": "Leixões",
-              "tt": 8.5
-            },
-            {
-              "porto": "Lisboa",
-              "tt": 12.5
-            }
-          ]
-        },
-        {
-          "pais": "Israel",
-          "portos": [
-            {
-              "porto": "Ashdod",
-              "tt": 12.0
-            },
-            {
-              "porto": "Haifa",
-              "tt": 13.25
-            }
-          ]
-        },
-        {
-          "pais": "Marrocos",
-          "portos": [
-            {
-              "porto": "Agadir",
-              "tt": 12.25
-            },
-            {
-              "porto": "Casablanca",
-              "tt": 14.75
-            }
-          ]
-        },
-        {
-          "pais": "Colômbia",
-          "portos": [
-            {
-              "porto": "Cartagena",
-              "tt": 16.6
-            },
-            {
-              "porto": "Buenaventura",
-              "tt": 25.8
-            }
-          ]
-        },
-        {
-          "pais": "Peru",
-          "portos": [
-            {
-              "porto": "Callao",
-              "tt": 19.33
-            },
-            {
-              "porto": "Paita",
-              "tt": 20.0
-            }
-          ]
-        },
-        {
-          "pais": "Chile",
-          "portos": [
-            {
-              "porto": "San Antono",
-              "tt": 22.4
-            },
-            {
-              "porto": "Valparaiso",
-              "tt": 37.0
-            }
-          ]
-        }
-      ],
-      "cards": {
-        "tt_menor": 3.0,
-        "tt_medio": 16.63,
-        "tt_maior": 39.0
-      }
-    },
-    "brasil": {
-      "rotas": [
-        {
-          "pais": "Brasil",
-          "porto_origem": "Santos",
-          "porto_destino": "London Gateway",
-          "pais_destino": "Reino Unido",
-          "transit_time": 29,
-          "fornecedor": null,
-          "modal": "Marítimo",
-          "obs": "Considerando saída porto de Santos. London Gateway é um porto que anda complicado (MAERSK nem estava atendendo devido ao congestionamento). Estão descarregando Southampton e, pelo que vi, voltam a aceitar reserva ETD 09/02 mas com esse TT longo."
-        },
-        {
-          "pais": "Brasil",
-          "porto_origem": "Santos",
-          "porto_destino": "Southampton",
-          "pais_destino": "Reino Unido",
-          "transit_time": 16,
-          "fornecedor": null,
-          "modal": "Marítimo",
-          "obs": "Considerando saída porto de Santos. Os transits têm excedido muitas vezes (baixa confiabilidade em transbordo)."
-        },
-        {
-          "pais": "Brasil",
-          "porto_origem": "Santos",
-          "porto_destino": "Rotterdam",
-          "pais_destino": "Holanda",
-          "transit_time": 18,
-          "fornecedor": null,
-          "modal": "Marítimo",
-          "obs": "Considerando saída porto de Santos. Os transits têm excedido muitas vezes."
-        },
-        {
-          "pais": "Brasil",
-          "porto_origem": "Santos",
-          "porto_destino": "Algeciras",
-          "pais_destino": "Espanha",
-          "transit_time": 16,
-          "fornecedor": null,
-          "modal": "Marítimo",
-          "obs": "Considerando saída porto de Santos."
-        },
-        {
-          "pais": "Brasil",
-          "porto_origem": "Santos",
-          "porto_destino": "Toronto (via Philadelphia e NY)",
-          "pais_destino": "Canadá",
-          "transit_time": 27,
-          "fornecedor": null,
-          "modal": "Marítimo",
-          "obs": "Considerando saída porto de Santos. Portos no Rio de Janeiro têm histórico de sofrer com omissões."
-        },
-        {
-          "pais": "Brasil",
-          "porto_origem": "Santos",
-          "porto_destino": "Toronto / Montreal (via Philadelphia e NY)",
-          "pais_destino": "Canadá",
-          "transit_time": 25,
-          "fornecedor": null,
-          "modal": "Marítimo",
-          "obs": "Considerando saída porto do Rio de Janeiro (com histórico de omissões) e Santos."
-        },
-        {
-          "pais": "Brasil",
-          "porto_origem": "Santos",
-          "porto_destino": "Chile (Hama e Libertadores)",
-          "pais_destino": "Chile",
-          "transit_time": 12,
-          "fornecedor": null,
-          "modal": "Rodoviario",
-          "obs": "Considerando as liberações em fronteiras."
-        },
-        {
-          "pais": "Brasil",
-          "porto_origem": "Santos",
-          "porto_destino": "Buenos Aires, Mendoza, Córdoba",
-          "pais_destino": "Argentina",
-          "transit_time": 7,
-          "fornecedor": null,
-          "modal": "Rodoviario",
-          "obs": "Considerando tempo de liberação."
-        },
-        {
-          "pais": "Brasil",
-          "porto_origem": "Santos",
-          "porto_destino": "Costa Rica",
-          "pais_destino": "Costa Rica",
-          "transit_time": 33,
-          "fornecedor": null,
-          "modal": "Marítimo",
-          "obs": "Considerando saída porto de Santos para Puerto Limón (26 dias) MAERSK. Moín: armadores atendem, porém há muito atraso nos navios (MSC e ONE: 18 a 33 dias)."
-        },
-        {
-          "pais": "Brasil",
-          "porto_origem": "Santos",
-          "porto_destino": "Índia",
-          "pais_destino": "Índia",
-          "transit_time": 38,
-          "fornecedor": null,
-          "modal": "Marítimo",
-          "obs": "Bastante possibilidade de atraso (pois há transbordo)."
-        },
-        {
-          "pais": "Brasil",
-          "porto_origem": null,
-          "porto_destino": null,
-          "pais_destino": "Uruguai",
-          "transit_time": 4,
-          "fornecedor": null,
-          "modal": "Rodoviario",
-          "obs": null
-        }
-      ],
-      "matriz": {
-        "Argentina": 7.0,
-        "Canadá": 26.0,
-        "Chile": 12.0,
-        "Costa Rica": 33.0,
-        "Espanha": 16.0,
-        "Holanda": 18.0,
-        "Reino Unido": 22.5,
-        "Uruguai": 4.0,
-        "Índia": 38.0
-      },
-      "ranking": [
-        {
-          "porto_origem": "Santos",
-          "pais_destino": "Reino Unido",
-          "maritimo": 29,
-          "rodoviario": null
-        },
-        {
-          "porto_origem": "Santos",
-          "pais_destino": "Reino Unido",
-          "maritimo": 16,
-          "rodoviario": null
-        },
-        {
-          "porto_origem": "Santos",
-          "pais_destino": "Holanda",
-          "maritimo": 18,
-          "rodoviario": null
-        },
-        {
-          "porto_origem": "Santos",
-          "pais_destino": "Espanha",
-          "maritimo": 16,
-          "rodoviario": null
-        },
-        {
-          "porto_origem": "Santos",
-          "pais_destino": "Canadá",
-          "maritimo": 27,
-          "rodoviario": null
-        },
-        {
-          "porto_origem": "Santos",
-          "pais_destino": "Canadá",
-          "maritimo": 25,
-          "rodoviario": null
-        },
-        {
-          "porto_origem": "Santos",
-          "pais_destino": "Chile",
-          "maritimo": null,
-          "rodoviario": 12
-        },
-        {
-          "porto_origem": "Santos",
-          "pais_destino": "Argentina",
-          "maritimo": null,
-          "rodoviario": 7
-        },
-        {
-          "porto_origem": "Santos",
-          "pais_destino": "Costa Rica",
-          "maritimo": 33,
-          "rodoviario": null
-        },
-        {
-          "porto_origem": "Santos",
-          "pais_destino": "Índia",
-          "maritimo": 38,
-          "rodoviario": null
-        },
-        {
-          "porto_origem": null,
-          "pais_destino": "Uruguai",
-          "maritimo": null,
-          "rodoviario": 4
-        }
-      ]
-    }
-  },
-  "producao_global": {
-    "meses": [
-      "Janeiro",
-      "Fevereiro",
-      "Março",
-      "Abril",
-      "Maio",
-      "Junho",
-      "Julho",
-      "Agosto",
-      "Setembro",
-      "Outubro",
-      "Novembro",
-      "Dezembro"
-    ],
-    "paises": [
-      {
-        "pais": "México",
-        "ordem": 1,
-        "niveis": [
-          3,
-          3,
-          3,
-          3,
-          3,
-          2,
-          2,
-          2,
-          2,
-          3,
-          3,
-          3
-        ]
-      },
-      {
-        "pais": "Espanha",
-        "ordem": 2,
-        "niveis": [
-          3,
-          3,
-          3,
-          3,
-          3,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          3
-        ]
-      },
-      {
-        "pais": "Marrocos",
-        "ordem": 3,
-        "niveis": [
-          3,
-          3,
-          3,
-          3,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          3,
-          3
-        ]
-      },
-      {
-        "pais": "Israel",
-        "ordem": 4,
-        "niveis": [
-          3,
-          3,
-          3,
-          3,
-          0,
-          0,
-          0,
-          0,
-          0,
-          3,
-          3,
-          3
-        ]
-      },
-      {
-        "pais": "Portugal",
-        "ordem": 6,
-        "niveis": [
-          1,
-          1,
-          1,
-          1,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          1,
-          1
-        ]
-      },
-      {
-        "pais": "Quênia",
-        "ordem": 7,
-        "niveis": [
-          2,
-          2,
-          3,
-          3,
-          3,
-          3,
-          3,
-          3,
-          3,
-          0,
-          2,
-          2
-        ]
-      },
-      {
-        "pais": "República Dominicana",
-        "ordem": 8,
-        "niveis": [
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          2,
-          3,
-          3,
-          3,
-          3,
-          2
-        ]
-      },
-      {
-        "pais": "Colômbia",
-        "ordem": 9,
-        "niveis": [
-          0,
-          0,
-          3,
-          3,
-          3,
-          3,
-          0,
-          0,
-          3,
-          3,
-          3,
-          3
-        ]
-      },
-      {
-        "pais": "Brasil",
-        "ordem": 10,
-        "niveis": [
-          0,
-          3,
-          3,
-          3,
-          3,
-          2,
-          2,
-          2,
-          2,
-          0,
-          0,
-          0
-        ]
-      },
-      {
-        "pais": "África do Sul",
-        "ordem": 11,
-        "niveis": [
-          0,
-          0,
-          3,
-          3,
-          3,
-          3,
-          3,
-          3,
-          3,
-          0,
-          0,
-          0
-        ]
-      },
-      {
-        "pais": "Tanzânia",
-        "ordem": 12,
-        "niveis": [
-          0,
-          0,
-          3,
-          3,
-          3,
-          3,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0
-        ]
-      },
-      {
-        "pais": "Peru",
-        "ordem": 13,
-        "niveis": [
-          0,
-          0,
-          0,
-          2,
-          3,
-          3,
-          3,
-          3,
-          3,
-          2,
-          0,
-          0
-        ]
-      },
-      {
-        "pais": "Argentina",
-        "ordem": 14,
-        "niveis": [
-          0,
-          0,
-          1,
-          1,
-          1,
-          1,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0
-        ]
-      }
-    ]
-  },
-  "news": {
-    "brasil": {
-      "cambio": {
-        "par": "USD/BRL",
-        "valor": 5.0891,
-        "data": "2026-08-10"
-      },
-      "geral": [
-        {
-          "data": "2026-08-10",
-          "tag": "geral",
-          "impacto": "Médio",
-          "texto": "Mídia dos EUA Em choque: Boom da Carne Bovina do Deserto da China, Surge do Abacate [geral]",
-          "fonte": "https://www.bastillepost.com/global/article/6062659-us-media-shocked-chinas-desert-beef-boom-avocado-surge"
-        },
-        {
-          "data": "2026-08-10",
-          "tag": "mercado",
-          "impacto": "Médio",
-          "texto": "Brasil vê oportunidades apesar de queda nos preços do abacate Hass. [mercado]",
-          "fonte": "https://www.freshplaza.com/north-america/article/9853637/brazil-sees-opportunities-despite-lower-hass-avocado-prices/"
-        },
-        {
-          "data": "2026-08-10",
-          "tag": "geral",
-          "impacto": "Médio",
-          "texto": "Óleo de Abacate: Hass Comercial versus Outras Variedades—Perfil de Ácidos Graxos e Qualidade [geral]",
-          "fonte": "https://onlinelibrary.wiley.com/doi/full/10.1002/ejlt.70125"
-        },
-        {
-          "data": "2026-08-10",
-          "tag": "mercado",
-          "impacto": "Médio",
-          "texto": "Tamanho, Participação e Tendências do Mercado de Óleo de Abacate da América Latina, 2034. [mercado]",
-          "fonte": "https://www.marketdataforecast.com/market-reports/latin-america-avocado-oil-market"
-        },
-        {
-          "data": "2026-08-10",
-          "tag": "mercado",
-          "impacto": "Médio",
-          "texto": "Produtores brasileiros miram o promissor mercado de importação da Índia. [mercado]",
-          "fonte": "https://www.fruitnet.com/eurofruit/brazilian-producers-target-indias-booming-import-market/271742.article"
-        },
-        {
-          "data": "2026-08-10",
-          "tag": "geral",
-          "impacto": "Médio",
-          "texto": "Brasil Mira Boom do Abacate à Medida que Oferta Global Encolhe [geral]",
-          "fonte": "https://www.theagribiz.com/international/brazil-eyes-avocado-boom-as-global-supply-tightens/"
-        }
-      ],
-      "regulacao": [],
-      "logistica": []
-    },
-    "chile": {
-      "cambio": {
-        "par": "USD/CLP",
-        "valor": 915.62,
-        "data": "2026-08-10"
-      },
-      "geral": [
-        {
-          "data": "2026-08-10",
-          "tag": "mercado",
-          "impacto": "Médio",
-          "texto": "Uma marca está fazendo o melhor guacamole de supermercado [mercado]",
-          "fonte": "https://sporked.com/article/best-guacamole/"
-        },
-        {
-          "data": "2026-08-10",
-          "tag": "mercado",
-          "impacto": "Médio",
-          "texto": "Produção chilena de abacate ultrapassa expectativas [mercado]",
-          "fonte": "https://www.fruitnet.com/eurofruit/chilean-avocado-output-exceeds-expectations/271670.article"
-        },
-        {
-          "data": "2026-08-10",
-          "tag": "mercado",
-          "impacto": "Médio",
-          "texto": "Receita de Carne Adovada (Porco ao Estilo Novo México com Pimentões Vermelhos) [mercado]",
-          "fonte": "https://www.seriouseats.com/carne-adovada-adobada-chili-braised-pork-recipe"
-        },
-        {
-          "data": "2026-08-10",
-          "tag": "mercado",
-          "impacto": "Médio",
-          "texto": "Safra chilena de abacate registra alta de 10% na produção e supera recorde anterior [mercado]",
-          "fonte": "https://www.freshfruitportal.com/news/2026/06/01/chilean-avocado-uptick/"
-        },
-        {
-          "data": "2026-08-10",
-          "tag": "mercado",
-          "impacto": "Médio",
-          "texto": "Nova unidade de embalagem na Colômbia melhora a rastreabilidade do abacate para os principais mercados [mercado]",
-          "fonte": "https://www.freshplaza.com/north-america/article/9856910/a-new-packing-facility-in-colombia-enhances-avocado-traceability-to-major-markets/"
-        },
-        {
-          "data": "2026-08-10",
-          "tag": "mercado",
-          "impacto": "Médio",
-          "texto": "Tamanho, Participação e Tendências do Mercado de Óleo de Abacate na América Latina até 2034 [mercado]",
-          "fonte": "https://www.marketdataforecast.com/market-reports/latin-america-avocado-oil-market"
-        }
-      ],
-      "regulacao": [
-        {
-          "data": "2026-08-10",
-          "tag": "regulação",
-          "impacto": "Alto",
-          "texto": "Entrada de Produtos Agrícolas nos Estados Unidos [regulação]",
-          "fonte": "https://www.cbp.gov/travel/clearing-cbp/bringing-agricultural-products-united-states"
-        },
-        {
-          "data": "2026-08-10",
-          "tag": "regulação",
-          "impacto": "Alto",
-          "texto": "Evolução das relações entre a UE e o Chile [regulação]",
-          "fonte": "https://www.agroberichtenbuitenland.nl/actueel/nieuws/2026/06/10/free-trade-to-strategic-partnership-how-the-eu-chile-relationship-evolved"
-        },
-        {
-          "data": "2026-08-10",
-          "tag": "regulação",
-          "impacto": "Alto",
-          "texto": "Peru se aproxima do Chile nas exportações agrícolas em 2025 [regulação]",
-          "fonte": "https://datamarnews.com/noticias/peru-closes-in-on-chile-in-2025-agricultural-exports/"
-        },
-        {
-          "data": "2026-08-10",
-          "tag": "regulação",
-          "impacto": "Alto",
-          "texto": "Chile Acusado de Tolerar Trabalho Forçado nos Setores de Exportação de Salmão e Frutas: Fundação Libera Registra Queixa em Agência Comercial dos EUA [regulação]",
-          "fonte": "https://www.elciudadano.com/actualidad/chile-accused-of-tolerating-forced-labor-in-salmon-and-fruit-export-sectors-libera-foundation-files-complaint-with-u-s-trade-agency/04/25/"
-        },
-        {
-          "data": "2026-08-10",
-          "tag": "regulação",
-          "impacto": "Alto",
-          "texto": "Peru reduz distância para o Chile nas exportações agrícolas de 2025 [regulação]",
-          "fonte": "https://www.freshplaza.com/latin-america/article/9839215/peru-narrows-gap-with-chile-in-2025-agricultural-exports/"
-        },
-        {
-          "data": "2026-08-10",
-          "tag": "regulação",
-          "impacto": "Alto",
-          "texto": "Vietnã e Chile trabalham para remover barreiras ao comércio de frutas e carnes [regulação]",
-          "fonte": "https://vir.com.vn/vietnam-and-chile-work-to-remove-barriers-to-fruit-and-meat-trade-154960.html"
-        }
-      ],
-      "logistica": [
-        {
-          "data": "2026-08-10",
-          "tag": "logística",
-          "impacto": "Alto",
-          "texto": "Porto Participa de Programa-Piloto de Uvas no Chile e Adiciona Capacidade de Tratamento [logística]",
-          "fonte": "https://www.wilmingtonbiz.com/maritime/2026/08/06/port_takes_part_in_chilean_grape_pilot_program_adds_treatment_capability/27720"
-        },
-        {
-          "data": "2026-08-10",
-          "tag": "logística",
-          "impacto": "Alto",
-          "texto": "Chile aprova construção do “porto externo” de San Antonio de US$ 4,45 bilhões [logística]",
-          "fonte": "https://www.seatrade-maritime.com/ports-logistics/chile-approves-4-45-bn-san-antonio-outer-port-construction"
-        },
-        {
-          "data": "2026-08-10",
-          "tag": "logística",
-          "impacto": "Alto",
-          "texto": "Chile aprova projeto de US$ 4,45 bilhões para triplicar capacidade do maior porto do país [logística]",
-          "fonte": "https://www.upi.com/Top_News/World-News/2026/05/29/latam-Chile-triple-port-capacity/7921780071484/"
-        },
-        {
-          "data": "2026-08-10",
-          "tag": "logística",
-          "impacto": "Alto",
-          "texto": "Portos de Cruzeiros no Chile: Mudanças na Logística Oceânica [logística]",
-          "fonte": "https://www.nomadlawyer.org/chile-cruise-ports-ocean-logistics-shifts-2026"
-        },
-        {
-          "data": "2026-08-10",
-          "tag": "logística",
-          "impacto": "Alto",
-          "texto": "ZEAL vê potencial para replicar seu modelo nos portos do norte do Chile [logística]",
-          "fonte": "https://www.bnamericas.com/en/interviews/zeal-sees-potential-to-replicate-its-model-in-northern-chiles-ports"
-        },
-        {
-          "data": "2026-08-10",
-          "tag": "logística",
-          "impacto": "Alto",
-          "texto": "Maersk desenvolve cadeia fria nos EUA para importação de uvas chilenas [logística]",
-          "fonte": "https://www.freshplaza.com/north-america/article/9860644/maersk-develops-u-s-cold-chain-for-chilean-grape-imports/"
-        }
-      ]
-    }
+  "ressalvas": {
+   "precos.uruguai": "2023 e 2024 de Consolidado_forecast.xlsx removidos em 12/08/2026: nas 63 semanas em comum com o boletim real da UAM, a planilha fica de 2,6x a 8,6x ABAIXO (mediana 2,8x) e a razao nao e constante, entao nao e conversao de unidade — e outro indicador. A serie do Uruguai agora e 100% UAM, de S43/2024 em diante.",
+   "precos.europa": "Serie 'Reino Unido' de Consolidado_forecast.xlsx removida: 2025 repetia 2024 em 47 das 52 semanas e o proprio 2024 tem 17 valores distintos em 52 semanas, com o mesmo passo repetido 8 vezes — mensal espalhado em semanas, nao medicao semanal. A aba Europa passa a mostrar so o preco de referencia do CIRAD, que e medicao publicada.",
+   "precos.chile": "2023-2025 recalculado em 12/08/2026 descartando 18 de 3.246 cotacoes de Preco_historico.xlsx: todas em '$/bandeja 10 kilos' com 240 a 1.400 CLP/kg, quando o minimo do resto da serie e 1.425 CLP/kg — bandeja cotada com um digito a menos na origem (5.500 em vez de 55.000). Efeito: 14 das 153 semanas mudaram, 11 delas por centavos; S45/2023 foi de 1,96 para 2,80, S50/2023 de 2,16 para 3,26 e S4/2024 saiu da serie por ter so 2 cotacoes, ambas descartadas — era o pico invertido de 0,55 USD/kg no grafico.",
+   "precos.argentina": "2024 e 2025 vem de Consolidado_forecast.xlsx e tem assinatura de curva construida, nao de mercado: 40 dos 51 passos semanais sao multiplos exatos de 0,05, o mesmo passo repete ate 6 vezes seguidas, o trecho monotono chega a 25 semanas e os dois anos tem a mesma assinatura. No dado real do Mercado Central (2026) sao 33 valores distintos em 33 semanas e trecho monotono maximo de 8. Ficam no grafico marcados como projecao. O site do Mercado Central publica so o ano corrente, entao nao ha como backfillar 2024-2025."
   }
+ },
+ "precos": {
+  "brasil": {
+   "unidade": "R$/kg",
+   "series": {
+    "2024": [
+     {
+      "semana": 1,
+      "valor": 6.54
+     },
+     {
+      "semana": 2,
+      "valor": 5.83
+     },
+     {
+      "semana": 3,
+      "valor": 5.83
+     },
+     {
+      "semana": 4,
+      "valor": 5.92
+     },
+     {
+      "semana": 5,
+      "valor": 5.42
+     },
+     {
+      "semana": 6,
+      "valor": 5.81
+     },
+     {
+      "semana": 7,
+      "valor": 4.98
+     },
+     {
+      "semana": 8,
+      "valor": 5.92
+     },
+     {
+      "semana": 9,
+      "valor": 5.59
+     },
+     {
+      "semana": 10,
+      "valor": 5.59
+     },
+     {
+      "semana": 11,
+      "valor": 6.0
+     },
+     {
+      "semana": 12,
+      "valor": 5.06
+     },
+     {
+      "semana": 13,
+      "valor": 5.68
+     },
+     {
+      "semana": 14,
+      "valor": 5.81
+     },
+     {
+      "semana": 15,
+      "valor": 5.7
+     },
+     {
+      "semana": 16,
+      "valor": 5.89
+     },
+     {
+      "semana": 17,
+      "valor": 5.7
+     },
+     {
+      "semana": 18,
+      "valor": 5.89
+     },
+     {
+      "semana": 19,
+      "valor": 5.7
+     },
+     {
+      "semana": 20,
+      "valor": 5.65
+     },
+     {
+      "semana": 21,
+      "valor": 5.65
+     },
+     {
+      "semana": 22,
+      "valor": 4.72
+     },
+     {
+      "semana": 23,
+      "valor": 5.31
+     },
+     {
+      "semana": 24,
+      "valor": 5.05
+     },
+     {
+      "semana": 25,
+      "valor": 5.31
+     },
+     {
+      "semana": 26,
+      "valor": 5.58
+     },
+     {
+      "semana": 27,
+      "valor": 5.67
+     },
+     {
+      "semana": 28,
+      "valor": 6.69
+     },
+     {
+      "semana": 29,
+      "valor": 6.19
+     },
+     {
+      "semana": 30,
+      "valor": 7.33
+     },
+     {
+      "semana": 31,
+      "valor": 6.67
+     },
+     {
+      "semana": 32,
+      "valor": 6.41
+     },
+     {
+      "semana": 33,
+      "valor": 7.03
+     },
+     {
+      "semana": 34,
+      "valor": 7.03
+     },
+     {
+      "semana": 35,
+      "valor": 8.39
+     },
+     {
+      "semana": 36,
+      "valor": 7.89
+     },
+     {
+      "semana": 37,
+      "valor": 7.46
+     },
+     {
+      "semana": 38,
+      "valor": 7.78
+     },
+     {
+      "semana": 39,
+      "valor": 8.97
+     },
+     {
+      "semana": 40,
+      "valor": 10.0
+     },
+     {
+      "semana": 41,
+      "valor": 10.5
+     },
+     {
+      "semana": 42,
+      "valor": 11.25
+     },
+     {
+      "semana": 43,
+      "valor": 14.03
+     },
+     {
+      "semana": 44,
+      "valor": 16.67
+     },
+     {
+      "semana": 45,
+      "valor": 16.98
+     },
+     {
+      "semana": 46,
+      "valor": 23.33
+     },
+     {
+      "semana": 47,
+      "valor": 21.66
+     },
+     {
+      "semana": 48,
+      "valor": 18.56
+     },
+     {
+      "semana": 49,
+      "valor": 18.57
+     },
+     {
+      "semana": 50,
+      "valor": 16.81
+     },
+     {
+      "semana": 51,
+      "valor": 14.24
+     },
+     {
+      "semana": 52,
+      "valor": 11.11
+     },
+     {
+      "semana": 53,
+      "valor": 11.22
+     }
+    ],
+    "2025": [
+     {
+      "semana": 1,
+      "valor": 13.8
+     },
+     {
+      "semana": 2,
+      "valor": 10.21
+     },
+     {
+      "semana": 3,
+      "valor": 8.85
+     },
+     {
+      "semana": 4,
+      "valor": 10.09
+     },
+     {
+      "semana": 5,
+      "valor": 7.61
+     },
+     {
+      "semana": 6,
+      "valor": 6.83
+     },
+     {
+      "semana": 7,
+      "valor": 7.11
+     },
+     {
+      "semana": 8,
+      "valor": 6.09
+     },
+     {
+      "semana": 9,
+      "valor": 6.21
+     },
+     {
+      "semana": 10,
+      "valor": 6.82
+     },
+     {
+      "semana": 11,
+      "valor": 5.91
+     },
+     {
+      "semana": 12,
+      "valor": 6.61
+     },
+     {
+      "semana": 13,
+      "valor": 5.92
+     },
+     {
+      "semana": 14,
+      "valor": 6.73
+     },
+     {
+      "semana": 15,
+      "valor": 21.64
+     },
+     {
+      "semana": 16,
+      "valor": 6.11
+     },
+     {
+      "semana": 17,
+      "valor": 5.32
+     },
+     {
+      "semana": 18,
+      "valor": 6.05
+     },
+     {
+      "semana": 19,
+      "valor": 6.33
+     },
+     {
+      "semana": 20,
+      "valor": 6.67
+     },
+     {
+      "semana": 21,
+      "valor": 6.55
+     },
+     {
+      "semana": 22,
+      "valor": 6.55
+     },
+     {
+      "semana": 23,
+      "valor": 6.11
+     },
+     {
+      "semana": 24,
+      "valor": 6.11
+     },
+     {
+      "semana": 25,
+      "valor": 7.08
+     },
+     {
+      "semana": 26,
+      "valor": 7.08
+     },
+     {
+      "semana": 27,
+      "valor": 6.53
+     },
+     {
+      "semana": 28,
+      "valor": 6.53
+     },
+     {
+      "semana": 29,
+      "valor": 7.55
+     },
+     {
+      "semana": 30,
+      "valor": 6.11
+     },
+     {
+      "semana": 31,
+      "valor": 6.7
+     },
+     {
+      "semana": 32,
+      "valor": 6.83
+     },
+     {
+      "semana": 33,
+      "valor": 6.67
+     },
+     {
+      "semana": 34,
+      "valor": 7.86
+     },
+     {
+      "semana": 35,
+      "valor": 7.58
+     },
+     {
+      "semana": 36,
+      "valor": 7.3
+     },
+     {
+      "semana": 37,
+      "valor": 7.58
+     },
+     {
+      "semana": 38,
+      "valor": 7.22
+     },
+     {
+      "semana": 39,
+      "valor": 7.99
+     },
+     {
+      "semana": 40,
+      "valor": 7.78
+     },
+     {
+      "semana": 41,
+      "valor": 7.85
+     },
+     {
+      "semana": 42,
+      "valor": 7.58
+     },
+     {
+      "semana": 43,
+      "valor": 7.66
+     },
+     {
+      "semana": 44,
+      "valor": 7.94
+     },
+     {
+      "semana": 45,
+      "valor": 7.89
+     },
+     {
+      "semana": 46,
+      "valor": 8.92
+     },
+     {
+      "semana": 47,
+      "valor": 10.59
+     },
+     {
+      "semana": 48,
+      "valor": 12.78
+     },
+     {
+      "semana": 49,
+      "valor": 11.11
+     },
+     {
+      "semana": 50,
+      "valor": 10.44
+     },
+     {
+      "semana": 51,
+      "valor": 10.09
+     },
+     {
+      "semana": 52,
+      "valor": 10.56
+     },
+     {
+      "semana": 53,
+      "valor": 9.0
+     }
+    ],
+    "2026": [
+     {
+      "semana": 6,
+      "valor": 12.51
+     },
+     {
+      "semana": 7,
+      "valor": 12.62
+     },
+     {
+      "semana": 8,
+      "valor": 13.14
+     },
+     {
+      "semana": 9,
+      "valor": 13.59
+     },
+     {
+      "semana": 10,
+      "valor": 12.76
+     },
+     {
+      "semana": 11,
+      "valor": 10.07
+     },
+     {
+      "semana": 12,
+      "valor": 10.1
+     },
+     {
+      "semana": 13,
+      "valor": 9.97
+     },
+     {
+      "semana": 14,
+      "valor": 9.83
+     },
+     {
+      "semana": 15,
+      "valor": 9.08
+     },
+     {
+      "semana": 16,
+      "valor": 9.02
+     },
+     {
+      "semana": 17,
+      "valor": 8.72
+     },
+     {
+      "semana": 18,
+      "valor": 8.7
+     },
+     {
+      "semana": 19,
+      "valor": 7.35
+     },
+     {
+      "semana": 20,
+      "valor": 7.4
+     },
+     {
+      "semana": 21,
+      "valor": 6.46
+     },
+     {
+      "semana": 22,
+      "valor": 6.31
+     },
+     {
+      "semana": 23,
+      "valor": 6.6
+     },
+     {
+      "semana": 24,
+      "valor": 7.89
+     },
+     {
+      "semana": 25,
+      "valor": 6.18
+     },
+     {
+      "semana": 26,
+      "valor": 6.24
+     },
+     {
+      "semana": 27,
+      "valor": 4.97
+     },
+     {
+      "semana": 28,
+      "valor": 5.84
+     },
+     {
+      "semana": 29,
+      "valor": 5.62
+     },
+     {
+      "semana": 30,
+      "valor": 5.95
+     },
+     {
+      "semana": 31,
+      "valor": 5.95
+     },
+     {
+      "semana": 32,
+      "valor": 5.8
+     }
+    ]
+   }
+  },
+  "chile": {
+   "unidade": "USD/kg",
+   "series": {
+    "2023": [
+     {
+      "semana": 1,
+      "valor": 3.315789
+     },
+     {
+      "semana": 2,
+      "valor": 3.263158
+     },
+     {
+      "semana": 3,
+      "valor": 3.393174
+     },
+     {
+      "semana": 4,
+      "valor": 3.435416
+     },
+     {
+      "semana": 5,
+      "valor": 3.472608
+     },
+     {
+      "semana": 6,
+      "valor": 3.282776
+     },
+     {
+      "semana": 7,
+      "valor": 3.452203
+     },
+     {
+      "semana": 8,
+      "valor": 3.357416
+     },
+     {
+      "semana": 9,
+      "valor": 3.9444
+     },
+     {
+      "semana": 10,
+      "valor": 4.392074
+     },
+     {
+      "semana": 11,
+      "valor": 3.513898
+     },
+     {
+      "semana": 12,
+      "valor": 3.374316
+     },
+     {
+      "semana": 13,
+      "valor": 3.042673
+     },
+     {
+      "semana": 14,
+      "valor": 3.020068
+     },
+     {
+      "semana": 15,
+      "valor": 2.827392
+     },
+     {
+      "semana": 16,
+      "valor": 2.91609
+     },
+     {
+      "semana": 17,
+      "valor": 2.962395
+     },
+     {
+      "semana": 18,
+      "valor": 3.04623
+     },
+     {
+      "semana": 19,
+      "valor": 3.144442
+     },
+     {
+      "semana": 20,
+      "valor": 3.026577
+     },
+     {
+      "semana": 21,
+      "valor": 2.97975
+     },
+     {
+      "semana": 22,
+      "valor": 2.87002
+     },
+     {
+      "semana": 23,
+      "valor": 2.917829
+     },
+     {
+      "semana": 24,
+      "valor": 2.792319
+     },
+     {
+      "semana": 25,
+      "valor": 2.919367
+     },
+     {
+      "semana": 26,
+      "valor": 2.755469
+     },
+     {
+      "semana": 27,
+      "valor": 2.43055
+     },
+     {
+      "semana": 28,
+      "valor": 2.52171
+     },
+     {
+      "semana": 29,
+      "valor": 2.486032
+     },
+     {
+      "semana": 30,
+      "valor": 2.566936
+     },
+     {
+      "semana": 31,
+      "valor": 2.554484
+     },
+     {
+      "semana": 32,
+      "valor": 2.510354
+     },
+     {
+      "semana": 33,
+      "valor": 2.623681
+     },
+     {
+      "semana": 34,
+      "valor": 2.723083
+     },
+     {
+      "semana": 35,
+      "valor": 2.819249
+     },
+     {
+      "semana": 36,
+      "valor": 2.728556
+     },
+     {
+      "semana": 37,
+      "valor": 2.613826
+     },
+     {
+      "semana": 38,
+      "valor": 2.779565
+     },
+     {
+      "semana": 39,
+      "valor": 2.767186
+     },
+     {
+      "semana": 40,
+      "valor": 2.704997
+     },
+     {
+      "semana": 41,
+      "valor": 2.711129
+     },
+     {
+      "semana": 42,
+      "valor": 2.673803
+     },
+     {
+      "semana": 43,
+      "valor": 2.76272
+     },
+     {
+      "semana": 44,
+      "valor": 2.688475
+     },
+     {
+      "semana": 45,
+      "valor": 2.80393
+     },
+     {
+      "semana": 46,
+      "valor": 2.904865
+     },
+     {
+      "semana": 47,
+      "valor": 3.153695
+     },
+     {
+      "semana": 48,
+      "valor": 3.06781
+     },
+     {
+      "semana": 49,
+      "valor": 3.438596
+     },
+     {
+      "semana": 50,
+      "valor": 3.263158
+     },
+     {
+      "semana": 51,
+      "valor": 3.383052
+     },
+     {
+      "semana": 52,
+      "valor": 3.710526
+     }
+    ],
+    "2024": [
+     {
+      "semana": 1,
+      "valor": 3.748312
+     },
+     {
+      "semana": 2,
+      "valor": 5.366828
+     },
+     {
+      "semana": 3,
+      "valor": 5.526316
+     },
+     {
+      "semana": 5,
+      "valor": 4.083531
+     },
+     {
+      "semana": 6,
+      "valor": 4.757895
+     },
+     {
+      "semana": 7,
+      "valor": 4.178947
+     },
+     {
+      "semana": 8,
+      "valor": 3.300752
+     },
+     {
+      "semana": 9,
+      "valor": 3.529825
+     },
+     {
+      "semana": 10,
+      "valor": 4.401316
+     },
+     {
+      "semana": 11,
+      "valor": 4.832637
+     },
+     {
+      "semana": 12,
+      "valor": 4.328317
+     },
+     {
+      "semana": 13,
+      "valor": 4.175768
+     },
+     {
+      "semana": 14,
+      "valor": 3.945919
+     },
+     {
+      "semana": 15,
+      "valor": 3.75
+     },
+     {
+      "semana": 16,
+      "valor": 3.882713
+     },
+     {
+      "semana": 17,
+      "valor": 3.83937
+     },
+     {
+      "semana": 18,
+      "valor": 3.845059
+     },
+     {
+      "semana": 19,
+      "valor": 3.871759
+     },
+     {
+      "semana": 20,
+      "valor": 4.017072
+     },
+     {
+      "semana": 21,
+      "valor": 3.883591
+     },
+     {
+      "semana": 22,
+      "valor": 3.881842
+     },
+     {
+      "semana": 23,
+      "valor": 3.878879
+     },
+     {
+      "semana": 24,
+      "valor": 4.000112
+     },
+     {
+      "semana": 25,
+      "valor": 3.941782
+     },
+     {
+      "semana": 26,
+      "valor": 3.777343
+     },
+     {
+      "semana": 27,
+      "valor": 3.816575
+     },
+     {
+      "semana": 28,
+      "valor": 3.808436
+     },
+     {
+      "semana": 29,
+      "valor": 3.631466
+     },
+     {
+      "semana": 30,
+      "valor": 3.828972
+     },
+     {
+      "semana": 31,
+      "valor": 3.785942
+     },
+     {
+      "semana": 32,
+      "valor": 3.804731
+     },
+     {
+      "semana": 33,
+      "valor": 3.722062
+     },
+     {
+      "semana": 34,
+      "valor": 3.819856
+     },
+     {
+      "semana": 35,
+      "valor": 3.931125
+     },
+     {
+      "semana": 36,
+      "valor": 3.908568
+     },
+     {
+      "semana": 37,
+      "valor": 3.851194
+     },
+     {
+      "semana": 38,
+      "valor": 3.841682
+     },
+     {
+      "semana": 39,
+      "valor": 3.836867
+     },
+     {
+      "semana": 40,
+      "valor": 3.895497
+     },
+     {
+      "semana": 41,
+      "valor": 4.009966
+     },
+     {
+      "semana": 42,
+      "valor": 3.277503
+     },
+     {
+      "semana": 43,
+      "valor": 3.31532
+     },
+     {
+      "semana": 44,
+      "valor": 3.454619
+     },
+     {
+      "semana": 45,
+      "valor": 3.618464
+     },
+     {
+      "semana": 46,
+      "valor": 3.373079
+     },
+     {
+      "semana": 47,
+      "valor": 3.624756
+     },
+     {
+      "semana": 48,
+      "valor": 3.560429
+     },
+     {
+      "semana": 49,
+      "valor": 3.46
+     },
+     {
+      "semana": 50,
+      "valor": 3.393462
+     },
+     {
+      "semana": 51,
+      "valor": 3.355773
+     },
+     {
+      "semana": 52,
+      "valor": 3.477444
+     }
+    ],
+    "2025": [
+     {
+      "semana": 2,
+      "valor": 3.682929
+     },
+     {
+      "semana": 3,
+      "valor": 3.750376
+     },
+     {
+      "semana": 4,
+      "valor": 3.842105
+     },
+     {
+      "semana": 5,
+      "valor": 3.72173
+     },
+     {
+      "semana": 6,
+      "valor": 3.051782
+     },
+     {
+      "semana": 7,
+      "valor": 3.482938
+     },
+     {
+      "semana": 8,
+      "valor": 3.447477
+     },
+     {
+      "semana": 9,
+      "valor": 3.367495
+     },
+     {
+      "semana": 10,
+      "valor": 3.506594
+     },
+     {
+      "semana": 11,
+      "valor": 3.439671
+     },
+     {
+      "semana": 12,
+      "valor": 3.488188
+     },
+     {
+      "semana": 13,
+      "valor": 3.452596
+     },
+     {
+      "semana": 14,
+      "valor": 3.440436
+     },
+     {
+      "semana": 15,
+      "valor": 3.263051
+     },
+     {
+      "semana": 16,
+      "valor": 2.944309
+     },
+     {
+      "semana": 17,
+      "valor": 2.782639
+     },
+     {
+      "semana": 18,
+      "valor": 2.623117
+     },
+     {
+      "semana": 19,
+      "valor": 2.60717
+     },
+     {
+      "semana": 20,
+      "valor": 2.797803
+     },
+     {
+      "semana": 21,
+      "valor": 2.673625
+     },
+     {
+      "semana": 22,
+      "valor": 2.732088
+     },
+     {
+      "semana": 23,
+      "valor": 2.71964
+     },
+     {
+      "semana": 24,
+      "valor": 2.823359
+     },
+     {
+      "semana": 25,
+      "valor": 2.58828
+     },
+     {
+      "semana": 26,
+      "valor": 2.558608
+     },
+     {
+      "semana": 27,
+      "valor": 2.570932
+     },
+     {
+      "semana": 28,
+      "valor": 2.904533
+     },
+     {
+      "semana": 29,
+      "valor": 2.891224
+     },
+     {
+      "semana": 30,
+      "valor": 2.876937
+     },
+     {
+      "semana": 31,
+      "valor": 2.730183
+     },
+     {
+      "semana": 32,
+      "valor": 2.586018
+     },
+     {
+      "semana": 33,
+      "valor": 2.653888
+     },
+     {
+      "semana": 34,
+      "valor": 2.624276
+     },
+     {
+      "semana": 35,
+      "valor": 2.613777
+     },
+     {
+      "semana": 36,
+      "valor": 2.708611
+     },
+     {
+      "semana": 37,
+      "valor": 2.645726
+     },
+     {
+      "semana": 38,
+      "valor": 2.65611
+     },
+     {
+      "semana": 39,
+      "valor": 2.717777
+     },
+     {
+      "semana": 40,
+      "valor": 3.160667
+     },
+     {
+      "semana": 41,
+      "valor": 3.282659
+     },
+     {
+      "semana": 42,
+      "valor": 3.314388
+     },
+     {
+      "semana": 43,
+      "valor": 3.289512
+     },
+     {
+      "semana": 44,
+      "valor": 3.37166
+     },
+     {
+      "semana": 45,
+      "valor": 3.469226
+     },
+     {
+      "semana": 46,
+      "valor": 2.286656
+     },
+     {
+      "semana": 47,
+      "valor": 2.233684
+     },
+     {
+      "semana": 48,
+      "valor": 2.124211
+     },
+     {
+      "semana": 49,
+      "valor": 2.392347
+     },
+     {
+      "semana": 50,
+      "valor": 2.866281
+     }
+    ],
+    "2026": [
+     {
+      "semana": 1,
+      "valor": 3.48
+     },
+     {
+      "semana": 2,
+      "valor": 3.61
+     },
+     {
+      "semana": 3,
+      "valor": 3.76
+     },
+     {
+      "semana": 4,
+      "valor": 3.79
+     },
+     {
+      "semana": 5,
+      "valor": 3.86
+     },
+     {
+      "semana": 6,
+      "valor": 3.79
+     },
+     {
+      "semana": 7,
+      "valor": 3.94
+     },
+     {
+      "semana": 8,
+      "valor": 3.51
+     },
+     {
+      "semana": 9,
+      "valor": 3.69
+     },
+     {
+      "semana": 10,
+      "valor": 4.39
+     },
+     {
+      "semana": 11,
+      "valor": 4.28
+     },
+     {
+      "semana": 12,
+      "valor": 4.33
+     },
+     {
+      "semana": 13,
+      "valor": 4.25
+     },
+     {
+      "semana": 14,
+      "valor": 4.32
+     },
+     {
+      "semana": 15,
+      "valor": 4.08
+     },
+     {
+      "semana": 16,
+      "valor": 4.21
+     },
+     {
+      "semana": 17,
+      "valor": 4.24
+     },
+     {
+      "semana": 18,
+      "valor": 4.07
+     },
+     {
+      "semana": 19,
+      "valor": 4.11
+     },
+     {
+      "semana": 20,
+      "valor": 4.11
+     },
+     {
+      "semana": 21,
+      "valor": 4.51
+     },
+     {
+      "semana": 22,
+      "valor": 4.39
+     },
+     {
+      "semana": 23,
+      "valor": 4.21
+     },
+     {
+      "semana": 24,
+      "valor": 4.3
+     },
+     {
+      "semana": 25,
+      "valor": 4.42
+     },
+     {
+      "semana": 26,
+      "valor": 4.07
+     },
+     {
+      "semana": 27,
+      "valor": 4.84
+     },
+     {
+      "semana": 28,
+      "valor": 4.42
+     },
+     {
+      "semana": 29,
+      "valor": 3.95
+     },
+     {
+      "semana": 30,
+      "valor": 4.41
+     },
+     {
+      "semana": 31,
+      "valor": 2.98
+     },
+     {
+      "semana": 32,
+      "valor": 3.27
+     }
+    ]
+   }
+  },
+  "uruguai": {
+   "unidade": "USD/kg",
+   "series": {
+    "2026": [
+     {
+      "semana": 28,
+      "valor": 3.85
+     },
+     {
+      "semana": 29,
+      "valor": 3.87
+     },
+     {
+      "semana": 30,
+      "valor": 4.07
+     },
+     {
+      "semana": 31,
+      "valor": 4.18
+     },
+     {
+      "semana": 32,
+      "valor": 4.35
+     },
+     {
+      "semana": 33,
+      "valor": 4.35
+     }
+    ]
+   }
+  },
+  "argentina": {
+   "unidade": "USD/kg",
+   "series": {
+    "2024": [
+     {
+      "semana": 1,
+      "valor": 4.5
+     },
+     {
+      "semana": 2,
+      "valor": 4.55
+     },
+     {
+      "semana": 3,
+      "valor": 4.6
+     },
+     {
+      "semana": 4,
+      "valor": 4.65
+     },
+     {
+      "semana": 5,
+      "valor": 4.72
+     },
+     {
+      "semana": 6,
+      "valor": 4.85
+     },
+     {
+      "semana": 7,
+      "valor": 4.98
+     },
+     {
+      "semana": 8,
+      "valor": 5.15
+     },
+     {
+      "semana": 9,
+      "valor": 5.3
+     },
+     {
+      "semana": 10,
+      "valor": 5.45
+     },
+     {
+      "semana": 11,
+      "valor": 5.55
+     },
+     {
+      "semana": 12,
+      "valor": 5.65
+     },
+     {
+      "semana": 13,
+      "valor": 5.7
+     },
+     {
+      "semana": 14,
+      "valor": 5.5
+     },
+     {
+      "semana": 15,
+      "valor": 5.2
+     },
+     {
+      "semana": 16,
+      "valor": 4.9
+     },
+     {
+      "semana": 17,
+      "valor": 4.55
+     },
+     {
+      "semana": 18,
+      "valor": 4.1
+     },
+     {
+      "semana": 19,
+      "valor": 3.85
+     },
+     {
+      "semana": 20,
+      "valor": 3.6
+     },
+     {
+      "semana": 21,
+      "valor": 3.35
+     },
+     {
+      "semana": 22,
+      "valor": 3.1
+     },
+     {
+      "semana": 23,
+      "valor": 2.9
+     },
+     {
+      "semana": 24,
+      "valor": 2.75
+     },
+     {
+      "semana": 25,
+      "valor": 2.6
+     },
+     {
+      "semana": 26,
+      "valor": 2.5
+     },
+     {
+      "semana": 27,
+      "valor": 2.5
+     },
+     {
+      "semana": 28,
+      "valor": 2.52
+     },
+     {
+      "semana": 29,
+      "valor": 2.55
+     },
+     {
+      "semana": 30,
+      "valor": 2.6
+     },
+     {
+      "semana": 31,
+      "valor": 2.8
+     },
+     {
+      "semana": 32,
+      "valor": 3.0
+     },
+     {
+      "semana": 33,
+      "valor": 3.2
+     },
+     {
+      "semana": 34,
+      "valor": 3.35
+     },
+     {
+      "semana": 35,
+      "valor": 3.5
+     },
+     {
+      "semana": 36,
+      "valor": 3.65
+     },
+     {
+      "semana": 37,
+      "valor": 3.8
+     },
+     {
+      "semana": 38,
+      "valor": 3.95
+     },
+     {
+      "semana": 39,
+      "valor": 4.1
+     },
+     {
+      "semana": 40,
+      "valor": 4.2
+     },
+     {
+      "semana": 41,
+      "valor": 4.3
+     },
+     {
+      "semana": 42,
+      "valor": 4.4
+     },
+     {
+      "semana": 43,
+      "valor": 4.45
+     },
+     {
+      "semana": 44,
+      "valor": 4.5
+     },
+     {
+      "semana": 45,
+      "valor": 4.55
+     },
+     {
+      "semana": 46,
+      "valor": 4.6
+     },
+     {
+      "semana": 47,
+      "valor": 4.65
+     },
+     {
+      "semana": 48,
+      "valor": 4.7
+     },
+     {
+      "semana": 49,
+      "valor": 4.72
+     },
+     {
+      "semana": 50,
+      "valor": 4.75
+     },
+     {
+      "semana": 51,
+      "valor": 4.78
+     },
+     {
+      "semana": 52,
+      "valor": 4.8
+     }
+    ],
+    "2025": [
+     {
+      "semana": 1,
+      "valor": 4.6
+     },
+     {
+      "semana": 2,
+      "valor": 4.65
+     },
+     {
+      "semana": 3,
+      "valor": 4.7
+     },
+     {
+      "semana": 4,
+      "valor": 4.78
+     },
+     {
+      "semana": 5,
+      "valor": 4.88
+     },
+     {
+      "semana": 6,
+      "valor": 5.05
+     },
+     {
+      "semana": 7,
+      "valor": 5.2
+     },
+     {
+      "semana": 8,
+      "valor": 5.4
+     },
+     {
+      "semana": 9,
+      "valor": 5.55
+     },
+     {
+      "semana": 10,
+      "valor": 5.68
+     },
+     {
+      "semana": 11,
+      "valor": 5.75
+     },
+     {
+      "semana": 12,
+      "valor": 5.85
+     },
+     {
+      "semana": 13,
+      "valor": 5.9
+     },
+     {
+      "semana": 14,
+      "valor": 5.7
+     },
+     {
+      "semana": 15,
+      "valor": 5.4
+     },
+     {
+      "semana": 16,
+      "valor": 5.1
+     },
+     {
+      "semana": 17,
+      "valor": 4.7
+     },
+     {
+      "semana": 18,
+      "valor": 4.3
+     },
+     {
+      "semana": 19,
+      "valor": 4.0
+     },
+     {
+      "semana": 20,
+      "valor": 3.75
+     },
+     {
+      "semana": 21,
+      "valor": 3.45
+     },
+     {
+      "semana": 22,
+      "valor": 3.2
+     },
+     {
+      "semana": 23,
+      "valor": 3.0
+     },
+     {
+      "semana": 24,
+      "valor": 2.85
+     },
+     {
+      "semana": 25,
+      "valor": 2.75
+     },
+     {
+      "semana": 26,
+      "valor": 2.65
+     },
+     {
+      "semana": 27,
+      "valor": 2.65
+     },
+     {
+      "semana": 28,
+      "valor": 2.68
+     },
+     {
+      "semana": 29,
+      "valor": 2.75
+     },
+     {
+      "semana": 30,
+      "valor": 2.85
+     },
+     {
+      "semana": 31,
+      "valor": 3.05
+     },
+     {
+      "semana": 32,
+      "valor": 3.25
+     },
+     {
+      "semana": 33,
+      "valor": 3.45
+     },
+     {
+      "semana": 34,
+      "valor": 3.6
+     },
+     {
+      "semana": 35,
+      "valor": 3.75
+     },
+     {
+      "semana": 36,
+      "valor": 3.9
+     },
+     {
+      "semana": 37,
+      "valor": 4.05
+     },
+     {
+      "semana": 38,
+      "valor": 4.2
+     },
+     {
+      "semana": 39,
+      "valor": 4.35
+     },
+     {
+      "semana": 40,
+      "valor": 4.45
+     },
+     {
+      "semana": 41,
+      "valor": 4.55
+     },
+     {
+      "semana": 42,
+      "valor": 4.65
+     },
+     {
+      "semana": 43,
+      "valor": 4.7
+     },
+     {
+      "semana": 44,
+      "valor": 4.75
+     },
+     {
+      "semana": 45,
+      "valor": 4.8
+     },
+     {
+      "semana": 46,
+      "valor": 4.85
+     },
+     {
+      "semana": 47,
+      "valor": 4.9
+     },
+     {
+      "semana": 48,
+      "valor": 4.92
+     },
+     {
+      "semana": 49,
+      "valor": 4.95
+     },
+     {
+      "semana": 50,
+      "valor": 4.98
+     },
+     {
+      "semana": 51,
+      "valor": 5.0
+     },
+     {
+      "semana": 52,
+      "valor": 5.05
+     }
+    ],
+    "2026": [
+     {
+      "semana": 1,
+      "valor": 4.53
+     },
+     {
+      "semana": 2,
+      "valor": 4.61
+     },
+     {
+      "semana": 3,
+      "valor": 4.52
+     },
+     {
+      "semana": 4,
+      "valor": 4.18
+     },
+     {
+      "semana": 5,
+      "valor": 3.96
+     },
+     {
+      "semana": 6,
+      "valor": 3.62
+     },
+     {
+      "semana": 7,
+      "valor": 3.67
+     },
+     {
+      "semana": 8,
+      "valor": 4.48
+     },
+     {
+      "semana": 9,
+      "valor": 5.28
+     },
+     {
+      "semana": 10,
+      "valor": 6.61
+     },
+     {
+      "semana": 11,
+      "valor": 6.48
+     },
+     {
+      "semana": 12,
+      "valor": 5.19
+     },
+     {
+      "semana": 13,
+      "valor": 5.05
+     },
+     {
+      "semana": 14,
+      "valor": 4.72
+     },
+     {
+      "semana": 15,
+      "valor": 4.06
+     },
+     {
+      "semana": 16,
+      "valor": 3.99
+     },
+     {
+      "semana": 17,
+      "valor": 3.89
+     },
+     {
+      "semana": 18,
+      "valor": 3.6
+     },
+     {
+      "semana": 19,
+      "valor": 3.6
+     },
+     {
+      "semana": 20,
+      "valor": 3.6
+     },
+     {
+      "semana": 21,
+      "valor": 3.54
+     },
+     {
+      "semana": 22,
+      "valor": 3.49
+     },
+     {
+      "semana": 23,
+      "valor": 3.4
+     },
+     {
+      "semana": 24,
+      "valor": 3.47
+     },
+     {
+      "semana": 25,
+      "valor": 3.25
+     },
+     {
+      "semana": 26,
+      "valor": 3.59
+     },
+     {
+      "semana": 27,
+      "valor": 3.67
+     },
+     {
+      "semana": 28,
+      "valor": 3.82
+     },
+     {
+      "semana": 29,
+      "valor": 4.03
+     },
+     {
+      "semana": 30,
+      "valor": 4.05
+     },
+     {
+      "semana": 31,
+      "valor": 3.2
+     },
+     {
+      "semana": 32,
+      "valor": 3.71
+     },
+     {
+      "semana": 33,
+      "valor": 3.67
+     }
+    ]
+   },
+   "projecao": [
+    "2024",
+    "2025"
+   ]
+  },
+  "europa": {
+   "unidade": "USD/kg",
+   "paises": {
+    "Espanha": {
+     "2025": [
+      {
+       "semana": 3,
+       "valor": 59729.8
+      },
+      {
+       "semana": 4,
+       "valor": 33800.9
+      },
+      {
+       "semana": 5,
+       "valor": 54785.4
+      },
+      {
+       "semana": 6,
+       "valor": 44569.69
+      },
+      {
+       "semana": 7,
+       "valor": 40641.45
+      },
+      {
+       "semana": 8,
+       "valor": 43994.15
+      },
+      {
+       "semana": 9,
+       "valor": 43914.33
+      },
+      {
+       "semana": 10,
+       "valor": 45249.53
+      },
+      {
+       "semana": 11,
+       "valor": 42826.97
+      },
+      {
+       "semana": 12,
+       "valor": 45253.63
+      },
+      {
+       "semana": 13,
+       "valor": 39505.41
+      },
+      {
+       "semana": 14,
+       "valor": 39701.78
+      },
+      {
+       "semana": 15,
+       "valor": 44008.28
+      },
+      {
+       "semana": 16,
+       "valor": 43926.84
+      },
+      {
+       "semana": 17,
+       "valor": 38309.27
+      },
+      {
+       "semana": 18,
+       "valor": 39583.62
+      },
+      {
+       "semana": 19,
+       "valor": 41289.16
+      },
+      {
+       "semana": 20,
+       "valor": 39152.57
+      },
+      {
+       "semana": 21,
+       "valor": 35202.82
+      },
+      {
+       "semana": 22,
+       "valor": 36810.55
+      },
+      {
+       "semana": 23,
+       "valor": 33856.45
+      },
+      {
+       "semana": 24,
+       "valor": 34465.98
+      },
+      {
+       "semana": 25,
+       "valor": 33713.63
+      },
+      {
+       "semana": 26,
+       "valor": 34582.35
+      },
+      {
+       "semana": 27,
+       "valor": 31620.16
+      },
+      {
+       "semana": 28,
+       "valor": 30789.83
+      },
+      {
+       "semana": 29,
+       "valor": 31662.01
+      },
+      {
+       "semana": 30,
+       "valor": 29091.77
+      },
+      {
+       "semana": 31,
+       "valor": 31882.96
+      },
+      {
+       "semana": 32,
+       "valor": 34400.44
+      },
+      {
+       "semana": 33,
+       "valor": 34446.88
+      },
+      {
+       "semana": 34,
+       "valor": 36817.26
+      },
+      {
+       "semana": 35,
+       "valor": 38169.25
+      },
+      {
+       "semana": 36,
+       "valor": 36447.05
+      },
+      {
+       "semana": 37,
+       "valor": 38898.01
+      },
+      {
+       "semana": 38,
+       "valor": 41852.06
+      },
+      {
+       "semana": 39,
+       "valor": 35565.42
+      },
+      {
+       "semana": 40,
+       "valor": 39238.83
+      },
+      {
+       "semana": 41,
+       "valor": 34021.62
+      },
+      {
+       "semana": 42,
+       "valor": 46484.0
+      },
+      {
+       "semana": 43,
+       "valor": 30668.06
+      },
+      {
+       "semana": 48,
+       "valor": 46310.4
+      },
+      {
+       "semana": 51,
+       "valor": 52512.0
+      }
+     ]
+    },
+    "França": {
+     "2025": [
+      {
+       "semana": 17,
+       "valor": 63443.8
+      },
+      {
+       "semana": 18,
+       "valor": 54355.16
+      },
+      {
+       "semana": 19,
+       "valor": 55928.84
+      },
+      {
+       "semana": 20,
+       "valor": 35374.1
+      },
+      {
+       "semana": 21,
+       "valor": 45930.12
+      },
+      {
+       "semana": 22,
+       "valor": 38724.37
+      },
+      {
+       "semana": 23,
+       "valor": 45963.79
+      },
+      {
+       "semana": 24,
+       "valor": 31230.89
+      },
+      {
+       "semana": 25,
+       "valor": 33428.08
+      },
+      {
+       "semana": 26,
+       "valor": 31783.62
+      },
+      {
+       "semana": 27,
+       "valor": 16967.49
+      },
+      {
+       "semana": 28,
+       "valor": 24548.12
+      },
+      {
+       "semana": 29,
+       "valor": 20595.38
+      },
+      {
+       "semana": 30,
+       "valor": 20765.89
+      },
+      {
+       "semana": 31,
+       "valor": 21012.95
+      },
+      {
+       "semana": 32,
+       "valor": 25365.94
+      },
+      {
+       "semana": 33,
+       "valor": 14034.64
+      }
+     ]
+    },
+    "Holanda": {
+     "2025": [
+      {
+       "semana": 1,
+       "valor": 35268.39
+      },
+      {
+       "semana": 2,
+       "valor": 49356.0
+      },
+      {
+       "semana": 3,
+       "valor": 37184.81
+      },
+      {
+       "semana": 4,
+       "valor": 33062.1
+      },
+      {
+       "semana": 5,
+       "valor": 29665.01
+      },
+      {
+       "semana": 6,
+       "valor": 30329.26
+      },
+      {
+       "semana": 7,
+       "valor": 32805.62
+      },
+      {
+       "semana": 8,
+       "valor": 33929.93
+      },
+      {
+       "semana": 9,
+       "valor": 31875.21
+      },
+      {
+       "semana": 10,
+       "valor": 31840.95
+      },
+      {
+       "semana": 11,
+       "valor": 31460.93
+      },
+      {
+       "semana": 12,
+       "valor": 36053.98
+      },
+      {
+       "semana": 13,
+       "valor": 38117.09
+      },
+      {
+       "semana": 14,
+       "valor": 36363.73
+      },
+      {
+       "semana": 15,
+       "valor": 36677.2
+      },
+      {
+       "semana": 16,
+       "valor": 38828.82
+      },
+      {
+       "semana": 17,
+       "valor": 35818.61
+      },
+      {
+       "semana": 18,
+       "valor": 35073.34
+      },
+      {
+       "semana": 19,
+       "valor": 34571.5
+      },
+      {
+       "semana": 20,
+       "valor": 30905.45
+      },
+      {
+       "semana": 21,
+       "valor": 29326.17
+      },
+      {
+       "semana": 22,
+       "valor": 26282.65
+      },
+      {
+       "semana": 23,
+       "valor": 29315.08
+      },
+      {
+       "semana": 24,
+       "valor": 28228.91
+      },
+      {
+       "semana": 25,
+       "valor": 25455.68
+      },
+      {
+       "semana": 26,
+       "valor": 25351.78
+      },
+      {
+       "semana": 27,
+       "valor": 23498.88
+      },
+      {
+       "semana": 28,
+       "valor": 22492.8
+      },
+      {
+       "semana": 29,
+       "valor": 22609.6
+      },
+      {
+       "semana": 30,
+       "valor": 23680.58
+      },
+      {
+       "semana": 31,
+       "valor": 28000.2
+      },
+      {
+       "semana": 32,
+       "valor": 27659.9
+      },
+      {
+       "semana": 33,
+       "valor": 28570.11
+      },
+      {
+       "semana": 34,
+       "valor": 30902.91
+      },
+      {
+       "semana": 35,
+       "valor": 33560.19
+      },
+      {
+       "semana": 36,
+       "valor": 35887.84
+      },
+      {
+       "semana": 37,
+       "valor": 39279.84
+      },
+      {
+       "semana": 38,
+       "valor": 41914.01
+      },
+      {
+       "semana": 39,
+       "valor": 43197.26
+      },
+      {
+       "semana": 40,
+       "valor": 40274.98
+      },
+      {
+       "semana": 41,
+       "valor": 22015.01
+      },
+      {
+       "semana": 42,
+       "valor": 31799.37
+      },
+      {
+       "semana": 43,
+       "valor": 38765.44
+      },
+      {
+       "semana": 44,
+       "valor": 49975.0
+      },
+      {
+       "semana": 45,
+       "valor": 31204.73
+      },
+      {
+       "semana": 46,
+       "valor": 26718.15
+      },
+      {
+       "semana": 47,
+       "valor": 20509.1
+      },
+      {
+       "semana": 48,
+       "valor": 31898.8
+      },
+      {
+       "semana": 49,
+       "valor": 46411.2
+      },
+      {
+       "semana": 50,
+       "valor": 42997.6
+      },
+      {
+       "semana": 51,
+       "valor": 41220.0
+      },
+      {
+       "semana": 52,
+       "valor": 37750.44
+      }
+     ],
+     "2026": [
+      {
+       "semana": 1,
+       "valor": 37838.75
+      },
+      {
+       "semana": 2,
+       "valor": 24913.25
+      },
+      {
+       "semana": 3,
+       "valor": 46112.54
+      },
+      {
+       "semana": 4,
+       "valor": 51586.56
+      },
+      {
+       "semana": 5,
+       "valor": 48197.9
+      }
+     ]
+    },
+    "Itália": {
+     "2025": [
+      {
+       "semana": 6,
+       "valor": 26307.53
+      },
+      {
+       "semana": 9,
+       "valor": 55775.82
+      },
+      {
+       "semana": 10,
+       "valor": 50167.51
+      },
+      {
+       "semana": 11,
+       "valor": 53828.19
+      },
+      {
+       "semana": 12,
+       "valor": 52862.51
+      },
+      {
+       "semana": 13,
+       "valor": 52062.89
+      },
+      {
+       "semana": 14,
+       "valor": 46111.07
+      },
+      {
+       "semana": 15,
+       "valor": 53637.42
+      },
+      {
+       "semana": 16,
+       "valor": 41452.5
+      },
+      {
+       "semana": 17,
+       "valor": 41502.25
+      },
+      {
+       "semana": 18,
+       "valor": 46593.57
+      },
+      {
+       "semana": 19,
+       "valor": 49286.58
+      },
+      {
+       "semana": 20,
+       "valor": 43222.94
+      },
+      {
+       "semana": 21,
+       "valor": 42886.98
+      },
+      {
+       "semana": 22,
+       "valor": 47150.98
+      },
+      {
+       "semana": 23,
+       "valor": 34586.18
+      },
+      {
+       "semana": 24,
+       "valor": 39603.49
+      },
+      {
+       "semana": 25,
+       "valor": 42025.58
+      },
+      {
+       "semana": 26,
+       "valor": 36510.69
+      },
+      {
+       "semana": 27,
+       "valor": 33030.28
+      },
+      {
+       "semana": 28,
+       "valor": 37302.8
+      },
+      {
+       "semana": 29,
+       "valor": 36998.72
+      },
+      {
+       "semana": 30,
+       "valor": 34745.55
+      },
+      {
+       "semana": 31,
+       "valor": 35008.48
+      },
+      {
+       "semana": 32,
+       "valor": 33965.43
+      },
+      {
+       "semana": 33,
+       "valor": 25646.49
+      },
+      {
+       "semana": 34,
+       "valor": 37977.35
+      },
+      {
+       "semana": 35,
+       "valor": 36798.3
+      },
+      {
+       "semana": 36,
+       "valor": 38414.08
+      },
+      {
+       "semana": 37,
+       "valor": 39480.62
+      },
+      {
+       "semana": 38,
+       "valor": 38372.77
+      },
+      {
+       "semana": 39,
+       "valor": 47889.52
+      },
+      {
+       "semana": 40,
+       "valor": 51201.26
+      }
+     ]
+    }
+   }
+  }
+ },
+ "logistica": {
+  "global": {
+   "rotas": [
+    {
+     "pais": "Peru",
+     "porto_origem": "Callao",
+     "rota": "Direto",
+     "pais_destino": "Holanda",
+     "porto_destino": "Rotterdam",
+     "transit_time": 19,
+     "fornecedor": "CMA CGM"
+    },
+    {
+     "pais": "Peru",
+     "porto_origem": "Callao",
+     "rota": "Direto",
+     "pais_destino": "Bélgica",
+     "porto_destino": "Antwerp",
+     "transit_time": 28,
+     "fornecedor": "CMA CGM"
+    },
+    {
+     "pais": "Peru",
+     "porto_origem": "Callao",
+     "rota": null,
+     "pais_destino": "UK",
+     "porto_destino": "Felixstowe",
+     "transit_time": null,
+     "fornecedor": null
+    },
+    {
+     "pais": "Peru",
+     "porto_origem": "Callao",
+     "rota": "Direto",
+     "pais_destino": "UK",
+     "porto_destino": "London",
+     "transit_time": 23,
+     "fornecedor": "CMA CGM"
+    },
+    {
+     "pais": "Peru",
+     "porto_origem": "Paita",
+     "rota": "Direto",
+     "pais_destino": "Holanda",
+     "porto_destino": "Rotterdam",
+     "transit_time": 20,
+     "fornecedor": "MSC"
+    },
+    {
+     "pais": "Peru",
+     "porto_origem": "Paita",
+     "rota": "Direto",
+     "pais_destino": "Bélgica",
+     "porto_destino": "Antwerp",
+     "transit_time": 21,
+     "fornecedor": "MSC"
+    },
+    {
+     "pais": "Peru",
+     "porto_origem": "Paita",
+     "rota": null,
+     "pais_destino": "UK",
+     "porto_destino": "Felixstowe",
+     "transit_time": null,
+     "fornecedor": null
+    },
+    {
+     "pais": "Peru",
+     "porto_origem": "Paita",
+     "rota": "Direto",
+     "pais_destino": "UK",
+     "porto_destino": "London",
+     "transit_time": 19,
+     "fornecedor": "MSC"
+    },
+    {
+     "pais": "Peru",
+     "porto_origem": "Callao",
+     "rota": "Direto",
+     "pais_destino": "Chile",
+     "porto_destino": "San Antonio",
+     "transit_time": 5,
+     "fornecedor": "MSC"
+    },
+    {
+     "pais": "Peru",
+     "porto_origem": "Callao",
+     "rota": "Cartagena",
+     "pais_destino": "Argentina",
+     "porto_destino": "Buenos Aires",
+     "transit_time": 29,
+     "fornecedor": "CMA CGM"
+    },
+    {
+     "pais": "Peru",
+     "porto_origem": "Callao",
+     "rota": null,
+     "pais_destino": "Costa Rica",
+     "porto_destino": null,
+     "transit_time": 12,
+     "fornecedor": "MAERSK"
+    },
+    {
+     "pais": "Colômbia",
+     "porto_origem": "Cartagena",
+     "rota": "Direto",
+     "pais_destino": "Holanda",
+     "porto_destino": "Rotterdam",
+     "transit_time": 12,
+     "fornecedor": "CMA CGM"
+    },
+    {
+     "pais": "Colômbia",
+     "porto_origem": "Cartagena",
+     "rota": "Direto",
+     "pais_destino": "Alemanha",
+     "porto_destino": "Hamburg",
+     "transit_time": 17,
+     "fornecedor": "CMA CGM"
+    },
+    {
+     "pais": "Colômbia",
+     "porto_origem": "Cartagena",
+     "rota": "Direto",
+     "pais_destino": "UK",
+     "porto_destino": "London",
+     "transit_time": 15,
+     "fornecedor": "CMA CGM"
+    },
+    {
+     "pais": "Colômbia",
+     "porto_origem": "Buenaventura",
+     "rota": "Posorja",
+     "pais_destino": "Holanda",
+     "porto_destino": "Rotterdam",
+     "transit_time": 26,
+     "fornecedor": "Hapag"
+    },
+    {
+     "pais": "Colômbia",
+     "porto_origem": "Buenaventura",
+     "rota": "Posorja",
+     "pais_destino": "Alemanha",
+     "porto_destino": "Hamburg",
+     "transit_time": 29,
+     "fornecedor": "Hapag"
+    },
+    {
+     "pais": "Colômbia",
+     "porto_origem": "Buenaventura",
+     "rota": "Posorja",
+     "pais_destino": "UK",
+     "porto_destino": "London",
+     "transit_time": 27,
+     "fornecedor": "Hapag"
+    },
+    {
+     "pais": "Colômbia",
+     "porto_origem": "Cartagena",
+     "rota": "Direto",
+     "pais_destino": "Chile",
+     "porto_destino": "San Antonio",
+     "transit_time": 16,
+     "fornecedor": "Hapag"
+    },
+    {
+     "pais": "Colômbia",
+     "porto_origem": "Buenaventura",
+     "rota": "Direto",
+     "pais_destino": "Chile",
+     "porto_destino": "San Antonio",
+     "transit_time": 8,
+     "fornecedor": "Hapag"
+    },
+    {
+     "pais": "Colômbia",
+     "porto_origem": "Cartagena",
+     "rota": "Direto",
+     "pais_destino": "Argentina",
+     "porto_destino": "Buenos Aires",
+     "transit_time": 23,
+     "fornecedor": "Hapag"
+    },
+    {
+     "pais": "Colômbia",
+     "porto_origem": "Buenaventura",
+     "rota": "Cartagena",
+     "pais_destino": "Argentina",
+     "porto_destino": "Buenos Aires",
+     "transit_time": 39,
+     "fornecedor": "CMA CGM"
+    },
+    {
+     "pais": "Chile",
+     "porto_origem": "San Antono",
+     "rota": "Santos",
+     "pais_destino": "Argentina",
+     "porto_destino": "Buenos Aires",
+     "transit_time": 26,
+     "fornecedor": "Hapag"
+    },
+    {
+     "pais": "Chile",
+     "porto_origem": "Valparaiso",
+     "rota": "San Antonio/Santos",
+     "pais_destino": "Argentina",
+     "porto_destino": "Buenos Aires",
+     "transit_time": 37,
+     "fornecedor": "Hapag"
+    },
+    {
+     "pais": "Chile",
+     "porto_origem": "San Antono",
+     "rota": "Direto",
+     "pais_destino": "Holanda",
+     "porto_destino": "Rotterdam",
+     "transit_time": 25,
+     "fornecedor": "Hapag"
+    },
+    {
+     "pais": "Chile",
+     "porto_origem": "San Antono",
+     "rota": "Direto",
+     "pais_destino": "Alemanha",
+     "porto_destino": "Hamburg",
+     "transit_time": 30,
+     "fornecedor": "Hapag"
+    },
+    {
+     "pais": "Chile",
+     "porto_origem": "San Antono",
+     "rota": "Direto",
+     "pais_destino": "UK",
+     "porto_destino": "London",
+     "transit_time": 28,
+     "fornecedor": "Hapag"
+    },
+    {
+     "pais": "Chile",
+     "porto_origem": "San Antono",
+     "rota": "Direto",
+     "pais_destino": "Argentina",
+     "porto_destino": "Buenos Aires",
+     "transit_time": 3,
+     "fornecedor": "Hapag"
+    },
+    {
+     "pais": "Israel",
+     "porto_origem": "Haifa",
+     "rota": "Direto",
+     "pais_destino": "Itália",
+     "porto_destino": "Genoa",
+     "transit_time": 6,
+     "fornecedor": "ZIM"
+    },
+    {
+     "pais": "Israel",
+     "porto_origem": "Haifa",
+     "rota": "Direto",
+     "pais_destino": "França",
+     "porto_destino": "Le Havre",
+     "transit_time": 20,
+     "fornecedor": "ZIM"
+    },
+    {
+     "pais": "Israel",
+     "porto_origem": "Haifa",
+     "rota": "Direto",
+     "pais_destino": "Holanda",
+     "porto_destino": "Rotterdam",
+     "transit_time": 15,
+     "fornecedor": "ZIM"
+    },
+    {
+     "pais": "Israel",
+     "porto_origem": "Haifa",
+     "rota": "Direto",
+     "pais_destino": "UK",
+     "porto_destino": "London",
+     "transit_time": 12,
+     "fornecedor": "ZIM"
+    },
+    {
+     "pais": "Israel",
+     "porto_origem": "Ashdod",
+     "rota": "Direto",
+     "pais_destino": "Itália",
+     "porto_destino": "Genoa",
+     "transit_time": 7,
+     "fornecedor": "ZIM"
+    },
+    {
+     "pais": "Israel",
+     "porto_origem": "Ashdod",
+     "rota": "Direto",
+     "pais_destino": "França",
+     "porto_destino": "Le Havre",
+     "transit_time": 10,
+     "fornecedor": "ZIM"
+    },
+    {
+     "pais": "Israel",
+     "porto_origem": "Ashdod",
+     "rota": "Direto",
+     "pais_destino": "Holanda",
+     "porto_destino": "Rotterdam",
+     "transit_time": 17,
+     "fornecedor": "ZIM"
+    },
+    {
+     "pais": "Israel",
+     "porto_origem": "Ashdod",
+     "rota": "Direto",
+     "pais_destino": "UK",
+     "porto_destino": "London",
+     "transit_time": 14,
+     "fornecedor": "ZIM"
+    },
+    {
+     "pais": "Marrocos",
+     "porto_origem": "Casablanca",
+     "rota": "Valência",
+     "pais_destino": "Itália",
+     "porto_destino": "Genoa",
+     "transit_time": 17,
+     "fornecedor": "MSC"
+    },
+    {
+     "pais": "Marrocos",
+     "porto_origem": "Casablanca",
+     "rota": "Sines",
+     "pais_destino": "França",
+     "porto_destino": "Le Havre",
+     "transit_time": 8,
+     "fornecedor": "MSC"
+    },
+    {
+     "pais": "Marrocos",
+     "porto_origem": "Casablanca",
+     "rota": "Las Palmas",
+     "pais_destino": "Holanda",
+     "porto_destino": "Rotterdam",
+     "transit_time": 15,
+     "fornecedor": "MSC"
+    },
+    {
+     "pais": "Marrocos",
+     "porto_origem": "Casablanca",
+     "rota": "Las Palmas",
+     "pais_destino": "UK",
+     "porto_destino": "London",
+     "transit_time": 19,
+     "fornecedor": "MSC"
+    },
+    {
+     "pais": "Marrocos",
+     "porto_origem": "Agadir",
+     "rota": "Antwerp",
+     "pais_destino": "Itália",
+     "porto_destino": "Gioaia Tauro",
+     "transit_time": 19,
+     "fornecedor": "MSC"
+    },
+    {
+     "pais": "Marrocos",
+     "porto_origem": "Agadir",
+     "rota": "Antwerp",
+     "pais_destino": "França",
+     "porto_destino": "Le Havre",
+     "transit_time": 10,
+     "fornecedor": "MSC"
+    },
+    {
+     "pais": "Marrocos",
+     "porto_origem": "Agadir",
+     "rota": "Antwerp",
+     "pais_destino": "Holanda",
+     "porto_destino": "Rotterdam",
+     "transit_time": 9,
+     "fornecedor": "MSC"
+    },
+    {
+     "pais": "Marrocos",
+     "porto_origem": "Agadir",
+     "rota": "Antwerp",
+     "pais_destino": "UK",
+     "porto_destino": "London",
+     "transit_time": 11,
+     "fornecedor": "MSC"
+    },
+    {
+     "pais": "Espanha",
+     "porto_origem": "Valência",
+     "rota": "Direto",
+     "pais_destino": "Holanda",
+     "porto_destino": "Rotterdam",
+     "transit_time": 7,
+     "fornecedor": "MSC"
+    },
+    {
+     "pais": "Espanha",
+     "porto_origem": "Valência",
+     "rota": "Direto",
+     "pais_destino": "Bélgica",
+     "porto_destino": "Antwerp",
+     "transit_time": 11,
+     "fornecedor": "MSC"
+    },
+    {
+     "pais": "Espanha",
+     "porto_origem": "Algeciras",
+     "rota": "Direto",
+     "pais_destino": "Holanda",
+     "porto_destino": "Rotterdam",
+     "transit_time": 4,
+     "fornecedor": "MSC"
+    },
+    {
+     "pais": "Espanha",
+     "porto_origem": "Algeciras",
+     "rota": "Direto",
+     "pais_destino": "Bélgica",
+     "porto_destino": "Antwerp",
+     "transit_time": 5,
+     "fornecedor": "CMA CGM"
+    },
+    {
+     "pais": "Portugal",
+     "porto_origem": "Lisboa",
+     "rota": "Tanger",
+     "pais_destino": "Holanda",
+     "porto_destino": "Rotterdam",
+     "transit_time": 12,
+     "fornecedor": "Hapag"
+    },
+    {
+     "pais": "Portugal",
+     "porto_origem": "Lisboa",
+     "rota": "Tanger",
+     "pais_destino": "Bélgica",
+     "porto_destino": "Antwerp",
+     "transit_time": 13,
+     "fornecedor": "Hapag"
+    },
+    {
+     "pais": "Portugal",
+     "porto_origem": "Leixões",
+     "rota": "Direto",
+     "pais_destino": "Holanda",
+     "porto_destino": "Rotterdam",
+     "transit_time": 8,
+     "fornecedor": "MSC"
+    },
+    {
+     "pais": "Portugal",
+     "porto_origem": "Leixões",
+     "rota": "Direto",
+     "pais_destino": "Bélgica",
+     "porto_destino": "Antwerp",
+     "transit_time": 9,
+     "fornecedor": "MSC"
+    }
+   ],
+   "matriz": {
+    "paises_origem": [
+     "Chile",
+     "Colômbia",
+     "Espanha",
+     "Israel",
+     "Marrocos",
+     "Peru",
+     "Portugal"
+    ],
+    "paises_destino": [
+     "Alemanha",
+     "Argentina",
+     "Bélgica",
+     "Chile",
+     "Costa Rica",
+     "França",
+     "Holanda",
+     "Itália",
+     "UK"
+    ],
+    "valores": {
+     "Chile": {
+      "Alemanha": 30,
+      "Argentina": 26,
+      "Holanda": 25,
+      "UK": 28
+     },
+     "Colômbia": {
+      "Alemanha": 23,
+      "Argentina": 31,
+      "Chile": 12,
+      "Holanda": 19,
+      "UK": 21
+     },
+     "Espanha": {
+      "Bélgica": 8,
+      "Holanda": 5.5
+     },
+     "Israel": {
+      "França": 15,
+      "Holanda": 16,
+      "Itália": 6.5,
+      "UK": 13
+     },
+     "Marrocos": {
+      "França": 9,
+      "Holanda": 12,
+      "Itália": 18,
+      "UK": 15
+     },
+     "Peru": {
+      "Argentina": 29,
+      "Bélgica": 24.5,
+      "Chile": 5,
+      "Costa Rica": 12,
+      "Holanda": 19.5,
+      "UK": 21
+     },
+     "Portugal": {
+      "Bélgica": 11,
+      "Holanda": 10
+     }
+    }
+   },
+   "ranking": [
+    {
+     "pais": "Espanha",
+     "portos": [
+      {
+       "porto": "Algeciras",
+       "tt": 4.5
+      },
+      {
+       "porto": "Valência",
+       "tt": 9.0
+      }
+     ]
+    },
+    {
+     "pais": "Portugal",
+     "portos": [
+      {
+       "porto": "Leixões",
+       "tt": 8.5
+      },
+      {
+       "porto": "Lisboa",
+       "tt": 12.5
+      }
+     ]
+    },
+    {
+     "pais": "Israel",
+     "portos": [
+      {
+       "porto": "Ashdod",
+       "tt": 12.0
+      },
+      {
+       "porto": "Haifa",
+       "tt": 13.25
+      }
+     ]
+    },
+    {
+     "pais": "Marrocos",
+     "portos": [
+      {
+       "porto": "Agadir",
+       "tt": 12.25
+      },
+      {
+       "porto": "Casablanca",
+       "tt": 14.75
+      }
+     ]
+    },
+    {
+     "pais": "Colômbia",
+     "portos": [
+      {
+       "porto": "Cartagena",
+       "tt": 16.6
+      },
+      {
+       "porto": "Buenaventura",
+       "tt": 25.8
+      }
+     ]
+    },
+    {
+     "pais": "Peru",
+     "portos": [
+      {
+       "porto": "Callao",
+       "tt": 19.33
+      },
+      {
+       "porto": "Paita",
+       "tt": 20.0
+      }
+     ]
+    },
+    {
+     "pais": "Chile",
+     "portos": [
+      {
+       "porto": "San Antono",
+       "tt": 22.4
+      },
+      {
+       "porto": "Valparaiso",
+       "tt": 37.0
+      }
+     ]
+    }
+   ],
+   "cards": {
+    "tt_menor": 3.0,
+    "tt_medio": 16.63,
+    "tt_maior": 39.0
+   }
+  },
+  "brasil": {
+   "rotas": [
+    {
+     "pais": "Brasil",
+     "porto_origem": "Santos",
+     "porto_destino": "London Gateway",
+     "pais_destino": "Reino Unido",
+     "transit_time": 29,
+     "fornecedor": null,
+     "modal": "Marítimo",
+     "obs": "Considerando saída porto de Santos. London Gateway é um porto que anda complicado (MAERSK nem estava atendendo devido ao congestionamento). Estão descarregando Southampton e, pelo que vi, voltam a aceitar reserva ETD 09/02 mas com esse TT longo."
+    },
+    {
+     "pais": "Brasil",
+     "porto_origem": "Santos",
+     "porto_destino": "Southampton",
+     "pais_destino": "Reino Unido",
+     "transit_time": 16,
+     "fornecedor": null,
+     "modal": "Marítimo",
+     "obs": "Considerando saída porto de Santos. Os transits têm excedido muitas vezes (baixa confiabilidade em transbordo)."
+    },
+    {
+     "pais": "Brasil",
+     "porto_origem": "Santos",
+     "porto_destino": "Rotterdam",
+     "pais_destino": "Holanda",
+     "transit_time": 18,
+     "fornecedor": null,
+     "modal": "Marítimo",
+     "obs": "Considerando saída porto de Santos. Os transits têm excedido muitas vezes."
+    },
+    {
+     "pais": "Brasil",
+     "porto_origem": "Santos",
+     "porto_destino": "Algeciras",
+     "pais_destino": "Espanha",
+     "transit_time": 16,
+     "fornecedor": null,
+     "modal": "Marítimo",
+     "obs": "Considerando saída porto de Santos."
+    },
+    {
+     "pais": "Brasil",
+     "porto_origem": "Santos",
+     "porto_destino": "Toronto (via Philadelphia e NY)",
+     "pais_destino": "Canadá",
+     "transit_time": 27,
+     "fornecedor": null,
+     "modal": "Marítimo",
+     "obs": "Considerando saída porto de Santos. Portos no Rio de Janeiro têm histórico de sofrer com omissões."
+    },
+    {
+     "pais": "Brasil",
+     "porto_origem": "Santos",
+     "porto_destino": "Toronto / Montreal (via Philadelphia e NY)",
+     "pais_destino": "Canadá",
+     "transit_time": 25,
+     "fornecedor": null,
+     "modal": "Marítimo",
+     "obs": "Considerando saída porto do Rio de Janeiro (com histórico de omissões) e Santos."
+    },
+    {
+     "pais": "Brasil",
+     "porto_origem": "Santos",
+     "porto_destino": "Chile (Hama e Libertadores)",
+     "pais_destino": "Chile",
+     "transit_time": 12,
+     "fornecedor": null,
+     "modal": "Rodoviario",
+     "obs": "Considerando as liberações em fronteiras."
+    },
+    {
+     "pais": "Brasil",
+     "porto_origem": "Santos",
+     "porto_destino": "Buenos Aires, Mendoza, Córdoba",
+     "pais_destino": "Argentina",
+     "transit_time": 7,
+     "fornecedor": null,
+     "modal": "Rodoviario",
+     "obs": "Considerando tempo de liberação."
+    },
+    {
+     "pais": "Brasil",
+     "porto_origem": "Santos",
+     "porto_destino": "Costa Rica",
+     "pais_destino": "Costa Rica",
+     "transit_time": 33,
+     "fornecedor": null,
+     "modal": "Marítimo",
+     "obs": "Considerando saída porto de Santos para Puerto Limón (26 dias) MAERSK. Moín: armadores atendem, porém há muito atraso nos navios (MSC e ONE: 18 a 33 dias)."
+    },
+    {
+     "pais": "Brasil",
+     "porto_origem": "Santos",
+     "porto_destino": "Índia",
+     "pais_destino": "Índia",
+     "transit_time": 38,
+     "fornecedor": null,
+     "modal": "Marítimo",
+     "obs": "Bastante possibilidade de atraso (pois há transbordo)."
+    },
+    {
+     "pais": "Brasil",
+     "porto_origem": null,
+     "porto_destino": null,
+     "pais_destino": "Uruguai",
+     "transit_time": 4,
+     "fornecedor": null,
+     "modal": "Rodoviario",
+     "obs": null
+    }
+   ],
+   "matriz": {
+    "Argentina": 7.0,
+    "Canadá": 26.0,
+    "Chile": 12.0,
+    "Costa Rica": 33.0,
+    "Espanha": 16.0,
+    "Holanda": 18.0,
+    "Reino Unido": 22.5,
+    "Uruguai": 4.0,
+    "Índia": 38.0
+   },
+   "ranking": [
+    {
+     "porto_origem": "Santos",
+     "pais_destino": "Reino Unido",
+     "maritimo": 29,
+     "rodoviario": null
+    },
+    {
+     "porto_origem": "Santos",
+     "pais_destino": "Reino Unido",
+     "maritimo": 16,
+     "rodoviario": null
+    },
+    {
+     "porto_origem": "Santos",
+     "pais_destino": "Holanda",
+     "maritimo": 18,
+     "rodoviario": null
+    },
+    {
+     "porto_origem": "Santos",
+     "pais_destino": "Espanha",
+     "maritimo": 16,
+     "rodoviario": null
+    },
+    {
+     "porto_origem": "Santos",
+     "pais_destino": "Canadá",
+     "maritimo": 27,
+     "rodoviario": null
+    },
+    {
+     "porto_origem": "Santos",
+     "pais_destino": "Canadá",
+     "maritimo": 25,
+     "rodoviario": null
+    },
+    {
+     "porto_origem": "Santos",
+     "pais_destino": "Chile",
+     "maritimo": null,
+     "rodoviario": 12
+    },
+    {
+     "porto_origem": "Santos",
+     "pais_destino": "Argentina",
+     "maritimo": null,
+     "rodoviario": 7
+    },
+    {
+     "porto_origem": "Santos",
+     "pais_destino": "Costa Rica",
+     "maritimo": 33,
+     "rodoviario": null
+    },
+    {
+     "porto_origem": "Santos",
+     "pais_destino": "Índia",
+     "maritimo": 38,
+     "rodoviario": null
+    },
+    {
+     "porto_origem": null,
+     "pais_destino": "Uruguai",
+     "maritimo": null,
+     "rodoviario": 4
+    }
+   ]
+  }
+ },
+ "producao_global": {
+  "meses": [
+   "Janeiro",
+   "Fevereiro",
+   "Março",
+   "Abril",
+   "Maio",
+   "Junho",
+   "Julho",
+   "Agosto",
+   "Setembro",
+   "Outubro",
+   "Novembro",
+   "Dezembro"
+  ],
+  "paises": [
+   {
+    "pais": "México",
+    "ordem": 1,
+    "niveis": [
+     3,
+     3,
+     3,
+     3,
+     3,
+     2,
+     2,
+     2,
+     2,
+     3,
+     3,
+     3
+    ]
+   },
+   {
+    "pais": "Espanha",
+    "ordem": 2,
+    "niveis": [
+     3,
+     3,
+     3,
+     3,
+     3,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     3
+    ]
+   },
+   {
+    "pais": "Marrocos",
+    "ordem": 3,
+    "niveis": [
+     3,
+     3,
+     3,
+     3,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     3,
+     3
+    ]
+   },
+   {
+    "pais": "Israel",
+    "ordem": 4,
+    "niveis": [
+     3,
+     3,
+     3,
+     3,
+     0,
+     0,
+     0,
+     0,
+     0,
+     3,
+     3,
+     3
+    ]
+   },
+   {
+    "pais": "Portugal",
+    "ordem": 6,
+    "niveis": [
+     1,
+     1,
+     1,
+     1,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     1,
+     1
+    ]
+   },
+   {
+    "pais": "Quênia",
+    "ordem": 7,
+    "niveis": [
+     2,
+     2,
+     3,
+     3,
+     3,
+     3,
+     3,
+     3,
+     3,
+     0,
+     2,
+     2
+    ]
+   },
+   {
+    "pais": "República Dominicana",
+    "ordem": 8,
+    "niveis": [
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     2,
+     3,
+     3,
+     3,
+     3,
+     2
+    ]
+   },
+   {
+    "pais": "Colômbia",
+    "ordem": 9,
+    "niveis": [
+     0,
+     0,
+     3,
+     3,
+     3,
+     3,
+     0,
+     0,
+     3,
+     3,
+     3,
+     3
+    ]
+   },
+   {
+    "pais": "Brasil",
+    "ordem": 10,
+    "niveis": [
+     0,
+     3,
+     3,
+     3,
+     3,
+     2,
+     2,
+     2,
+     2,
+     0,
+     0,
+     0
+    ]
+   },
+   {
+    "pais": "África do Sul",
+    "ordem": 11,
+    "niveis": [
+     0,
+     0,
+     3,
+     3,
+     3,
+     3,
+     3,
+     3,
+     3,
+     0,
+     0,
+     0
+    ]
+   },
+   {
+    "pais": "Tanzânia",
+    "ordem": 12,
+    "niveis": [
+     0,
+     0,
+     3,
+     3,
+     3,
+     3,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ]
+   },
+   {
+    "pais": "Peru",
+    "ordem": 13,
+    "niveis": [
+     0,
+     0,
+     0,
+     2,
+     3,
+     3,
+     3,
+     3,
+     3,
+     2,
+     0,
+     0
+    ]
+   },
+   {
+    "pais": "Argentina",
+    "ordem": 14,
+    "niveis": [
+     0,
+     0,
+     1,
+     1,
+     1,
+     1,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ]
+   }
+  ]
+ },
+ "news": {
+  "brasil": {
+   "cambio": {
+    "par": "USD/BRL",
+    "valor": 5.0891,
+    "data": "2026-08-10"
+   },
+   "geral": [
+    {
+     "data": "2026-08-10",
+     "tag": "geral",
+     "impacto": "Médio",
+     "texto": "Mídia dos EUA Em choque: Boom da Carne Bovina do Deserto da China, Surge do Abacate [geral]",
+     "fonte": "https://www.bastillepost.com/global/article/6062659-us-media-shocked-chinas-desert-beef-boom-avocado-surge"
+    },
+    {
+     "data": "2026-08-10",
+     "tag": "mercado",
+     "impacto": "Médio",
+     "texto": "Brasil vê oportunidades apesar de queda nos preços do abacate Hass. [mercado]",
+     "fonte": "https://www.freshplaza.com/north-america/article/9853637/brazil-sees-opportunities-despite-lower-hass-avocado-prices/"
+    },
+    {
+     "data": "2026-08-10",
+     "tag": "geral",
+     "impacto": "Médio",
+     "texto": "Óleo de Abacate: Hass Comercial versus Outras Variedades—Perfil de Ácidos Graxos e Qualidade [geral]",
+     "fonte": "https://onlinelibrary.wiley.com/doi/full/10.1002/ejlt.70125"
+    },
+    {
+     "data": "2026-08-10",
+     "tag": "mercado",
+     "impacto": "Médio",
+     "texto": "Tamanho, Participação e Tendências do Mercado de Óleo de Abacate da América Latina, 2034. [mercado]",
+     "fonte": "https://www.marketdataforecast.com/market-reports/latin-america-avocado-oil-market"
+    },
+    {
+     "data": "2026-08-10",
+     "tag": "mercado",
+     "impacto": "Médio",
+     "texto": "Produtores brasileiros miram o promissor mercado de importação da Índia. [mercado]",
+     "fonte": "https://www.fruitnet.com/eurofruit/brazilian-producers-target-indias-booming-import-market/271742.article"
+    },
+    {
+     "data": "2026-08-10",
+     "tag": "geral",
+     "impacto": "Médio",
+     "texto": "Brasil Mira Boom do Abacate à Medida que Oferta Global Encolhe [geral]",
+     "fonte": "https://www.theagribiz.com/international/brazil-eyes-avocado-boom-as-global-supply-tightens/"
+    }
+   ],
+   "regulacao": [],
+   "logistica": []
+  },
+  "chile": {
+   "cambio": {
+    "par": "USD/CLP",
+    "valor": 915.62,
+    "data": "2026-08-10"
+   },
+   "geral": [
+    {
+     "data": "2026-08-10",
+     "tag": "mercado",
+     "impacto": "Médio",
+     "texto": "Uma marca está fazendo o melhor guacamole de supermercado [mercado]",
+     "fonte": "https://sporked.com/article/best-guacamole/"
+    },
+    {
+     "data": "2026-08-10",
+     "tag": "mercado",
+     "impacto": "Médio",
+     "texto": "Produção chilena de abacate ultrapassa expectativas [mercado]",
+     "fonte": "https://www.fruitnet.com/eurofruit/chilean-avocado-output-exceeds-expectations/271670.article"
+    },
+    {
+     "data": "2026-08-10",
+     "tag": "mercado",
+     "impacto": "Médio",
+     "texto": "Receita de Carne Adovada (Porco ao Estilo Novo México com Pimentões Vermelhos) [mercado]",
+     "fonte": "https://www.seriouseats.com/carne-adovada-adobada-chili-braised-pork-recipe"
+    },
+    {
+     "data": "2026-08-10",
+     "tag": "mercado",
+     "impacto": "Médio",
+     "texto": "Safra chilena de abacate registra alta de 10% na produção e supera recorde anterior [mercado]",
+     "fonte": "https://www.freshfruitportal.com/news/2026/06/01/chilean-avocado-uptick/"
+    },
+    {
+     "data": "2026-08-10",
+     "tag": "mercado",
+     "impacto": "Médio",
+     "texto": "Nova unidade de embalagem na Colômbia melhora a rastreabilidade do abacate para os principais mercados [mercado]",
+     "fonte": "https://www.freshplaza.com/north-america/article/9856910/a-new-packing-facility-in-colombia-enhances-avocado-traceability-to-major-markets/"
+    },
+    {
+     "data": "2026-08-10",
+     "tag": "mercado",
+     "impacto": "Médio",
+     "texto": "Tamanho, Participação e Tendências do Mercado de Óleo de Abacate na América Latina até 2034 [mercado]",
+     "fonte": "https://www.marketdataforecast.com/market-reports/latin-america-avocado-oil-market"
+    }
+   ],
+   "regulacao": [
+    {
+     "data": "2026-08-10",
+     "tag": "regulação",
+     "impacto": "Alto",
+     "texto": "Entrada de Produtos Agrícolas nos Estados Unidos [regulação]",
+     "fonte": "https://www.cbp.gov/travel/clearing-cbp/bringing-agricultural-products-united-states"
+    },
+    {
+     "data": "2026-08-10",
+     "tag": "regulação",
+     "impacto": "Alto",
+     "texto": "Evolução das relações entre a UE e o Chile [regulação]",
+     "fonte": "https://www.agroberichtenbuitenland.nl/actueel/nieuws/2026/06/10/free-trade-to-strategic-partnership-how-the-eu-chile-relationship-evolved"
+    },
+    {
+     "data": "2026-08-10",
+     "tag": "regulação",
+     "impacto": "Alto",
+     "texto": "Peru se aproxima do Chile nas exportações agrícolas em 2025 [regulação]",
+     "fonte": "https://datamarnews.com/noticias/peru-closes-in-on-chile-in-2025-agricultural-exports/"
+    },
+    {
+     "data": "2026-08-10",
+     "tag": "regulação",
+     "impacto": "Alto",
+     "texto": "Chile Acusado de Tolerar Trabalho Forçado nos Setores de Exportação de Salmão e Frutas: Fundação Libera Registra Queixa em Agência Comercial dos EUA [regulação]",
+     "fonte": "https://www.elciudadano.com/actualidad/chile-accused-of-tolerating-forced-labor-in-salmon-and-fruit-export-sectors-libera-foundation-files-complaint-with-u-s-trade-agency/04/25/"
+    },
+    {
+     "data": "2026-08-10",
+     "tag": "regulação",
+     "impacto": "Alto",
+     "texto": "Peru reduz distância para o Chile nas exportações agrícolas de 2025 [regulação]",
+     "fonte": "https://www.freshplaza.com/latin-america/article/9839215/peru-narrows-gap-with-chile-in-2025-agricultural-exports/"
+    },
+    {
+     "data": "2026-08-10",
+     "tag": "regulação",
+     "impacto": "Alto",
+     "texto": "Vietnã e Chile trabalham para remover barreiras ao comércio de frutas e carnes [regulação]",
+     "fonte": "https://vir.com.vn/vietnam-and-chile-work-to-remove-barriers-to-fruit-and-meat-trade-154960.html"
+    }
+   ],
+   "logistica": [
+    {
+     "data": "2026-08-10",
+     "tag": "logística",
+     "impacto": "Alto",
+     "texto": "Porto Participa de Programa-Piloto de Uvas no Chile e Adiciona Capacidade de Tratamento [logística]",
+     "fonte": "https://www.wilmingtonbiz.com/maritime/2026/08/06/port_takes_part_in_chilean_grape_pilot_program_adds_treatment_capability/27720"
+    },
+    {
+     "data": "2026-08-10",
+     "tag": "logística",
+     "impacto": "Alto",
+     "texto": "Chile aprova construção do “porto externo” de San Antonio de US$ 4,45 bilhões [logística]",
+     "fonte": "https://www.seatrade-maritime.com/ports-logistics/chile-approves-4-45-bn-san-antonio-outer-port-construction"
+    },
+    {
+     "data": "2026-08-10",
+     "tag": "logística",
+     "impacto": "Alto",
+     "texto": "Chile aprova projeto de US$ 4,45 bilhões para triplicar capacidade do maior porto do país [logística]",
+     "fonte": "https://www.upi.com/Top_News/World-News/2026/05/29/latam-Chile-triple-port-capacity/7921780071484/"
+    },
+    {
+     "data": "2026-08-10",
+     "tag": "logística",
+     "impacto": "Alto",
+     "texto": "Portos de Cruzeiros no Chile: Mudanças na Logística Oceânica [logística]",
+     "fonte": "https://www.nomadlawyer.org/chile-cruise-ports-ocean-logistics-shifts-2026"
+    },
+    {
+     "data": "2026-08-10",
+     "tag": "logística",
+     "impacto": "Alto",
+     "texto": "ZEAL vê potencial para replicar seu modelo nos portos do norte do Chile [logística]",
+     "fonte": "https://www.bnamericas.com/en/interviews/zeal-sees-potential-to-replicate-its-model-in-northern-chiles-ports"
+    },
+    {
+     "data": "2026-08-10",
+     "tag": "logística",
+     "impacto": "Alto",
+     "texto": "Maersk desenvolve cadeia fria nos EUA para importação de uvas chilenas [logística]",
+     "fonte": "https://www.freshplaza.com/north-america/article/9860644/maersk-develops-u-s-cold-chain-for-chilean-grape-imports/"
+    }
+   ]
+  }
+ }
 }

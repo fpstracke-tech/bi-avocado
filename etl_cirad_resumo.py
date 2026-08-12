@@ -39,8 +39,8 @@ Uso:
 
 Ambiente:
     SUPABASE_URL, SUPABASE_KEY      obrigatórios (KEY = chave secreta)
-    OPENAI_API_KEY                  obrigatório, salvo com --sem-modelo
-    OPENAI_MODELO                   opcional, default gpt-4.1
+    ANTHROPIC_API_KEY               obrigatório, salvo com --sem-modelo
+    ANTHROPIC_MODELO                opcional, default claude-sonnet-5
     OWNCLOUD_URL / OWNCLOUD_PASTA / OWNCLOUD_USER / OWNCLOUD_PASS
                                     só quando não se passa --arquivo/--pasta
 """
@@ -71,7 +71,10 @@ from supabase_upsert import upsert
 TABELA = "cirad_resumo"
 CHAVE  = "ano,semana,secao"
 
-MODELO_PADRAO = "gpt-4.1"
+# Claude Sonnet 5: o próprio doc da Anthropic o indica para escrita e resumo.
+# O Tropisens.py usava gpt-4.1 porque foi escrito antes de a casa ter Claude —
+# não havia razão técnica para manter uma segunda conta de API viva só por isso.
+MODELO_PADRAO = "claude-sonnet-5"
 
 # As cinco seções do resumo, na ordem, iguais às que já estão no banco desde a
 # carga do Tropisens. Sem emoji: o dashboard não usa emoji, e o nome da seção é
@@ -220,19 +223,28 @@ Regras:
 # ── MODELO ────────────────────────────────────────────────────────────────
 def gera_resumo(texto_pdf: str, dados: dict, rel_semana: int | None,
                 modelo: str) -> str:
-    from openai import OpenAI                            # import tardio
-    chave = os.environ.get("OPENAI_API_KEY", "")
+    from anthropic import Anthropic                      # import tardio
+    chave = os.environ.get("ANTHROPIC_API_KEY", "")
     if not chave:
-        raise EnvironmentError("OPENAI_API_KEY não configurada.")
-    cliente = OpenAI(api_key=chave)
-    r = cliente.responses.create(
+        raise EnvironmentError("ANTHROPIC_API_KEY não configurada.")
+    cliente = Anthropic(api_key=chave)
+    # max_tokens é obrigatório na Messages API. O resumo tem cinco seções
+    # curtas; 2000 dá folga de sobra e ainda corta uma resposta que fugisse do
+    # formato pedido em vez de gerar página.
+    r = cliente.messages.create(
         model=modelo,
-        input=[{"role": "system", "content": SISTEMA},
-               {"role": "user", "content": instrucoes(dados["ano"], dados["semana"],
-                                                      rel_semana)},
-               {"role": "user", "content": bloco_numeros(dados)},
-               {"role": "user", "content": "TEXTO DO BOLETIM:\n\n" + texto_pdf}])
-    return (r.output_text or "").strip()
+        max_tokens=2000,
+        system=SISTEMA,
+        messages=[{"role": "user", "content": "\n\n".join([
+            instrucoes(dados["ano"], dados["semana"], rel_semana),
+            bloco_numeros(dados),
+            "TEXTO DO BOLETIM:\n\n" + texto_pdf,
+        ])}])
+    partes = [b.text for b in r.content if getattr(b, "type", "") == "text"]
+    if r.stop_reason == "max_tokens":
+        print("  AVISO: a resposta foi cortada no limite de tokens — o formato "
+              "de cinco seções provavelmente ficou incompleto.")
+    return "\n".join(partes).strip()
 
 
 def secoes_do_texto(saida: str) -> list[tuple[int, str, str]]:
@@ -312,7 +324,7 @@ def main() -> int:
     dry = "--dry-run" in argv
     forcar = "--forcar" in argv
     sem_modelo = "--sem-modelo" in argv
-    modelo = os.environ.get("OPENAI_MODELO", MODELO_PADRAO)
+    modelo = os.environ.get("ANTHROPIC_MODELO", MODELO_PADRAO)
 
     print(f"ETL Resumo CIRAD · {datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC")
 

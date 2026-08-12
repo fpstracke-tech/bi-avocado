@@ -168,8 +168,8 @@ jobs:
       OWNCLOUD_PASTA:   ${{ secrets.OWNCLOUD_PASTA }}
       OWNCLOUD_USER:    ${{ secrets.OWNCLOUD_USER }}
       OWNCLOUD_PASS:    ${{ secrets.OWNCLOUD_PASS }}
-      OPENAI_API_KEY:   ${{ secrets.OPENAI_API_KEY }}
-      OPENAI_MODELO:    ${{ vars.OPENAI_MODELO }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      ANTHROPIC_MODELO:  ${{ vars.ANTHROPIC_MODELO }}
       PYTHONIOENCODING: utf-8
       PYTHONUNBUFFERED: '1'
 
@@ -190,15 +190,19 @@ jobs:
       # secret não existir, o preço continua entrando todo dia e só o resumo
       # fica parado; um job vermelho todo dia treinaria a gente a ignorar
       # e-mail de falha.
-      - name: Conferir OPENAI_API_KEY
+      #
+      # A chave é da Anthropic (sk-ant-...). O Tropisens.py usava OpenAI porque
+      # foi escrito antes de a casa ter Claude; manter duas contas de API vivas
+      # para uma chamada por semana não se justificava.
+      - name: Conferir ANTHROPIC_API_KEY
         id: chave
         run: |
-          if [ -z "$OPENAI_API_KEY" ]; then
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
             echo "tem=nao" >> $GITHUB_OUTPUT
-            echo "::warning::OPENAI_API_KEY não configurada — resumo não gerado."
+            echo "::warning::ANTHROPIC_API_KEY não configurada — resumo não gerado."
             echo "### Resumo executivo" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Pulado: falta o secret \`OPENAI_API_KEY\`." >> $GITHUB_STEP_SUMMARY
+            echo "Pulado: falta o secret \`ANTHROPIC_API_KEY\`." >> $GITHUB_STEP_SUMMARY
           else
             echo "tem=sim" >> $GITHUB_OUTPUT
           fi
@@ -239,7 +243,7 @@ jobs:
               '   cinco cabeçalhos `## `. O log traz o começo da resposta.',
               '3. **Preço da semana ausente em `europa_cirad_precos`.** O job de',
               '   preço passou mas não gravou aquela edição. Conferir o job acima.',
-              '4. Chave da OpenAI sem crédito, expirada ou modelo indisponível.',
+              '4. Chave da Anthropic sem crédito, expirada ou modelo indisponível.',
               '',
               'Para reproduzir local:',
               '`python etl_cirad_resumo.py --arquivo "CIRAD avocado report Week NN-AAAA.pdf" --dry-run --forcar`',

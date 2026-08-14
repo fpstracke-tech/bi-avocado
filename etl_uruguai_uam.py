@@ -49,6 +49,23 @@ Se o Yahoo estiver fora, cai na open.er-api.com — que só dá a taxa de hoje.
 Nesse caso o ETL AVISA em letra grande que a série está com taxa única, porque
 esse é justamente o defeito que não pode passar calado.
 
+Bloqueio anti-bot
+-----------------
+Em 14/08/2026 a UAM passou a devolver, para o IP do runner do GitHub, HTTP 200
+com uma página de ~12 KB que não é o site: `<html lang="en">` num site em
+espanhol, `charset="utf8"` sem hífen, zero `.pdf` e um <script> logo no começo
+do documento. O tamanho mudava a cada tentativa (11945 / 11904 / 12015 / 11974
+bytes) — nonce por requisição. É challenge JS, não mudança de layout. A API de
+mídia caía junto, devolvendo HTML no lugar de JSON.
+
+O conserto é `desbloquear_com_navegador()`: um Chromium headless carrega a
+página, deixa o desafio rodar, e os cookies resultantes vão para a SESSAO. Daí
+a API de mídia e o download dos PDFs voltam a funcionar por requests — o WAF
+libera pelo cookie, não pelo fingerprint de TLS. Sem playwright instalado a
+função devolve None em silêncio e o ETL segue como antes, que é o caso de quem
+roda da própria máquina e nunca vê o bloqueio. O binário do Chromium é baixado
+sob demanda pelo próprio script, então nenhum passo extra no workflow.
+
 Uso:
     python etl_uruguai_uam.py                       # baixa e processa os boletins da página
     python etl_uruguai_uam.py --dry-run
@@ -86,6 +103,16 @@ HEADERS = {
     "Accept-Language": "es-UY,es;q=0.9",
     "Referer": URL_LISTA,
 }
+
+# Uma sessão só para tudo que fala com a UAM: listagem, API de mídia e download
+# dos PDFs. É o que permite o cookie do desafio, capturado uma vez pelo
+# navegador, valer para as três coisas.
+SESSAO = requests.Session()
+SESSAO.headers.update(HEADERS)
+
+_MARCAS_BLOQUEIO = ("just a moment", "captcha", "cloudflare", "access denied",
+                    "attention required", "checking your browser", "sucuri",
+                    "enable javascript", "ddos protection")
 
 MESES = {"enero": 1, "febrero": 2, "marzo": 3, "abril": 4, "mayo": 5, "junio": 6,
          "julio": 7, "agosto": 8, "septiembre": 9, "setiembre": 9, "octubre": 10,
@@ -154,6 +181,136 @@ def parse_pdf(caminho_ou_bytes, rotulo: str = "") -> tuple[str | None, list[dict
     return d, linhas
 
 
+def parece_bloqueio(html: str) -> bool:
+    """
+    True quando a resposta veio com status 2xx mas NÃO é o site.
+
+    Distinguir isso de "o layout mudou" é o ponto todo: são consertos opostos.
+    Sinal de bloqueio é página curta, sem nenhum `.pdf`, com script antes de
+    qualquer conteúdo ou com `lang="en"` — a UAM é em espanhol. Página grande e
+    sem PDF é layout novo, e aí o parser é que precisa mudar.
+    """
+    if not html:
+        return False
+    baixo = html.lower()
+    if ".pdf" in baixo:                       # veio conteúdo de verdade
+        return False
+    if any(m in baixo for m in _MARCAS_BLOQUEIO):
+        return True
+    if len(html) > 60_000:                    # grande e sem PDF: layout, não WAF
+        return False
+    cabeca = baixo[:600]
+    return "<script" in cabeca or 'lang="en"' in cabeca
+
+
+def _garantir_chromium() -> bool:
+    """
+    Baixa o Chromium do playwright quando ele não está no disco.
+
+    Fica aqui e não num passo do workflow de propósito: assim o conserto é o
+    próprio script, e quem clonar o repo e rodar na mão não precisa lembrar do
+    passo extra. No runner do GitHub as bibliotecas de sistema já existem, então
+    o `install` sem `--with-deps` basta e não precisa de sudo.
+    """
+    import subprocess
+    print("    Chromium ausente — baixando (uma vez por runner)...", flush=True)
+    try:
+        r = subprocess.run([sys.executable, "-m", "playwright", "install", "chromium"],
+                           capture_output=True, text=True, timeout=900)
+    except Exception as e:                             # noqa: BLE001
+        print(f"    não deu para instalar o Chromium ({e})", flush=True)
+        return False
+    if r.returncode != 0:
+        rabo = (r.stderr or r.stdout or "").strip()[-300:]
+        print(f"    playwright install falhou (rc={r.returncode}): {rabo}", flush=True)
+        return False
+    return True
+
+
+def _coletar_com_navegador(sync_playwright, espera_s: int):
+    """(html, cookies) da página de boletins já liberada. Estoura se der ruim."""
+    with sync_playwright() as p:
+        navegador = p.chromium.launch(args=[
+            "--no-sandbox",
+            "--disable-blink-features=AutomationControlled",
+        ])
+        ctx = navegador.new_context(
+            user_agent=HEADERS["User-Agent"],
+            locale="es-UY",
+            viewport={"width": 1366, "height": 900},
+        )
+        pagina = ctx.new_page()
+        pagina.goto(URL_LISTA, wait_until="domcontentloaded", timeout=60_000)
+        # O desafio seta o cookie e recarrega sozinho. Espero o site de verdade
+        # aparecer em vez de dormir um tempo fixo, que ora sobra ora falta.
+        for _ in range(espera_s):
+            if not parece_bloqueio(pagina.content()):
+                break
+            pagina.wait_for_timeout(1000)
+        else:
+            print(f"    o desafio não liberou em {espera_s}s — seguindo assim mesmo",
+                  flush=True)
+        html, biscoitos = pagina.content(), ctx.cookies()
+        navegador.close()
+    return html, biscoitos
+
+
+def desbloquear_com_navegador(espera_s: int = 45) -> str | None:
+    """
+    Resolve o desafio JS num Chromium headless e injeta os cookies na SESSAO.
+
+    Devolve o HTML já liberado da página de boletins (útil como plano C, porque
+    ele lista os ~9 mais recentes) ou None se não deu para desbloquear. Nunca
+    estoura: sem playwright instalado, só avisa e devolve None, que é o caso de
+    quem roda da própria máquina e nunca vê o bloqueio.
+    """
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        print("  playwright não instalado — sem desbloqueio por navegador.\n"
+              "    pip install playwright && python -m playwright install chromium",
+              flush=True)
+        return None
+
+    print("  bloqueio detectado — abrindo navegador para resolver o desafio...",
+          flush=True)
+    html = biscoitos = None
+    for tentativa in (1, 2):
+        try:
+            html, biscoitos = _coletar_com_navegador(sync_playwright, espera_s)
+            break
+        except Exception as e:                         # noqa: BLE001
+            msg = str(e)
+            falta_binario = ("executable doesn't exist" in msg.lower()
+                             or "playwright install" in msg.lower())
+            if tentativa == 1 and falta_binario and _garantir_chromium():
+                continue
+            print(f"    navegador falhou ({msg.splitlines()[0] if msg else e})",
+                  flush=True)
+            return None
+    if biscoitos is None:
+        return None
+
+    for c in biscoitos:
+        SESSAO.cookies.set(c["name"], c["value"],
+                           domain=c.get("domain"), path=c.get("path") or "/")
+    achados = _links_de_boletim(html)
+    print(f"    {len(biscoitos)} cookies capturados · a página do navegador "
+          f"trouxe {len(achados)} boletins", flush=True)
+    if not biscoitos and not achados:
+        return None
+    return html
+
+
+def _baixar_pdf(url: str) -> bytes:
+    """Baixa pela SESSAO e recusa qualquer coisa que não comece com %PDF."""
+    r = SESSAO.get(url, timeout=180)
+    r.raise_for_status()
+    if not r.content.startswith(b"%PDF"):
+        raise RuntimeError(f"resposta não é PDF ({len(r.content)} bytes)")
+    return r.content
+
+
 def _links_de_boletim(html: str) -> list[str]:
     urls, vistos = [], set()
     for href in re.findall(r'href="([^"]+\.pdf)"', html, re.I):
@@ -187,12 +344,19 @@ def listar_boletins_api(desde: str | None = None) -> list[tuple[str, str]]:
     achados, pagina = [], 1
     while pagina <= 20:                       # trava: 2.000 arquivos
         try:
-            r = requests.get(URL_API, headers=HEADERS, timeout=90,
-                             params={"search": "boletin-de-precios", "per_page": 100,
-                                     "page": pagina, "_fields": "source_url,date"})
+            r = SESSAO.get(URL_API, timeout=90,
+                           params={"search": "boletin-de-precios", "per_page": 100,
+                                   "page": pagina, "_fields": "source_url,date"})
             if r.status_code == 400:          # pediu página além do fim
                 break
             r.raise_for_status()
+            # HTTP 200 com HTML no corpo é o WAF, não a API. Dizer isso aqui
+            # evita o "Expecting value: line 1 column 1", que não explica nada.
+            if "json" not in (r.headers.get("Content-Type") or "").lower():
+                print(f"  API de mídia devolveu "
+                      f"{r.headers.get('Content-Type')!r} em vez de JSON "
+                      f"({len(r.content)} bytes) — resposta barrada.", flush=True)
+                break
             lote = r.json()
         except Exception as e:                # noqa: BLE001
             print(f"  API de mídia falhou na página {pagina}: {e}", flush=True)
@@ -223,23 +387,54 @@ def listar_boletins_api(desde: str | None = None) -> list[tuple[str, str]]:
     return saida
 
 
+def _resumo_api(api: list[tuple[str, str]], desde: str | None) -> None:
+    print(f"  API de mídia: {len(api)} boletins"
+          + (f" publicados desde {desde}" if desde else "")
+          + f" ({api[-1][0]} a {api[0][0]})", flush=True)
+
+
 def listar_boletins(tentativas: int = 4, desde: str | None = None) -> list[str]:
-    """API de mídia primeiro; a página pública é o plano B."""
+    """
+    API de mídia (acervo inteiro) → página pública (só os recentes) → navegador.
+
+    O navegador só entra quando as duas primeiras vierem BARRADAS. Se a página
+    chegar íntegra e mesmo assim sem links, é layout novo e abrir um Chromium
+    não resolve nada — o diagnóstico já foi impresso e a função devolve vazio.
+    """
     api = listar_boletins_api(desde)
     if api:
-        print(f"  API de mídia: {len(api)} boletins"
-              + (f" publicados desde {desde}" if desde else "")
-              + f" ({api[-1][0]} a {api[0][0]})", flush=True)
+        _resumo_api(api, desde)
         return [u for _, u in api]
+
     print("  API de mídia não devolveu nada — caindo para a página pública",
           flush=True)
     if desde:
         print("  AVISO: a página pública lista só os boletins recentes, então "
               "--desde não vai ser respeitado nesta rodada.", flush=True)
-    return listar_boletins_html(tentativas)
+    urls, bloqueado = listar_boletins_html(tentativas)
+    if urls:
+        return urls
+    if not bloqueado:
+        return []
+
+    html = desbloquear_com_navegador()
+    if html is None:
+        return []
+
+    # Com o cookie na SESSAO a API costuma voltar, e ela é a única que dá o
+    # acervo completo. A página liberada fica como plano C.
+    api = listar_boletins_api(desde)
+    if api:
+        _resumo_api(api, desde)
+        return [u for _, u in api]
+    urls = _links_de_boletim(html)
+    if urls:
+        print(f"  {len(urls)} boletins da página liberada pelo navegador "
+              "(só os recentes — a API continua barrada)", flush=True)
+    return urls
 
 
-def listar_boletins_html(tentativas: int = 4) -> list[str]:
+def listar_boletins_html(tentativas: int = 4) -> tuple[list[str], bool]:
     """
     A UAM é instável para IP de datacenter. Em 11/08/2026 o job do GitHub
     Actions recebeu HTTP 200 com uma página SEM nenhum link de boletim (no run
@@ -247,18 +442,21 @@ def listar_boletins_html(tentativas: int = 4) -> list[str]:
     anti-bot, não de mudança de layout. Daí as tentativas com espera crescente
     e o diagnóstico no fim: sem ele, "nenhum boletim encontrado" não distingue
     bloqueio de mudança no site, e são consertos completamente diferentes.
+
+    Devolve (urls, bloqueado). O segundo item é o que decide se vale a pena
+    acordar o navegador headless.
     """
     import time
     ultimo_html, ultimo_status = "", None
     for i in range(tentativas):
         try:
-            r = requests.get(URL_LISTA, headers=HEADERS, timeout=120)
+            r = SESSAO.get(URL_LISTA, timeout=120)
             ultimo_status = r.status_code
             r.raise_for_status()
             ultimo_html = r.text
             urls = _links_de_boletim(ultimo_html)
             if urls:
-                return urls
+                return urls, False
             print(f"  tentativa {i+1}/{tentativas}: página veio sem boletins "
                   f"({len(ultimo_html)} bytes)", flush=True)
         except Exception as e:                         # noqa: BLE001
@@ -286,11 +484,14 @@ def listar_boletins_html(tentativas: int = 4) -> list[str]:
             if pista in baixo:
                 print(f"    >>> indício de {rotulo} na resposta")
         print(f"    início ................. {ultimo_html[:180]!r}")
-    print("\n  Se houver indício de bloqueio, o site está recusando o IP do "
-          "runner e o\n  conserto é fonte alternativa ou execução local — não "
-          "o parser.\n  Se a página vier íntegra e sem links, aí sim o layout "
-          "mudou.")
-    return []
+    bloqueado = parece_bloqueio(ultimo_html)
+    print(f"    veredito ............... "
+          f"{'BLOQUEIO (resposta não é o site)' if bloqueado else 'página íntegra'}")
+    print("\n  Se for bloqueio, o site está recusando o IP do runner e o "
+          "conserto é o\n  navegador headless (desbloquear_com_navegador), fonte "
+          "alternativa ou\n  execução local — não o parser. Se a página vier "
+          "íntegra e sem links,\n  aí sim o layout mudou.")
+    return [], bloqueado
 
 
 def cambio_yahoo(desde: str) -> dict:
@@ -418,12 +619,26 @@ def main() -> int:
             print(f"  --limite {limite}: só os {len(urls)} mais recentes", flush=True)
         print(f"  {len(urls)} boletins — baixando um a um", flush=True)
         import io
+        renovou = False
         for n, u in enumerate(urls, 1):
             nome = u.rsplit("/", 1)[-1]
             try:
-                r = requests.get(u, headers=HEADERS, timeout=180)
-                r.raise_for_status()
-                d, linhas = parse_pdf(io.BytesIO(r.content), nome)
+                conteudo = _baixar_pdf(u)
+            except Exception as e:                     # noqa: BLE001
+                # O cookie do desafio expira no meio de um backfill de 189
+                # arquivos. Renovo uma vez e sigo; se falhar de novo, é outra
+                # coisa e não adianta ficar reabrindo navegador por PDF.
+                if renovou or desbloquear_com_navegador() is None:
+                    print(f"    {nome}: falhou ({e})")
+                    continue
+                renovou = True
+                try:
+                    conteudo = _baixar_pdf(u)
+                except Exception as e2:                # noqa: BLE001
+                    print(f"    {nome}: falhou ({e2})")
+                    continue
+            try:
+                d, linhas = parse_pdf(io.BytesIO(conteudo), nome)
             except Exception as e:                     # noqa: BLE001
                 print(f"    {nome}: falhou ({e})")
                 continue

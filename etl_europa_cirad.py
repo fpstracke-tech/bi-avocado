@@ -117,10 +117,18 @@ ORIGEM_NAO_E_PAIS = {"hass", "green", "greens", "varieties", "green varieties",
 
 RE_ANCORA = re.compile(
     r"EU\s+(?:Reference\s+Price|Barometer)\s*[—–-]\s*Hass\s+grade\s+18", re.I)
-RE_REF = re.compile(
-    r"([\d]{1,2}[.,]\d{2})\s*€\s*"
-    r"([+-]\s*[\d]{1,2}[.,]\d{2})\s*€?\s*"
-    r"([+-]?\s*\d{1,3})\s*%", re.S)
+# O bloco de referência traz sempre os MESMOS três números — preço da semana,
+# variação em euro sobre a semana anterior e variação percentual sobre a média
+# das duas safras — mas a ORDEM em que o pdfplumber os extrai muda com o layout.
+#
+#   até a S31/2026:  "10.00 € -0.22 € +18 %"        (tudo numa linha)
+#   na S33/2026:     "+0.22 €\n10.47 € +28 %"       (delta numa linha própria, ANTES)
+#
+# Casar posição fixa quebra a cada reflow. Então: pega os tokens e distingue
+# pelo SINAL — a variação sempre vem com + ou - explícito, o preço nunca vem
+# assinado. O percentual é o único com %.
+RE_EUR = re.compile(r"([+-])?\s*(\d{1,3}[.,]\d{2})\s*€")
+RE_PCT = re.compile(r"([+-]?\s*\d{1,3})\s*%")
 RE_SEMANAS = (
     re.compile(r"AVOCADO\s+REPORT\s+WEEK\s*\n?\s*(\d{1,2})", re.I),
     re.compile(r"WEEK\s*\n?\s*(\d{1,2})\s*\n?\s*AVOCADO\s+MARKET\s+REPORT", re.I),
@@ -195,15 +203,64 @@ def semana_ano(p1: str, nome: str, rotulo: str):
     return (sem or sem_f), (ano or ano_f)
 
 
-def ref_do_texto(p1: str):
-    """(valor, variacao_eur, variacao_pct) do bloco de preço de referência."""
+def ref_do_texto(p1: str, rotulo: str = ""):
+    """
+    (valor, variacao_eur, variacao_pct) do bloco de preço de referência.
+
+    Tolerante à ordem: identifica cada número pelo que ele é, não por onde
+    está. Ver o comentário do RE_EUR — a S33/2026 imprimiu o delta antes do
+    preço e a versão presa à ordem devolvia None, o que derrubava o Hass 18
+    (série do gráfico, card de 4 semanas e resumo) sem deixar o job vermelho.
+    """
     m0 = RE_ANCORA.search(p1)
     if not m0:
+        if rotulo:
+            print(f"    {rotulo}: âncora 'EU Reference Price/Barometer—Hass grade 18' "
+                  f"não encontrada na página 1")
         return None
-    m = RE_REF.search(p1[m0.end():m0.end() + 500])
-    if not m:
+
+    janela = p1[m0.end():m0.end() + 500]
+    # m.start(2), nao m.start(): o \s* inicial do RE_EUR engole o \n anterior e
+    # jogaria o token para a linha de cima, estragando o desempate por linha.
+    euros = [(m.group(1), _f(m.group(2)), m.start(2))
+             for m in RE_EUR.finditer(janela)]
+    if not euros:
+        if rotulo:
+            print(f"    {rotulo}: âncora encontrada, mas nenhum valor em € nos "
+                  f"500 caracteres seguintes")
         return None
-    return _f(m.group(1)), _f(m.group(2)), _f(m.group(3))
+
+    mp = RE_PCT.search(janela)
+    pct = _f(mp.group(1).replace(" ", "")) if mp else None
+
+    sem_sinal = [e for e in euros if not e[0]]
+    com_sinal = [e for e in euros if e[0]]
+
+    if not sem_sinal:
+        # Só valores assinados: sem candidato a preço. Acontece se o layout
+        # mudar de novo; melhor devolver None e falar, que inventar.
+        if rotulo:
+            print(f"    {rotulo}: só encontrei valores com sinal "
+                  f"({', '.join(f'{s}{v}' for s, v, _ in com_sinal)}) — "
+                  f"nenhum candidato a preço")
+        return None
+
+    # Mais de um valor sem sinal (delta 0,00 sai sem sinal): o preço é o que
+    # está na mesma linha do percentual, que é como as duas edições imprimem.
+    if len(sem_sinal) > 1 and mp:
+        ini_linha = janela.rfind("\n", 0, mp.start()) + 1
+        fim_linha = janela.find("\n", mp.start())
+        fim_linha = len(janela) if fim_linha < 0 else fim_linha
+        na_linha = [e for e in sem_sinal if ini_linha <= e[2] < fim_linha]
+        if na_linha:
+            sem_sinal = na_linha
+
+    valor = sem_sinal[0][1]
+    delta = None
+    if com_sinal:
+        s_, v_, _ = com_sinal[0]
+        delta = -v_ if s_ == "-" else v_
+    return valor, delta, pct
 
 
 def semana_declarada(pg1) -> int | None:
@@ -482,9 +539,9 @@ def parse_pdf(fonte, rotulo: str, usar_ocr: bool = True) -> tuple[list, list]:
             return d
 
         # ── preço de referência (texto: funciona nos 4 layouts) ───────────
-        ref = ref_do_texto(pdf.pages[0].extract_text() or "")
+        ref = ref_do_texto(pdf.pages[0].extract_text() or "", rotulo)
         if not ref:
-            print(f"    {rotulo}: bloco de preço de referência não encontrado")
+            pass          # ref_do_texto ja imprimiu qual das checagens falhou
         elif not faixa_ok(ref[0], "EUR/caixa 4kg"):
             print(f"    {rotulo}: referência {ref[0]} fora da faixa — descartada")
             ref = None
@@ -787,9 +844,28 @@ def main() -> int:
                        f" · faltam {len(faltam)} semanas"
             print(txt)
 
+    # ── edição sem Hass 18 é falha de coleta, não detalhe ─────────────────
+    # A Hass 18 é a caixa "EU Reference Price—Hass grade 18": é a série do
+    # gráfico, o card de 04 últimas semanas e o número que o resumo cita.
+    # Antes, faltar ela só produzia um print e o job saía VERDE — quem via o
+    # vermelho era o job do resumo, na etapa seguinte, com mensagem que
+    # apontava para o lugar errado (17/08/2026, edição 33). Agora quem falhou
+    # é quem reclama.
+    sem_ref = sorted({(r["relatorio_ano"], r["relatorio_semana"])
+                      for r in precos if r.get("relatorio_semana") is not None}
+                     - {(r["relatorio_ano"], r["relatorio_semana"])
+                        for r in precos if r["grade"] == "Hass 18"})
+    if sem_ref:
+        print("\n  ATENÇÃO: edição(ões) sem a grade Hass 18: "
+              + ", ".join(f"S{w}/{a}" for a, w in sem_ref))
+        print("  A caixa de referência da página 1 não foi lida nessas edições. "
+              "As outras\n  grades entraram, mas o gráfico, o card de 4 semanas e "
+              "o resumo dependem da\n  Hass 18. Veja a linha de diagnóstico do "
+              "PDF correspondente acima.")
+
     if dry:
         print("\n  --dry-run: nada foi gravado.")
-        return 0
+        return 1 if sem_ref else 0
 
     print("\n[2] Upsert no Supabase...", flush=True)
     import supabase_upsert
@@ -806,7 +882,8 @@ def main() -> int:
                       f"HTTP {e['status']} — {e['detail']}")
         else:
             print(f"  OK {tabela}: {res['inserted']} registros")
-    return 1 if falhou else 0
+    # grava primeiro (o que veio é bom e o upsert é idempotente), reclama depois
+    return 1 if (falhou or sem_ref) else 0
 
 
 if __name__ == "__main__":

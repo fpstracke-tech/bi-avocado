@@ -352,10 +352,28 @@ def main() -> int:
         "relatorio_ano": f"eq.{ano_rel}", "relatorio_semana": f"eq.{sem_rel}",
         "order": "semana.desc", "limit": "1"})
     if not achou:
-        print(f"  ERRO: europa_cirad_precos não tem preço da edição "
-              f"{sem_rel}/{ano_rel}.\n"
-              f"  Rode o etl_europa_cirad.py neste PDF primeiro: o resumo cita "
-              f"preço,\n  e preço que não está no banco não pode ser citado.")
+        # A mensagem antiga dizia "não tem preço da edição", o que é falso
+        # quando a edição entrou com as outras grades e faltou SÓ a Hass 18 —
+        # foi o caso da 33/2026, e a mensagem custou meia hora de diagnóstico
+        # apontando para o lugar errado. Agora ela diz o que realmente falta.
+        outras = sb_get("europa_cirad_precos", {
+            "select": "grade", "relatorio_ano": f"eq.{ano_rel}",
+            "relatorio_semana": f"eq.{sem_rel}", "order": "grade.asc"})
+        if outras:
+            gs = ", ".join(sorted({str(r["grade"]) for r in outras}))
+            print(f"  ERRO: a edição {sem_rel}/{ano_rel} está no banco, mas sem a "
+                  f"grade Hass 18.\n"
+                  f"  Grades presentes: {gs}.\n"
+                  f"  A Hass 18 é a caixa 'EU Reference Price—Hass grade 18' da "
+                  f"página 1, não\n  a tabela de calibres. O etl_europa_cirad.py "
+                  f"provavelmente não achou esse bloco\n  (procure a linha de "
+                  f"diagnóstico dele no log) — sem ele o resumo não tem o número "
+                  f"que cita.")
+        else:
+            print(f"  ERRO: europa_cirad_precos não tem nenhum preço da edição "
+                  f"{sem_rel}/{ano_rel}.\n"
+                  f"  Rode o etl_europa_cirad.py neste PDF primeiro: o resumo cita "
+                  f"preço,\n  e preço que não está no banco não pode ser citado.")
         return 1
     ano, semana = int(achou[0]["ano"]), int(achou[0]["semana"])
     if semana != sem_rel:

@@ -23,8 +23,9 @@ Sem isso a bandeja entra 10x maior e destrói a média. Validado: depois de
 normalizar, as 8 unidades convergem para medianas de 2.100 a 4.900 CLP/kg;
 antes, iam de 2.100 a 42.000.
 
-Câmbio: ver `carregar_cambio`. Quatro camadas, começando pelo próprio banco.
-Gravado junto com o registro — a série não se revaloriza retroativamente.
+Câmbio: `cambio_fx.carregar` — banco primeiro, depois mindicador.cl (dólar
+observado BCCh), stooq e Yahoo. Gravado junto com o registro: a série não se
+revaloriza retroativamente.
 
 Uso:
     python etl_chile_odepa.py
@@ -38,15 +39,18 @@ import io
 import re
 import sys
 from collections import defaultdict
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timezone
 
 import requests
+
+import cambio_fx
 
 TABELA   = "precos_origem"
 CHAVE    = "data,pais,cidade,produto"
 PAIS     = "Chile"
 CIDADE   = "Santiago"
 PRODUTO  = "Palta Hass"
+PAR      = "USD/CLP"
 FONTE    = "ODEPA — precios mayoristas (datos.odepa.gob.cl)"
 
 # Mercados de Santiago. A ODEPA cobre 11 praças no país; a série do dashboard é
@@ -61,14 +65,6 @@ URL_CSV = (
     "/resource/580beca0-e87e-4dd4-9e8a-0bd92773f4a6"
     "/download/precio_mayorista_fruta-hortaliza_{ano}.csv"
 )
-
-URL_CAMBIO       = "https://mindicador.cl/api/dolar/{ano}"
-URL_CAMBIO_STOOQ = "https://stooq.com/q/d/l/?s=usdclp&i=d"
-URL_CAMBIO_YAHOO = ("https://query1.finance.yahoo.com/v8/finance/chart/CLP=X"
-                    "?period1={p1}&period2={p2}&interval=1d")
-
-FX_MIN, FX_MAX  = 500.0, 2000.0   # faixa de sanidade CLP/USD
-FX_TOLERANCIA   = 4               # dias que uma cotação anterior pode cobrir
 
 HEADERS = {
     "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -152,198 +148,6 @@ def baixar_csv(ano: int, tentativas: int = 4) -> str:
     raise RuntimeError(f"não consegui baixar o CSV da ODEPA: {erro}")
 
 
-# ── CÂMBIO ─────────────────────────────────────────────────────────────────────
-
-def _curto(e, n: int = 140) -> str:
-    """Erro de SSL vira parágrafo no log. Uma linha basta para diagnosticar."""
-    t = " ".join(str(e).split())
-    return t if len(t) <= n else t[:n] + "…"
-
-
-def _sanos(fx: dict) -> dict:
-    """Descarta cotação fora de 500–2000 CLP/USD. Fonte errada não entra calada."""
-    return {d: v for d, v in fx.items() if v and FX_MIN < float(v) < FX_MAX}
-
-
-def _fx_do_banco(ano: int) -> dict:
-    """
-    Camada 1 — o que JÁ ESTÁ no Supabase.
-
-    `precos_origem.cotacao_local` guarda a taxa usada em cada dia desde a
-    primeira carga. Então recarregar o ano inteiro não exige pedir de novo a
-    nenhum site aquilo que o banco já tem, e o histórico fica imune a queda de
-    API. Também é o que garante a promessa do cabeçalho: a série não se
-    revaloriza retroativamente, porque o valor gravado sempre vence o novo.
-    """
-    try:
-        import supabase_upsert
-    except ImportError:
-        return {}
-    linhas = supabase_upsert.select(TABELA, {
-        "select": "data,cotacao_local",
-        "pais":   f"eq.{PAIS}",
-        "data":   f"gte.{ano}-01-01",
-        "and":    f"(data.lte.{ano}-12-31)",
-        "limit":  "20000",
-    })
-    fx = _sanos({l["data"][:10]: float(l["cotacao_local"])
-                 for l in linhas if l.get("cotacao_local")})
-    if fx:
-        print(f"  câmbio/banco: {len(fx)} dias já gravados", flush=True)
-    return fx
-
-
-def _fx_mindicador(ano: int, tentativas: int = 3):
-    """Dólar observado BCCh. Fonte externa preferencial: é a taxa oficial."""
-    for i in range(tentativas):
-        try:
-            r = requests.get(URL_CAMBIO.format(ano=ano), headers=HEADERS, timeout=90)
-            r.raise_for_status()
-            fx = _sanos({p["fecha"][:10]: float(p["valor"])
-                         for p in r.json().get("serie", [])})
-            if not fx:
-                raise RuntimeError("série de câmbio vazia")
-            return fx, "mindicador.cl (dólar observado BCCh)"
-        except Exception as e:                       # noqa: BLE001
-            print(f"  câmbio/mindicador: tentativa {i+1}/{tentativas} falhou "
-                  f"({_curto(e)})", flush=True)
-    return {}, None
-
-
-def _fx_stooq(ano: int):
-    """CSV diário Date,Open,High,Low,Close. Sem chave, sem limite conhecido."""
-    try:
-        r = requests.get(URL_CAMBIO_STOOQ, headers=HEADERS, timeout=60)
-        r.raise_for_status()
-        txt = r.text
-        if not txt.lower().lstrip().startswith("date"):
-            raise RuntimeError(f"resposta não é CSV: {txt[:60]!r}")
-        fx = {}
-        for row in csv.DictReader(io.StringIO(txt)):
-            d = (row.get("Date") or "")[:10]
-            if not d.startswith(str(ano)):
-                continue
-            try:
-                fx[d] = float(row.get("Close") or 0)
-            except ValueError:
-                continue
-        fx = _sanos(fx)
-        if not fx:
-            raise RuntimeError(f"nenhuma cotação de {ano} no CSV")
-        return fx, "stooq.com USDCLP (fechamento de mercado)"
-    except Exception as e:                           # noqa: BLE001
-        print(f"  câmbio/stooq: falhou ({_curto(e)})", flush=True)
-        return {}, None
-
-
-def _fx_yahoo(ano: int):
-    """CLP=X. Yahoo bloqueia alguns IPs — por isso é a última, não a primeira."""
-    try:
-        p1 = int(datetime(ano - 1, 12, 1, tzinfo=timezone.utc).timestamp())
-        p2 = int(datetime(ano + 1, 1, 2, tzinfo=timezone.utc).timestamp())
-        r = requests.get(URL_CAMBIO_YAHOO.format(p1=p1, p2=p2),
-                         headers=HEADERS, timeout=60)
-        r.raise_for_status()
-        res = r.json()["chart"]["result"][0]
-        fx = {}
-        for t, c in zip(res["timestamp"], res["indicators"]["quote"][0]["close"]):
-            if c is None:
-                continue
-            d = datetime.fromtimestamp(t, timezone.utc).strftime("%Y-%m-%d")
-            if d.startswith(str(ano)):
-                fx[d] = float(c)
-        fx = _sanos(fx)
-        if not fx:
-            raise RuntimeError(f"nenhuma cotação de {ano} na série")
-        return fx, "Yahoo CLP=X (fechamento de mercado)"
-    except Exception as e:                           # noqa: BLE001
-        print(f"  câmbio/yahoo: falhou ({_curto(e)})", flush=True)
-        return {}, None
-
-
-def fx_da_data(fx: dict, d: str, tolerancia: int = FX_TOLERANCIA):
-    """
-    Dólar do dia; se não houver (feriado, fim de semana), o último anterior —
-    mas só até `tolerancia` dias atrás. Nunca um valor fixo, e nunca uma taxa
-    velha demais: arrastar a cotação de duas semanas atrás para um dia novo é
-    inventar preço em dólar tão silenciosamente quanto o fallback de 950 do
-    coletor antigo, só que mais difícil de perceber.
-    """
-    if d in fx:
-        return fx[d]
-    anteriores = [k for k in fx if k <= d]
-    if not anteriores:
-        return None
-    k = max(anteriores)
-    try:
-        atraso = (date.fromisoformat(d) - date.fromisoformat(k)).days
-    except ValueError:
-        return None
-    return fx[k] if atraso <= tolerancia else None
-
-
-def carregar_cambio(ano: int, datas: list[str], sem_cache: bool = False):
-    """
-    {'AAAA-MM-DD': CLP por USD} + descrição das fontes usadas.
-
-    Quatro camadas, nessa ordem:
-
-        1. Supabase (precos_origem.cotacao_local) — o que já foi gravado
-        2. mindicador.cl — dólar observado BCCh, a taxa oficial
-        3. stooq.com USDCLP
-        4. Yahoo CLP=X
-
-    A camada 1 vem primeiro e VENCE nas datas que cobre: o histórico não se
-    revaloriza e a recarga do ano não depende de nenhum site. As externas são
-    consultadas apenas se sobrar dia descoberto — numa rodada diária normal é
-    um dia só, e se o banco já cobre tudo nenhuma chamada externa acontece.
-
-    Histórico do problema: mindicador.cl deu Read timeout em 11/08/2026 e
-    SSLEOFError (corte de TLS, provável WAF contra IP de datacenter) em
-    20/08/2026. Nesse segundo caso o CSV da ODEPA baixou inteiro e os 156 dias
-    de Santiago foram descartados por falta de câmbio — o dado estava na mão e
-    foi jogado fora porque uma API de terceiro caiu. Com a camada 1 isso não se
-    repete: 155 dos 156 dias já estavam no banco.
-
-    Sem NENHUMA das quatro, o ETL segue abortando. Taxa fixa no código não é
-    plano B.
-    """
-    fx = {} if sem_cache else _fx_do_banco(ano)
-    if sem_cache:
-        print("  câmbio: --sem-cache, ignorando o banco", flush=True)
-    origens = ["Supabase (histórico)"] if fx else []
-
-    faltando = [d for d in datas if fx_da_data(fx, d) is None]
-    if not faltando:
-        print(f"  câmbio: banco cobre os {len(datas)} dias, "
-              f"nenhuma consulta externa necessária", flush=True)
-        return fx, " + ".join(origens)
-
-    print(f"  câmbio: {len(faltando)} dia(s) sem cotação no banco "
-          f"({faltando[0]} a {faltando[-1]}), buscando fonte externa", flush=True)
-
-    for tentar in (_fx_mindicador, _fx_stooq, _fx_yahoo):
-        novo, origem = tentar(ano)
-        if not novo:
-            continue
-        # o banco vence: só preenche o que falta
-        antes = len(faltando)
-        for d, v in novo.items():
-            fx.setdefault(d, v)
-        faltando = [d for d in datas if fx_da_data(fx, d) is None]
-        print(f"  câmbio: {origem} cobriu {antes - len(faltando)} dia(s)", flush=True)
-        origens.append(origem)
-        if not faltando:
-            break
-
-    if faltando:
-        print(f"  AVISO: {len(faltando)} dia(s) seguem sem câmbio: {faltando[:5]}",
-              flush=True)
-    return fx, " + ".join(origens) if origens else "nenhuma"
-
-
-# ── EXTRAÇÃO ───────────────────────────────────────────────────────────────────
-
 def extrair(csv_txt: str, ano: int) -> dict:
     por_data = defaultdict(lambda: {"min": [], "max": [], "med": [], "mercados": set()})
     desconhecidas, total_hass = set(), 0
@@ -391,7 +195,7 @@ def montar(por_data: dict, fx: dict) -> tuple[list[dict], list[str]]:
     out, sem_fx = [], []
     for d in sorted(por_data):
         b = por_data[d]
-        taxa = fx_da_data(fx, d)
+        taxa = cambio_fx.fx_da_data(fx, d)
         if not taxa:
             sem_fx.append(d)
             continue
@@ -404,7 +208,7 @@ def montar(por_data: dict, fx: dict) -> tuple[list[dict], list[str]]:
             "preco_min_usd":   round(min(b["min"]) / taxa, 4),
             "preco_max_usd":   round(max(b["max"]) / taxa, 4),
             "preco_medio_usd": round((sum(b["med"]) / len(b["med"])) / taxa, 4),
-            "cotacao_par":     "USD/CLP",
+            "cotacao_par":     PAR,
             "cotacao_local":   round(taxa, 4),
             "fonte":           FONTE,
             "extracted_at":    agora,
@@ -432,12 +236,13 @@ def main() -> int:
         return 1
 
     # o câmbio vem DEPOIS da extração, para pedir fora só os dias que faltam
-    fx, fonte_fx = carregar_cambio(ano, sorted(por_data), sem_cache=sem_cache)
+    fx, fonte_fx = cambio_fx.carregar(PAIS, PAR, ano, sorted(por_data),
+                                      sem_cache=sem_cache)
 
     regs, sem_fx = montar(por_data, fx)
     if not regs:
         print("  ERRO: nada a gravar — nenhum dia tem câmbio "
-              "(banco vazio e as três fontes externas fora do ar).")
+              "(banco vazio e as fontes externas fora do ar).")
         return 1
 
     meds = [r["preco_medio_usd"] for r in regs]

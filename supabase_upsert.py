@@ -164,6 +164,67 @@ def upsert(table: str, records: list[dict], batch_size: int = 500,
     return {"inserted": total, "errors": errors}
 
 
+# ── SELECT ─────────────────────────────────────────────────────────────────────
+def select(table: str, params: dict | None = None, tentativas: int = 4) -> list[dict]:
+    """
+    Leitura via PostgREST. Devolve lista de dicts, ou [] se não der para ler.
+
+    Existe porque o banco é a fonte mais confiável que os ETLs têm à mão: o que
+    já foi gravado uma vez não depende de nenhum site continuar no ar. O caso de
+    uso que motivou (20/08/2026) é o câmbio — `precos_origem.cotacao_local`
+    guarda a taxa de cada dia, então uma recarga do ano inteiro não precisa
+    pedir de novo ao mindicador.cl aquilo que já está no banco.
+
+    NUNCA levanta exceção: quem chama trata [] como "não tenho cache", não como
+    erro fatal. Um ETL não pode morrer porque o cache não respondeu.
+
+        select("precos_origem", {
+            "select": "data,cotacao_local",
+            "pais":   "eq.Chile",
+            "data":   "gte.2026-01-01",
+            "limit":  "10000",
+        })
+    """
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        print("    select: SUPABASE_URL/KEY ausentes, seguindo sem cache", flush=True)
+        return []
+
+    url     = f"{SUPABASE_URL}/rest/v1/{table}"
+    headers = {
+        "apikey":        SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Accept":        "application/json",
+    }
+    TRANSITORIOS = {408, 429, 500, 502, 503, 504}
+
+    for tentativa in range(tentativas):
+        try:
+            r = requests.get(url, headers=headers, params=params or {}, timeout=60)
+        except requests.RequestException as e:
+            print(f"    select {table}: rede falhou ({str(e)[:120]})", flush=True)
+            time.sleep(2 ** tentativa)
+            continue
+
+        if r.status_code == 200:
+            try:
+                dados = r.json()
+            except ValueError:
+                print(f"    select {table}: resposta não é JSON", flush=True)
+                return []
+            return dados if isinstance(dados, list) else []
+
+        transitorio = (r.status_code in TRANSITORIOS
+                       or (r.status_code == 401 and "PGRST303" in (r.text or "")))
+        if not transitorio:
+            print(f"    select {table}: HTTP {r.status_code} — {r.text[:200]}",
+                  flush=True)
+            return []
+        time.sleep(2 ** tentativa)
+
+    print(f"    select {table}: sem resposta em {tentativas} tentativas", flush=True)
+    return []
+
+
 def insert(table: str, records: list[dict], batch_size: int = 500) -> dict:
     """
     Insert simples (sem upsert) — para tabelas sem UNIQUE constraint.

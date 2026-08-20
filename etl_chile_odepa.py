@@ -9,8 +9,8 @@ a razão max/min era 1,1739 em todas (= 1,08 / 0,92). A série no dashboard era
 o gráfico do dólar/peso invertido.
 
 Fonte real: mesmo CSV oficial que o BI Limão já consome, um arquivo por ano
-civil com TODAS as frutas e hortaliças. Palta Hass em 2026: 5.787 registros,
-151 dias, 11 mercados, com Precio minimo/maximo/promedio de verdade.
+civil com TODAS as frutas e hortaliças. Palta Hass em 2026: 5.938 registros,
+156 dias, 11 mercados, com Precio minimo/maximo/promedio de verdade.
 
     https://datos.odepa.gob.cl/dataset/precios-mayoristas-de-frutas-y-hortalizas
 
@@ -23,13 +23,14 @@ Sem isso a bandeja entra 10x maior e destrói a média. Validado: depois de
 normalizar, as 8 unidades convergem para medianas de 2.100 a 4.900 CLP/kg;
 antes, iam de 2.100 a 42.000.
 
-Câmbio: dólar observado do Banco Central do Chile (mindicador.cl), por data.
+Câmbio: ver `carregar_cambio`. Quatro camadas, começando pelo próprio banco.
 Gravado junto com o registro — a série não se revaloriza retroativamente.
 
 Uso:
     python etl_chile_odepa.py
     python etl_chile_odepa.py --dry-run
-    python etl_chile_odepa.py --ano 2025      # recarga histórica
+    python etl_chile_odepa.py --ano 2025        # recarga histórica
+    python etl_chile_odepa.py --sem-cache       # ignora o banco, só fonte externa
 """
 
 import csv
@@ -37,7 +38,7 @@ import io
 import re
 import sys
 from collections import defaultdict
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 import requests
 
@@ -60,7 +61,14 @@ URL_CSV = (
     "/resource/580beca0-e87e-4dd4-9e8a-0bd92773f4a6"
     "/download/precio_mayorista_fruta-hortaliza_{ano}.csv"
 )
-URL_CAMBIO = "https://mindicador.cl/api/dolar/{ano}"
+
+URL_CAMBIO       = "https://mindicador.cl/api/dolar/{ano}"
+URL_CAMBIO_STOOQ = "https://stooq.com/q/d/l/?s=usdclp&i=d"
+URL_CAMBIO_YAHOO = ("https://query1.finance.yahoo.com/v8/finance/chart/CLP=X"
+                    "?period1={p1}&period2={p2}&interval=1d")
+
+FX_MIN, FX_MAX  = 500.0, 2000.0   # faixa de sanidade CLP/USD
+FX_TOLERANCIA   = 4               # dias que uma cotação anterior pode cobrir
 
 HEADERS = {
     "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -144,42 +152,199 @@ def baixar_csv(ano: int, tentativas: int = 4) -> str:
     raise RuntimeError(f"não consegui baixar o CSV da ODEPA: {erro}")
 
 
-def carregar_cambio(ano: int, tentativas: int = 4) -> dict:
-    """
-    {'AAAA-MM-DD': CLP por USD} — dólar observado BCCh.
+# ── CÂMBIO ─────────────────────────────────────────────────────────────────────
 
-    A mindicador.cl cai com alguma frequência (Read timeout observado em
-    11/08/2026). Sem câmbio o ETL ABORTA em vez de usar taxa fixa: era
-    exatamente o fallback silencioso de 950 do coletor antigo que fazia a série
-    parecer viva quando não estava.
+def _curto(e, n: int = 140) -> str:
+    """Erro de SSL vira parágrafo no log. Uma linha basta para diagnosticar."""
+    t = " ".join(str(e).split())
+    return t if len(t) <= n else t[:n] + "…"
+
+
+def _sanos(fx: dict) -> dict:
+    """Descarta cotação fora de 500–2000 CLP/USD. Fonte errada não entra calada."""
+    return {d: v for d, v in fx.items() if v and FX_MIN < float(v) < FX_MAX}
+
+
+def _fx_do_banco(ano: int) -> dict:
     """
-    erro = None
+    Camada 1 — o que JÁ ESTÁ no Supabase.
+
+    `precos_origem.cotacao_local` guarda a taxa usada em cada dia desde a
+    primeira carga. Então recarregar o ano inteiro não exige pedir de novo a
+    nenhum site aquilo que o banco já tem, e o histórico fica imune a queda de
+    API. Também é o que garante a promessa do cabeçalho: a série não se
+    revaloriza retroativamente, porque o valor gravado sempre vence o novo.
+    """
+    try:
+        import supabase_upsert
+    except ImportError:
+        return {}
+    linhas = supabase_upsert.select(TABELA, {
+        "select": "data,cotacao_local",
+        "pais":   f"eq.{PAIS}",
+        "data":   f"gte.{ano}-01-01",
+        "and":    f"(data.lte.{ano}-12-31)",
+        "limit":  "20000",
+    })
+    fx = _sanos({l["data"][:10]: float(l["cotacao_local"])
+                 for l in linhas if l.get("cotacao_local")})
+    if fx:
+        print(f"  câmbio/banco: {len(fx)} dias já gravados", flush=True)
+    return fx
+
+
+def _fx_mindicador(ano: int, tentativas: int = 3):
+    """Dólar observado BCCh. Fonte externa preferencial: é a taxa oficial."""
     for i in range(tentativas):
         try:
-            r = requests.get(URL_CAMBIO.format(ano=ano), timeout=90)
+            r = requests.get(URL_CAMBIO.format(ano=ano), headers=HEADERS, timeout=90)
             r.raise_for_status()
-            fx = {p["fecha"][:10]: float(p["valor"])
-                  for p in r.json().get("serie", [])}
+            fx = _sanos({p["fecha"][:10]: float(p["valor"])
+                         for p in r.json().get("serie", [])})
             if not fx:
                 raise RuntimeError("série de câmbio vazia")
-            print(f"  câmbio BCCh: {len(fx)} dias")
-            return fx
+            return fx, "mindicador.cl (dólar observado BCCh)"
         except Exception as e:                       # noqa: BLE001
-            erro = e
-            print(f"  câmbio: tentativa {i+1}/{tentativas} falhou ({e})")
-    print(f"  ERRO: câmbio indisponível depois de {tentativas} tentativas ({erro})")
-    return {}
+            print(f"  câmbio/mindicador: tentativa {i+1}/{tentativas} falhou "
+                  f"({_curto(e)})", flush=True)
+    return {}, None
 
 
-def fx_da_data(fx: dict, d: str):
-    """Dólar do dia; se não houver (feriado), o último anterior. Nunca um fixo."""
+def _fx_stooq(ano: int):
+    """CSV diário Date,Open,High,Low,Close. Sem chave, sem limite conhecido."""
+    try:
+        r = requests.get(URL_CAMBIO_STOOQ, headers=HEADERS, timeout=60)
+        r.raise_for_status()
+        txt = r.text
+        if not txt.lower().lstrip().startswith("date"):
+            raise RuntimeError(f"resposta não é CSV: {txt[:60]!r}")
+        fx = {}
+        for row in csv.DictReader(io.StringIO(txt)):
+            d = (row.get("Date") or "")[:10]
+            if not d.startswith(str(ano)):
+                continue
+            try:
+                fx[d] = float(row.get("Close") or 0)
+            except ValueError:
+                continue
+        fx = _sanos(fx)
+        if not fx:
+            raise RuntimeError(f"nenhuma cotação de {ano} no CSV")
+        return fx, "stooq.com USDCLP (fechamento de mercado)"
+    except Exception as e:                           # noqa: BLE001
+        print(f"  câmbio/stooq: falhou ({_curto(e)})", flush=True)
+        return {}, None
+
+
+def _fx_yahoo(ano: int):
+    """CLP=X. Yahoo bloqueia alguns IPs — por isso é a última, não a primeira."""
+    try:
+        p1 = int(datetime(ano - 1, 12, 1, tzinfo=timezone.utc).timestamp())
+        p2 = int(datetime(ano + 1, 1, 2, tzinfo=timezone.utc).timestamp())
+        r = requests.get(URL_CAMBIO_YAHOO.format(p1=p1, p2=p2),
+                         headers=HEADERS, timeout=60)
+        r.raise_for_status()
+        res = r.json()["chart"]["result"][0]
+        fx = {}
+        for t, c in zip(res["timestamp"], res["indicators"]["quote"][0]["close"]):
+            if c is None:
+                continue
+            d = datetime.fromtimestamp(t, timezone.utc).strftime("%Y-%m-%d")
+            if d.startswith(str(ano)):
+                fx[d] = float(c)
+        fx = _sanos(fx)
+        if not fx:
+            raise RuntimeError(f"nenhuma cotação de {ano} na série")
+        return fx, "Yahoo CLP=X (fechamento de mercado)"
+    except Exception as e:                           # noqa: BLE001
+        print(f"  câmbio/yahoo: falhou ({_curto(e)})", flush=True)
+        return {}, None
+
+
+def fx_da_data(fx: dict, d: str, tolerancia: int = FX_TOLERANCIA):
+    """
+    Dólar do dia; se não houver (feriado, fim de semana), o último anterior —
+    mas só até `tolerancia` dias atrás. Nunca um valor fixo, e nunca uma taxa
+    velha demais: arrastar a cotação de duas semanas atrás para um dia novo é
+    inventar preço em dólar tão silenciosamente quanto o fallback de 950 do
+    coletor antigo, só que mais difícil de perceber.
+    """
     if d in fx:
         return fx[d]
     anteriores = [k for k in fx if k <= d]
-    return fx[max(anteriores)] if anteriores else None
+    if not anteriores:
+        return None
+    k = max(anteriores)
+    try:
+        atraso = (date.fromisoformat(d) - date.fromisoformat(k)).days
+    except ValueError:
+        return None
+    return fx[k] if atraso <= tolerancia else None
 
 
-def extrair(csv_txt: str, ano: int) -> list[dict]:
+def carregar_cambio(ano: int, datas: list[str], sem_cache: bool = False):
+    """
+    {'AAAA-MM-DD': CLP por USD} + descrição das fontes usadas.
+
+    Quatro camadas, nessa ordem:
+
+        1. Supabase (precos_origem.cotacao_local) — o que já foi gravado
+        2. mindicador.cl — dólar observado BCCh, a taxa oficial
+        3. stooq.com USDCLP
+        4. Yahoo CLP=X
+
+    A camada 1 vem primeiro e VENCE nas datas que cobre: o histórico não se
+    revaloriza e a recarga do ano não depende de nenhum site. As externas são
+    consultadas apenas se sobrar dia descoberto — numa rodada diária normal é
+    um dia só, e se o banco já cobre tudo nenhuma chamada externa acontece.
+
+    Histórico do problema: mindicador.cl deu Read timeout em 11/08/2026 e
+    SSLEOFError (corte de TLS, provável WAF contra IP de datacenter) em
+    20/08/2026. Nesse segundo caso o CSV da ODEPA baixou inteiro e os 156 dias
+    de Santiago foram descartados por falta de câmbio — o dado estava na mão e
+    foi jogado fora porque uma API de terceiro caiu. Com a camada 1 isso não se
+    repete: 155 dos 156 dias já estavam no banco.
+
+    Sem NENHUMA das quatro, o ETL segue abortando. Taxa fixa no código não é
+    plano B.
+    """
+    fx = {} if sem_cache else _fx_do_banco(ano)
+    if sem_cache:
+        print("  câmbio: --sem-cache, ignorando o banco", flush=True)
+    origens = ["Supabase (histórico)"] if fx else []
+
+    faltando = [d for d in datas if fx_da_data(fx, d) is None]
+    if not faltando:
+        print(f"  câmbio: banco cobre os {len(datas)} dias, "
+              f"nenhuma consulta externa necessária", flush=True)
+        return fx, " + ".join(origens)
+
+    print(f"  câmbio: {len(faltando)} dia(s) sem cotação no banco "
+          f"({faltando[0]} a {faltando[-1]}), buscando fonte externa", flush=True)
+
+    for tentar in (_fx_mindicador, _fx_stooq, _fx_yahoo):
+        novo, origem = tentar(ano)
+        if not novo:
+            continue
+        # o banco vence: só preenche o que falta
+        antes = len(faltando)
+        for d, v in novo.items():
+            fx.setdefault(d, v)
+        faltando = [d for d in datas if fx_da_data(fx, d) is None]
+        print(f"  câmbio: {origem} cobriu {antes - len(faltando)} dia(s)", flush=True)
+        origens.append(origem)
+        if not faltando:
+            break
+
+    if faltando:
+        print(f"  AVISO: {len(faltando)} dia(s) seguem sem câmbio: {faltando[:5]}",
+              flush=True)
+    return fx, " + ".join(origens) if origens else "nenhuma"
+
+
+# ── EXTRAÇÃO ───────────────────────────────────────────────────────────────────
+
+def extrair(csv_txt: str, ano: int) -> dict:
     por_data = defaultdict(lambda: {"min": [], "max": [], "med": [], "mercados": set()})
     desconhecidas, total_hass = set(), 0
 
@@ -221,7 +386,7 @@ def extrair(csv_txt: str, ano: int) -> list[dict]:
     return por_data
 
 
-def montar(por_data: dict, fx: dict) -> list[dict]:
+def montar(por_data: dict, fx: dict) -> tuple[list[dict], list[str]]:
     agora = datetime.now(timezone.utc).isoformat()
     out, sem_fx = [], []
     for d in sorted(por_data):
@@ -244,13 +409,12 @@ def montar(por_data: dict, fx: dict) -> list[dict]:
             "fonte":           FONTE,
             "extracted_at":    agora,
         })
-    if sem_fx:
-        print(f"  AVISO: {len(sem_fx)} dias sem câmbio, fora da carga: {sem_fx[:5]}")
-    return out
+    return out, sem_fx
 
 
 def main() -> int:
-    dry = "--dry-run" in sys.argv
+    dry       = "--dry-run" in sys.argv
+    sem_cache = "--sem-cache" in sys.argv
     ano = date.today().year
     if "--ano" in sys.argv:
         ano = int(sys.argv[sys.argv.index("--ano") + 1])
@@ -261,20 +425,24 @@ def main() -> int:
     txt = baixar_csv(ano)
     print(f"  CSV baixado: {len(txt):,} caracteres")
 
-    fx = carregar_cambio(ano)
     por_data = extrair(txt, ano)
     if not por_data:
         print("  ERRO: nenhum registro de Palta Hass em Santiago. "
               "O layout do CSV ou o nome dos mercados mudou.")
         return 1
 
-    regs = montar(por_data, fx)
+    # o câmbio vem DEPOIS da extração, para pedir fora só os dias que faltam
+    fx, fonte_fx = carregar_cambio(ano, sorted(por_data), sem_cache=sem_cache)
+
+    regs, sem_fx = montar(por_data, fx)
     if not regs:
-        print("  ERRO: nada a gravar depois do câmbio.")
+        print("  ERRO: nada a gravar — nenhum dia tem câmbio "
+              "(banco vazio e as três fontes externas fora do ar).")
         return 1
 
     meds = [r["preco_medio_usd"] for r in regs]
     print(f"\n  {len(regs)} dias | {regs[0]['data']} a {regs[-1]['data']}")
+    print(f"  câmbio: {fonte_fx}")
     print(f"  USD/kg médio: {min(meds):.2f} – {max(meds):.2f} "
           f"(média {sum(meds)/len(meds):.2f})")
     print("  Últimos 5 dias:")
@@ -283,9 +451,17 @@ def main() -> int:
               f"{r['preco_medio_usd']:.2f} / {r['preco_max_usd']:.2f} USD/kg "
               f"@ {r['cotacao_local']:.2f} CLP")
 
+    # Semáforo: buraco velho é aviso, dia mais recente sem câmbio é falha.
+    # Um job vermelho todo dia treina a equipe a ignorar e-mail de falha, e aí
+    # a falha que importa passa batido — mesma regra do etl_europa_cirad.
+    ultimo = max(por_data)
+    if sem_fx:
+        print(f"\n  AVISO: {len(sem_fx)} dia(s) sem câmbio, fora da carga: "
+              f"{sem_fx[:5]}{' …' if len(sem_fx) > 5 else ''}")
+
     if dry:
         print("\n  --dry-run: nada foi gravado.")
-        return 0
+        return 1 if ultimo in sem_fx else 0
 
     print("\n[2] Upsert no Supabase...")
     import supabase_upsert
@@ -295,6 +471,11 @@ def main() -> int:
             print(f"  ERRO lote {e['batch_start']}: HTTP {e['status']} — {e['detail']}")
         return 1
     print(f"  OK: {res['inserted']} registros")
+
+    if ultimo in sem_fx:
+        print(f"  ERRO: o dia mais recente com preço ({ultimo}) ficou sem câmbio "
+              f"e não entrou. O histórico foi gravado; o dado novo, não.")
+        return 1
     return 0
 
 

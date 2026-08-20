@@ -31,13 +31,16 @@ Bônus que a fonte antiga não tinha: a coluna PROC traz a procedência
 brasileiro em Buenos Aires. Não estou explodindo por origem agora para manter
 o contrato de precos_origem, mas o dado está aqui quando quiser.
 
-Câmbio: dólar blue (bluelytics), value_sell, por data. Em Argentina o blue é a
-taxa economicamente relevante para comparar preço de importação.
+Câmbio: `cambio_fx.carregar` — banco primeiro, depois bluelytics, argentinadatos
+e dolarapi. Só fontes de BLUE: em Argentina o blue é a taxa economicamente
+relevante para comparar preço de importação, e misturar oficial com blue na
+mesma série produziria um degrau impossível de explicar depois.
 
 Uso:
     python etl_argentina_mcba.py
     python etl_argentina_mcba.py --dry-run
     python etl_argentina_mcba.py --ano 2025
+    python etl_argentina_mcba.py --sem-cache    # ignora o banco, só fonte externa
 """
 
 import io
@@ -48,6 +51,8 @@ from collections import defaultdict
 from datetime import date, datetime, timezone
 
 import requests
+
+import cambio_fx
 
 try:
     import xlrd
@@ -61,10 +66,10 @@ CHAVE   = "data,pais,cidade,produto"
 PAIS    = "Argentina"
 CIDADE  = "Buenos Aires"
 PRODUTO = "Palta Hass"
+PAR     = "USD/ARS blue"
 FONTE   = "Mercado Central de Buenos Aires — precios mayoristas (mercadocentral.gob.ar)"
 
-URL_LISTA  = "https://mercadocentral.gob.ar/informaci%C3%B3n/precios-mayoristas"
-URL_CAMBIO = "https://api.bluelytics.com.ar/v2/evolution.json"
+URL_LISTA = "https://mercadocentral.gob.ar/informaci%C3%B3n/precios-mayoristas"
 
 HEADERS = {
     "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -173,38 +178,9 @@ def parse_xls(nome: str, dados: bytes) -> tuple[str | None, list[dict]]:
     return d, linhas
 
 
-def carregar_cambio(tentativas: int = 4) -> dict:
-    """{'AAAA-MM-DD': ARS por USD} — blue, value_sell."""
-    erro = None
-    for i in range(tentativas):
-        try:
-            r = requests.get(URL_CAMBIO, timeout=90)
-            r.raise_for_status()
-            fx = {}
-            for p in r.json():
-                if (p.get("source") or "").lower() == "blue" and p.get("value_sell"):
-                    fx[p["date"]] = float(p["value_sell"])
-            if not fx:
-                raise RuntimeError("série blue vazia")
-            print(f"  câmbio blue: {len(fx)} dias")
-            return fx
-        except Exception as e:                        # noqa: BLE001
-            erro = e
-            print(f"  câmbio: tentativa {i+1}/{tentativas} falhou ({e})")
-    print(f"  ERRO: câmbio blue indisponível ({erro}). Abortando em vez de "
-          f"inventar taxa fixa.")
-    return {}
-
-
-def fx_da_data(fx: dict, d: str):
-    if d in fx:
-        return fx[d]
-    ant = [k for k in fx if k <= d]
-    return fx[max(ant)] if ant else None
-
-
 def main() -> int:
-    dry = "--dry-run" in sys.argv
+    dry       = "--dry-run" in sys.argv
+    sem_cache = "--sem-cache" in sys.argv
     ano = date.today().year
     if "--ano" in sys.argv:
         ano = int(sys.argv[sys.argv.index("--ano") + 1])
@@ -250,15 +226,15 @@ def main() -> int:
         print("  ERRO: nenhum dia com Palta Hass. Layout dos XLS mudou.")
         return 1
 
-    fx = carregar_cambio()
-    if not fx:
-        return 1
+    # o câmbio vem DEPOIS da extração, para pedir fora só os dias que faltam
+    fx, fonte_fx = cambio_fx.carregar(PAIS, PAR, ano, sorted(por_data),
+                                      sem_cache=sem_cache)
 
     agora = datetime.now(timezone.utc).isoformat()
     regs, sem_fx = [], []
     for d in sorted(por_data):
         linhas = por_data[d]
-        taxa = fx_da_data(fx, d)
+        taxa = cambio_fx.fx_da_data(fx, d)
         if not taxa:
             sem_fx.append(d)
             continue
@@ -272,16 +248,20 @@ def main() -> int:
             "preco_max_usd":   round(max(x["max"] for x in linhas) / taxa, 4),
             "preco_medio_usd": round((sum(x["moda"] for x in linhas)
                                       / len(linhas)) / taxa, 4),
-            "cotacao_par":     "USD/ARS blue",
+            "cotacao_par":     PAR,
             "cotacao_local":   round(taxa, 4),
             "fonte":           FONTE,
             "extracted_at":    agora,
         })
-    if sem_fx:
-        print(f"  AVISO: {len(sem_fx)} dias sem câmbio: {sem_fx[:5]}")
+
+    if not regs:
+        print("  ERRO: nada a gravar — nenhum dia tem câmbio "
+              "(banco vazio e as fontes de blue fora do ar).")
+        return 1
 
     meds = [r["preco_medio_usd"] for r in regs]
     print(f"\n  {len(regs)} dias | {regs[0]['data']} a {regs[-1]['data']}")
+    print(f"  câmbio: {fonte_fx}")
     print(f"  USD/kg (moda): {min(meds):.2f} – {max(meds):.2f} "
           f"(média {sum(meds)/len(meds):.2f})")
     print(f"  procedências vistas: {dict(sorted(procs.items(), key=lambda x: -x[1]))}")
@@ -291,9 +271,15 @@ def main() -> int:
               f"{r['preco_medio_usd']:.2f} / {r['preco_max_usd']:.2f} USD/kg "
               f"@ {r['cotacao_local']:.0f} ARS")
 
+    # Semáforo: buraco velho é aviso, dia mais recente sem câmbio é falha.
+    ultimo = max(por_data)
+    if sem_fx:
+        print(f"\n  AVISO: {len(sem_fx)} dia(s) sem câmbio, fora da carga: "
+              f"{sem_fx[:5]}{' …' if len(sem_fx) > 5 else ''}")
+
     if dry:
         print("\n  --dry-run: nada foi gravado.")
-        return 0
+        return 1 if ultimo in sem_fx else 0
 
     print("\n[2] Upsert no Supabase...")
     import supabase_upsert
@@ -303,6 +289,11 @@ def main() -> int:
             print(f"  ERRO lote {e['batch_start']}: HTTP {e['status']} — {e['detail']}")
         return 1
     print(f"  OK: {res['inserted']} registros")
+
+    if ultimo in sem_fx:
+        print(f"  ERRO: o dia mais recente com preço ({ultimo}) ficou sem câmbio "
+              f"e não entrou. O histórico foi gravado; o dado novo, não.")
+        return 1
     return 0
 
 

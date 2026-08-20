@@ -13,11 +13,12 @@ que sobram — numa rodada diária normal, um dia.
 
 Isso conserta uma classe inteira de falha, não um incidente:
 
-    20/08/2026 — Chile. mindicador.cl devolveu SSLEOFError (corte de TLS,
-    provável WAF contra IP de datacenter) nas 4 tentativas. O CSV de 26 MB da
-    ODEPA já tinha baixado e os 156 dias de Santiago já estavam extraídos.
-    Tudo foi descartado por falta de câmbio — sendo que 155 dos 156 dias já
-    estavam no Supabase.
+    20/08/2026 — Chile. mindicador.cl devolveu SSLEOFError (corte de TLS) nas
+    4 tentativas. O CSV de 26 MB da ODEPA já tinha baixado e os 156 dias de
+    Santiago já estavam extraídos. Tudo foi descartado por falta de câmbio —
+    sendo que 155 dos 156 dias já estavam no Supabase. Horas depois, no mesmo
+    dia, o site respondia 503 e Read timeout: é indisponibilidade do provedor,
+    não bloqueio do runner.
 
     11/08/2026 — Chile. Read timeout no mesmo mindicador.cl.
 
@@ -35,20 +36,19 @@ Uso:
     taxa = cambio_fx.fx_da_data(fx, "2026-08-19")
 """
 
-import csv
-import io
 from datetime import date, datetime, timezone
 
 import requests
 
 TABELA_CACHE = "precos_origem"
 TOLERANCIA   = 4          # dias que uma cotação anterior pode cobrir
+MAX_DATADAS  = 60         # teto de requisições por-data numa rodada
 
 # Faixa de sanidade por par. Fonte que devolve número fora disso está falando
 # de outra coisa (outra moeda, outro campo, página de erro) e não entra calada.
 FAIXAS = {
     "USD/CLP":      (500.0, 2000.0),
-    "USD/ARS blue": (200.0, 50000.0),   # inflação: 1.000 em 2024, 1.500+ em 2026
+    "USD/ARS blue": (200.0, 50000.0),   # inflação: 1.000 em 2024, 1.560 em 2026
     "USD/UYU":      (20.0, 100.0),
 }
 
@@ -128,15 +128,24 @@ def do_banco(pais: str, par: str, ano: int) -> dict:
 
 
 # ── CAMADAS EXTERNAS ───────────────────────────────────────────────────────────
-# Cada fonte é uma função (ano) -> (dict, rótulo). Nunca levanta exceção: quem
-# não conseguir devolve ({}, None) e a cascata segue para a próxima.
+# Cada fonte é uma função (ano, faltando) -> (dict, rótulo). `faltando` é a
+# lista de datas ainda descobertas, para as fontes que cobram por data em vez
+# de devolver a série inteira. Nunca levanta exceção: quem não conseguir
+# devolve ({}, None) e a cascata segue para a próxima.
+#
+# Testado ao vivo em 20/08/2026, todas as fontes abaixo respondendo, exceto
+# mindicador.cl (503/timeout — o incidente do dia).
+#
+# REPROVADO: stooq.com. O CSV de USDCLP e USDUYU está atrás de um desafio
+# JavaScript de proof-of-work ("This site requires JavaScript to verify your
+# browser"), que devolve HTTP 200 com HTML. Não serve para ETL headless.
 
-def mindicador_clp(ano: int, tentativas: int = 3):
+def mindicador_clp(ano: int, faltando=None):
     """Dólar observado do Banco Central do Chile. É a taxa oficial do país."""
-    for i in range(tentativas):
+    for i in range(3):
         try:
             r = requests.get(f"https://mindicador.cl/api/dolar/{ano}",
-                             headers=HEADERS, timeout=90)
+                             headers=HEADERS, timeout=60)
             r.raise_for_status()
             fx = _sanos({p["fecha"][:10]: p["valor"]
                          for p in r.json().get("serie", [])}, "USD/CLP")
@@ -144,17 +153,17 @@ def mindicador_clp(ano: int, tentativas: int = 3):
                 raise RuntimeError("série vazia")
             return fx, "mindicador.cl (dólar observado BCCh)"
         except Exception as e:                        # noqa: BLE001
-            print(f"  câmbio/mindicador: tentativa {i+1}/{tentativas} falhou "
-                  f"({curto(e)})", flush=True)
+            print(f"  câmbio/mindicador: tentativa {i+1}/3 falhou ({curto(e)})",
+                  flush=True)
     return {}, None
 
 
-def bluelytics_ars(ano: int, tentativas: int = 3):
+def bluelytics_ars(ano: int, faltando=None):
     """Blue, value_sell. Em Argentina o blue é a taxa economicamente relevante."""
-    for i in range(tentativas):
+    for i in range(3):
         try:
             r = requests.get("https://api.bluelytics.com.ar/v2/evolution.json",
-                             headers=HEADERS, timeout=90)
+                             headers=HEADERS, timeout=60)
             r.raise_for_status()
             fx = _sanos({p["date"]: p["value_sell"] for p in r.json()
                          if (p.get("source") or "").lower() == "blue"
@@ -163,25 +172,20 @@ def bluelytics_ars(ano: int, tentativas: int = 3):
                 raise RuntimeError("série blue vazia")
             return fx, "bluelytics.com.ar (blue, value_sell)"
         except Exception as e:                        # noqa: BLE001
-            print(f"  câmbio/bluelytics: tentativa {i+1}/{tentativas} falhou "
-                  f"({curto(e)})", flush=True)
+            print(f"  câmbio/bluelytics: tentativa {i+1}/3 falhou ({curto(e)})",
+                  flush=True)
     return {}, None
 
 
-def argentinadatos_ars(ano: int):
-    """
-    Série histórica de blue, provedor independente do bluelytics.
-
-    Só entram fontes de BLUE nesta cascata. Oficial e blue não são a mesma
-    taxa, e costurar as duas na mesma série produziria um degrau que ninguém
-    conseguiria explicar depois olhando só o gráfico.
-    """
+def argentinadatos_ars(ano: int, faltando=None):
+    """Série histórica de blue, provedor independente do bluelytics."""
     try:
         r = requests.get("https://api.argentinadatos.com/v1/cotizaciones/dolares/blue",
                          headers=HEADERS, timeout=60)
         r.raise_for_status()
         fx = _sanos({p["fecha"]: p.get("venta") for p in r.json()
-                     if p.get("fecha", "").startswith(str(ano))}, "USD/ARS blue")
+                     if str(p.get("fecha", "")).startswith(str(ano))},
+                    "USD/ARS blue")
         if not fx:
             raise RuntimeError(f"nenhuma cotação de {ano}")
         return fx, "argentinadatos.com (blue, venta)"
@@ -190,7 +194,7 @@ def argentinadatos_ars(ano: int):
         return {}, None
 
 
-def dolarapi_ars_hoje(ano: int):
+def dolarapi_ars_hoje(ano: int, faltando=None):
     """Blue de hoje. Cobre um dia só — que é o caso da rodada diária."""
     try:
         r = requests.get("https://dolarapi.com/v1/dolares/blue",
@@ -208,34 +212,9 @@ def dolarapi_ars_hoje(ano: int):
         return {}, None
 
 
-def stooq(simbolo: str, par: str):
-    """CSV diário Date,Open,High,Low,Close. Sem chave, sem limite conhecido."""
-    def fonte(ano: int):
-        try:
-            r = requests.get(f"https://stooq.com/q/d/l/?s={simbolo}&i=d",
-                             headers=HEADERS, timeout=60)
-            r.raise_for_status()
-            txt = r.text
-            if not txt.lower().lstrip().startswith("date"):
-                raise RuntimeError(f"resposta não é CSV: {txt[:60]!r}")
-            bruto = {}
-            for row in csv.DictReader(io.StringIO(txt)):
-                d = (row.get("Date") or "")[:10]
-                if d.startswith(str(ano)):
-                    bruto[d] = row.get("Close")
-            fx = _sanos(bruto, par)
-            if not fx:
-                raise RuntimeError(f"nenhuma cotação de {ano}")
-            return fx, f"stooq.com {simbolo.upper()} (fechamento de mercado)"
-        except Exception as e:                        # noqa: BLE001
-            print(f"  câmbio/stooq {simbolo}: falhou ({curto(e)})", flush=True)
-            return {}, None
-    return fonte
-
-
 def yahoo(ticker: str, par: str):
-    """Yahoo Finance. Bloqueia alguns IPs — por isso nunca é a primeira."""
-    def fonte(ano: int):
+    """Yahoo Finance, série do ano. Bloqueia alguns IPs — nunca é a primeira."""
+    def fonte(ano: int, faltando=None):
         try:
             p1 = int(datetime(ano - 1, 12, 1, tzinfo=timezone.utc).timestamp())
             p2 = int(datetime(ano + 1, 1, 2, tzinfo=timezone.utc).timestamp())
@@ -262,9 +241,70 @@ def yahoo(ticker: str, par: str):
     return fonte
 
 
+def currency_api(moeda: str, par: str):
+    """
+    currency-api (fawazahmed0) — um JSON por DATA, sem chave, servido por CDN.
+
+    É a fonte mais resiliente da cascata justamente por ser arquivo estático em
+    jsdelivr/Cloudflare Pages: não tem WAF, não tem rate limit prático, não sai
+    do ar como API de provedor pequeno. Conferido em 20/08/2026 até 24/10/2024,
+    que é o começo do acervo do Uruguai.
+
+    Pede UMA data por vez, então só entra na cascata depois das fontes que
+    devolvem o ano inteiro, e só para os dias que sobraram. `MAX_DATADAS` evita
+    que um backfill de 22 meses vire 500 requisições — nesse cenário o certo é
+    o banco cobrir, e se não cobre é sinal de problema maior.
+
+    Taxa mid-market. Para Argentina NÃO entra: o `ars` daqui é o OFICIAL
+    (1.495 em 19/08/2026, contra 1.560 do blue no mesmo dia), e costurar
+    oficial com blue na mesma série produziria um degrau impossível de
+    explicar depois olhando só o gráfico.
+    """
+    def fonte(ano: int, faltando=None):
+        alvos = sorted(set(faltando or []))[:MAX_DATADAS]
+        if not alvos:
+            return {}, None
+        hoje = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        bruto, erros = {}, 0
+        for d in alvos:
+            tag = "latest" if d >= hoje else \
+                  "{}.{}.{}".format(*[int(x) for x in d.split("-")])
+            urls = [
+                f"https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@{tag}"
+                f"/v1/currencies/usd.json",
+                f"https://{'latest' if tag == 'latest' else d}"
+                f".currency-api.pages.dev/v1/currencies/usd.json",
+            ]
+            for u in urls:
+                try:
+                    r = requests.get(u, headers=HEADERS, timeout=30)
+                    r.raise_for_status()
+                    j = r.json()
+                    v = (j.get("usd") or {}).get(moeda)
+                    # a data que vale é a que o arquivo declara, não a pedida
+                    quando = (j.get("date") or d)[:10]
+                    if v:
+                        bruto[quando] = v
+                        break
+                except Exception:                     # noqa: BLE001
+                    continue
+            else:
+                erros += 1
+        fx = _sanos(bruto, par)
+        if not fx:
+            print(f"  câmbio/currency-api: nenhuma das {len(alvos)} datas "
+                  f"respondeu", flush=True)
+            return {}, None
+        if erros:
+            print(f"  câmbio/currency-api: {erros} data(s) sem resposta",
+                  flush=True)
+        return fx, f"currency-api USD/{moeda.upper()} (por data)"
+    return fonte
+
+
 def erapi_hoje(moeda: str, par: str):
     """open.er-api.com — taxa de hoje, sem chave. Último recurso, cobre 1 dia."""
-    def fonte(ano: int):
+    def fonte(ano: int, faltando=None):
         try:
             r = requests.get("https://open.er-api.com/v6/latest/USD",
                              headers=HEADERS, timeout=30)
@@ -281,12 +321,13 @@ def erapi_hoje(moeda: str, par: str):
     return fonte
 
 
-# Ordem: oficial//relevante primeiro, depois provedores de mercado.
+# Ordem: a taxa oficial/relevante do país primeiro, depois séries de mercado,
+# por último as que cobrem pouco.
 CASCATAS = {
     "USD/CLP": [
         mindicador_clp,
-        stooq("usdclp", "USD/CLP"),
         yahoo("CLP=X", "USD/CLP"),
+        currency_api("clp", "USD/CLP"),
     ],
     "USD/ARS blue": [
         bluelytics_ars,
@@ -295,7 +336,7 @@ CASCATAS = {
     ],
     "USD/UYU": [
         yahoo("UYU=X", "USD/UYU"),
-        stooq("usduyu", "USD/UYU"),
+        currency_api("uyu", "USD/UYU"),
         erapi_hoje("UYU", "USD/UYU"),
     ],
 }
@@ -336,7 +377,7 @@ def carregar(pais: str, par: str, ano: int, datas: list[str],
           f"({faltando[0]} a {faltando[-1]}), buscando fonte externa", flush=True)
 
     for tentar in CASCATAS.get(par, []):
-        novo, rotulo = tentar(ano)
+        novo, rotulo = tentar(ano, faltando)
         if not novo:
             continue
         antes = len(faltando)

@@ -38,22 +38,24 @@ Os nomes dos PDF são inconsistentes ("...-10-de-agosto-de-2026.pdf" mas
 "...-6-de-noviembre-2025.pdf", sem o "de" antes do ano), então o coletor lê os
 href da página em vez de montar a URL.
 
-Câmbio: USD/UYU POR DATA, do Yahoo (ticker UYU=X via yfinance), gravado junto
-com cada registro. A primeira versão deste ETL aplicava UMA taxa (a do dia da
-execução) a todas as datas — o preço em UYU era real e datado, mas a conversão
-para USD não. Diferença medida em 11/08/2026: taxa do dia 40,2367 contra
-39,55 no início de julho, ou seja os valores de julho saíam ~1,7% baixos.
-É a mesma categoria de falha dos coletores antigos e foi corrigida.
+Câmbio: `cambio_fx.carregar` — USD/UYU POR DATA, banco primeiro, depois Yahoo
+UYU=X, stooq e open.er-api. A primeira versão deste ETL aplicava UMA taxa (a do
+dia da execução) a todas as datas — o preço em UYU era real e datado, mas a
+conversão para USD não. Diferença medida em 11/08/2026: taxa do dia 40,2367
+contra 39,55 no início de julho, ou seja os valores de julho saíam ~1,7% baixos.
 
-Se o Yahoo estiver fora, cai na open.er-api.com — que só dá a taxa de hoje.
-Nesse caso o ETL AVISA em letra grande que a série está com taxa única, porque
-esse é justamente o defeito que não pode passar calado.
+O modo "taxa única com aviso" SAIU. Agora ele é impossível por construção: a
+er-api só devolve a cotação de hoje, e no cambio_fx uma cotação só cobre os 4
+dias seguintes. Data sem câmbio próprio fica fora da carga em vez de receber
+uma taxa que não é dela. O guard-rail deixou de depender de alguém ler o aviso.
 
 Uso:
-    python etl_uruguai_uam.py                       # baixa e processa os boletins da página
+    python etl_uruguai_uam.py                       # boletins da página
     python etl_uruguai_uam.py --dry-run
-    python etl_uruguai_uam.py --arquivo b.pdf       # processa um PDF local (backfill)
+    python etl_uruguai_uam.py --arquivo b.pdf       # processa um PDF local
+    python etl_uruguai_uam.py --desde 2024-10-01    # backfill pelo acervo
     python etl_uruguai_uam.py --testar-cambio       # só confere a série de câmbio
+    python etl_uruguai_uam.py --sem-cache           # ignora o banco
 """
 
 import re
@@ -62,6 +64,8 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 
 import requests
+
+import cambio_fx
 
 try:
     import pdfplumber
@@ -74,11 +78,11 @@ CHAVE   = "data,pais,cidade,produto"
 PAIS    = "Uruguai"
 CIDADE  = "Montevideo"
 PRODUTO = "Palta Hass"
+PAR     = "USD/UYU"
 FONTE   = "UAM — boletín de precios mayoristas de referencia (uam.com.uy)"
 
-URL_LISTA  = "https://uam.com.uy/boletin-de-precios-mayoristas/"
-URL_API    = "https://uam.com.uy/wp-json/wp/v2/media"
-URL_CAMBIO = "https://open.er-api.com/v6/latest/USD"
+URL_LISTA = "https://uam.com.uy/boletin-de-precios-mayoristas/"
+URL_API   = "https://uam.com.uy/wp-json/wp/v2/media"
 
 HEADERS = {
     "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -293,90 +297,42 @@ def listar_boletins_html(tentativas: int = 4) -> list[str]:
     return []
 
 
-def cambio_yahoo(desde: str) -> dict:
-    """{'AAAA-MM-DD': UYU por USD} — fechamento diário do ticker UYU=X."""
-    import yfinance as yf
-    from datetime import timedelta
-    inicio = (date.fromisoformat(desde) - timedelta(days=15)).isoformat()
-    h = yf.Ticker("UYU=X").history(start=inicio)
-    if h is None or len(h) == 0:
-        raise RuntimeError("UYU=X devolveu série vazia")
-    fx = {}
-    for idx, linha in h.iterrows():
-        v = float(linha["Close"])
-        if v > 0:
-            fx[idx.date().isoformat()] = v
-    if not fx:
-        raise RuntimeError("nenhum fechamento válido em UYU=X")
-    return fx
-
-
-def cambio_hoje() -> float:
-    r = requests.get(URL_CAMBIO, timeout=60)
-    r.raise_for_status()
-    return float(r.json()["rates"]["UYU"])
-
-
-def carregar_cambio(datas: list[str], tentativas: int = 3):
+def carregar_cambio(datas: list[str], sem_cache: bool = False):
     """
-    Devolve (dict data->taxa, datado: bool).
+    Câmbio datado para uma lista de datas que pode cruzar anos.
 
-    datado=False significa taxa única para todas as datas — aceitável só como
-    último recurso, e o chamador tem que avisar na tela.
+    O backfill vai de 24/10/2024 a hoje, e `cambio_fx.carregar` trabalha por
+    ano civil (é assim que as fontes publicam). Aqui a lista é fatiada por ano
+    e os resultados unidos — as chaves são datas, então não há colisão.
     """
-    desde = min(datas)
-    erro = None
-    for i in range(tentativas):
-        try:
-            fx = cambio_yahoo(desde)
-            print(f"  câmbio USD/UYU: {len(fx)} dias do Yahoo "
-                  f"({min(fx)} a {max(fx)})", flush=True)
-            return fx, True
-        except Exception as e:                         # noqa: BLE001
-            erro = e
-            print(f"  câmbio Yahoo: tentativa {i+1}/{tentativas} falhou ({e})",
-                  flush=True)
-
-    print(f"  Yahoo indisponível ({erro}). Tentando taxa do dia...", flush=True)
-    try:
-        taxa = cambio_hoje()
-    except Exception as e:                             # noqa: BLE001
-        print(f"  ERRO: câmbio USD/UYU indisponível também na er-api ({e}).")
-        return None, False
-
-    print("  " + "!" * 68)
-    print(f"  AVISO: usando taxa ÚNICA de {taxa:.4f} para TODAS as {len(datas)} "
-          f"datas.")
-    print("  Os valores em USD de datas passadas ficam aproximados. Rode de novo")
-    print("  quando o Yahoo voltar para gravar com câmbio datado.")
-    print("  " + "!" * 68)
-    return {d: taxa for d in datas}, False
-
-
-def fx_da_data(fx: dict, d: str):
-    """Taxa do dia; se não houver (fim de semana, feriado), a última anterior."""
-    if d in fx:
-        return fx[d]
-    ant = [k for k in fx if k <= d]
-    return fx[max(ant)] if ant else None
+    fx, rotulos = {}, []
+    for ano in sorted({d[:4] for d in datas}):
+        do_ano = [d for d in datas if d.startswith(ano)]
+        parcial, rotulo = cambio_fx.carregar(PAIS, PAR, int(ano), do_ano,
+                                             sem_cache=sem_cache)
+        fx.update(parcial)
+        rotulos.append(f"{ano}: {rotulo}")
+    return fx, " · ".join(rotulos)
 
 
 def main() -> int:
-    dry = "--dry-run" in sys.argv
+    dry       = "--dry-run" in sys.argv
+    sem_cache = "--sem-cache" in sys.argv
     local = None
 
     # Confere só a série de câmbio, sem baixar nada da UAM. Serve para validar
-    # o yfinance isolado quando algo parecer errado nos valores em USD.
+    # a cascata isolada quando algo parecer errado nos valores em USD.
     if "--testar-cambio" in sys.argv:
         from datetime import timedelta
         hoje = date.today()
-        amostra = [(hoje - timedelta(days=k)).isoformat() for k in (30, 20, 10, 3, 0)]
-        fx, datado = carregar_cambio(amostra)
+        amostra = sorted((hoje - timedelta(days=k)).isoformat()
+                         for k in (30, 20, 10, 3, 0))
+        fx, rotulo = carregar_cambio(amostra, sem_cache=sem_cache)
         if not fx:
             return 1
-        print(f"  datado={datado}")
+        print(f"  fontes: {rotulo}")
         for d in amostra:
-            print(f"    {d} -> {fx_da_data(fx, d)}")
+            print(f"    {d} -> {cambio_fx.fx_da_data(fx, d)}")
         return 0
 
     if "--arquivo" in sys.argv:
@@ -439,29 +395,14 @@ def main() -> int:
         print("  ERRO: nada extraído.")
         return 1
 
-    fx, datado = carregar_cambio(sorted(por_data))
-    if not fx:
-        return 1
-
-    # Câmbio não datado é tolerável numa rodada diária (1-2 semanas, erro
-    # pequeno, aviso basta) e inaceitável num backfill: aplicar a taxa de hoje
-    # a 22 meses de boletim inventa a série em dólar inteira. Nesse caso é
-    # melhor não gravar nada.
-    span = (date.fromisoformat(max(por_data)) - date.fromisoformat(min(por_data))).days
-    if not datado and span > 45:
-        print(f"\n  ERRO: {len(por_data)} boletins cobrindo {span} dias, e o câmbio "
-              f"veio SEM data\n  (taxa única para tudo). Aplicar a cotação de hoje a "
-              f"esse intervalo inventaria\n  a série em USD, então nada foi gravado.\n"
-              f"  Rode de novo quando o UYU=X do Yahoo responder — de preferência da "
-              f"sua\n  máquina, que o alcança. O container do Claude e alguns runners "
-              f"não alcançam.")
-        return 1
+    # o câmbio vem DEPOIS da extração, para pedir fora só os dias que faltam
+    fx, fonte_fx = carregar_cambio(sorted(por_data), sem_cache=sem_cache)
 
     agora = datetime.now(timezone.utc).isoformat()
     regs, sem_fx = [], []
     for d in sorted(por_data):
         linhas = por_data[d]
-        taxa = fx_da_data(fx, d)
+        taxa = cambio_fx.fx_da_data(fx, d)
         if not taxa:
             sem_fx.append(d)
             continue
@@ -476,30 +417,35 @@ def main() -> int:
             "preco_min_usd":   round(min(x["min"] for x in linhas) / taxa, 4),
             "preco_max_usd":   round(max(x["max"] for x in linhas) / taxa, 4),
             "preco_medio_usd": round((sum(medias) / len(medias)) / taxa, 4),
-            "cotacao_par":     "USD/UYU",
+            "cotacao_par":     PAR,
             "cotacao_local":   round(taxa, 4),
             "fonte":           f"{FONTE} · origens: {'+'.join(origens)}",
             "extracted_at":    agora,
         })
 
     if sem_fx:
-        print(f"  AVISO: {len(sem_fx)} datas sem câmbio, fora da carga: {sem_fx}")
+        print(f"  AVISO: {len(sem_fx)} boletim(ns) sem câmbio próprio, fora da "
+              f"carga: {sem_fx[:5]}{' …' if len(sem_fx) > 5 else ''}")
     if not regs:
-        print("  ERRO: nada a gravar depois do câmbio.")
+        print("  ERRO: nada a gravar — nenhuma data tem câmbio "
+              "(banco vazio e as fontes de USD/UYU fora do ar).")
         return 1
 
     meds = [r["preco_medio_usd"] for r in regs]
-    print(f"\n  {len(regs)} boletins | {regs[0]['data']} a {regs[-1]['data']}"
-          f"{'' if datado else '  (CÂMBIO NÃO DATADO)'}")
+    print(f"\n  {len(regs)} boletins | {regs[0]['data']} a {regs[-1]['data']}")
+    print(f"  câmbio: {fonte_fx}")
     print(f"  USD/kg: {min(meds):.2f} – {max(meds):.2f}")
-    for r in regs:
+    for r in regs[-10:]:
         print(f"    {r['data']}  {r['preco_min_usd']:.2f} / {r['preco_medio_usd']:.2f} "
               f"/ {r['preco_max_usd']:.2f} USD/kg @ {r['cotacao_local']:.4f} UYU "
               f"[{r['fonte'].split('origens: ')[-1]}]")
 
+    # Semáforo: buraco velho é aviso, boletim mais recente sem câmbio é falha.
+    ultimo = max(por_data)
+
     if dry:
         print("\n  --dry-run: nada foi gravado.")
-        return 0
+        return 1 if ultimo in sem_fx else 0
 
     print("\n[2] Upsert no Supabase...")
     import supabase_upsert
@@ -509,6 +455,11 @@ def main() -> int:
             print(f"  ERRO lote {e['batch_start']}: HTTP {e['status']} — {e['detail']}")
         return 1
     print(f"  OK: {res['inserted']} registros")
+
+    if ultimo in sem_fx:
+        print(f"  ERRO: o boletim mais recente ({ultimo}) ficou sem câmbio e não "
+              f"entrou. O histórico foi gravado; o dado novo, não.")
+        return 1
     return 0
 
 

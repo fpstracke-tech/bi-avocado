@@ -1,0 +1,109 @@
+name: ETL Notícias e Câmbio
+
+on:
+  schedule:
+    # Câmbio: todo dia útil, 11:45 UTC (só Yahoo, sem custo).
+    # Notícias: segunda e quinta, 12:15 UTC. Cada rodada gasta 91 buscas da
+    # SerpAPI (13 queries × 7 países); o plano Starter tem 1.000/mês, então
+    # duas rodadas por semana (~790/mês) cabem com folga para rodadas manuais.
+    - cron: '45 11 * * 1-5'
+    - cron: '15 12 * * 1,4'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Só mostrar o que faria, sem gravar no Supabase'
+        type: boolean
+        required: false
+        default: false
+      so_cambio:
+        description: 'Só câmbio (não gasta SerpAPI)'
+        type: boolean
+        required: false
+        default: false
+
+concurrency:
+  group: etl-news
+  cancel-in-progress: false
+
+jobs:
+  etl:
+    name: Notícias e câmbio (SerpAPI + Yahoo → Supabase)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      issues: write
+      contents: read
+
+    env:
+      SUPABASE_URL:     ${{ secrets.SUPABASE_URL }}
+      SUPABASE_KEY:     ${{ secrets.SUPABASE_KEY }}
+      SERPAPI_KEY:      ${{ secrets.SERPAPI_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      ANTHROPIC_MODELO:  ${{ vars.ANTHROPIC_MODELO }}
+      PYTHONIOENCODING: utf-8
+      PYTHONUNBUFFERED: '1'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Instalar dependências
+        run: pip install --upgrade pip && pip install -r requirements.txt
+
+      - name: Conferir secrets
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_KEY" ]; then
+            echo "::error::SUPABASE_URL ou SUPABASE_KEY não configurados."
+            exit 1
+          fi
+
+      - name: ETL Notícias e Câmbio
+        run: |
+          args=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then args="$args --dry-run"; fi
+          # no cron das 11:45 só câmbio; notícias só no das 12:15 ou manual
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "${{ github.event.schedule }}" = "45 11 * * 1-5" ]; then
+            args="$args --so-cambio"
+          elif [ "${{ inputs.so_cambio }}" = "true" ]; then
+            args="$args --so-cambio"
+          fi
+          python etl_news.py $args
+      - name: Abrir issue em caso de falha
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prefixo = 'Falha ETL Notícias';
+            const run = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            // uma issue aberta por ETL: falha repetida vira comentário, não issue nova
+            const abertas = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo, state: 'open', labels: 'etl-falha' });
+            const ja = abertas.data.find(i => i.title.startsWith(prefixo));
+            if (ja) {
+              await github.rest.issues.createComment({ owner: context.repo.owner,
+                repo: context.repo.repo, issue_number: ja.number, body: `Falhou de novo: ${run}` });
+              return;
+            }
+            await github.rest.issues.create({
+              owner: context.repo.owner, repo: context.repo.repo,
+              title: `${prefixo} — ${new Date().toISOString().slice(0,16).replace('T',' ')} UTC`,
+              labels: ['etl-falha', 'news'],
+              body: [
+                '**ETL:** Notícias (SerpAPI) e câmbio (Yahoo) → Supabase `news` e `cambio`',
+                '',
+                'Causas mais comuns:',
+                '1. Cota da SerpAPI esgotada no mês (HTTP 429): ver serpapi.com/dashboard.',
+                '2. `SERPAPI_KEY` ausente ou revogada.',
+                '3. Yahoo sem cotação para algum par: aparece como aviso, não derruba as notícias.',
+                '',
+                'Para reproduzir local: `python etl_news.py --dry-run`',
+                '',
+                `**Run:** ${run}`,
+              ].join('\n'),
+            });

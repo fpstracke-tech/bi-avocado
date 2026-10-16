@@ -948,14 +948,68 @@ async function carregaJanela(){
   return l.length;
 }
 
+/* Clima: previsao diaria hoje..hoje+7 (Open-Meteo, etl_clima.py).
+   Espelho das medidas do PBI: "Acumulado 7 dias (mm)" e "Descricao" (alerta >= 10 mm). */
 async function carregaClima(){
-  const l = await sbFetch('v_clima_acumulado_7d',
-    {select:'pais,cidade,acumulado_7d_mm,ultima_data', order:'acumulado_7d_mm.desc'});
+  const l = await sbFetch('v_clima_previsao',
+    {select:'data,pais,regiao,temp_max,temp_min,chuva_mm', order:'pais.asc,regiao.asc,data.asc'});
   if(!l.length) throw new Error('tabela vazia');
   const porPais = {};
-  l.forEach(r => (porPais[r.pais] = porPais[r.pais]||[]).push(
-    {cidade:r.cidade, acumulado_mm:+r.acumulado_7d_mm, descricao:''}));
-  Object.keys(porPais).forEach(p => { if(SNAP.newsletters[p]) SNAP.newsletters[p].chuva7d = porPais[p]; });
+  l.forEach(r => {
+    const P = porPais[r.pais] = porPais[r.pais] || {dias:new Set(), reg:{}};
+    P.dias.add(r.data);
+    const R = P.reg[r.regiao] = P.reg[r.regiao] || {};
+    R[r.data] = {tmax: r.temp_max==null?null:+r.temp_max, chuva: r.chuva_mm==null?0:+r.chuva_mm};
+  });
+  DATA.clima = {};
+  Object.keys(porPais).forEach(p => {
+    const P = porPais[p], dias = Array.from(P.dias).sort(), regs = Object.keys(P.reg).sort();
+    const chuva7d = regs.map(g => {
+      const mm = dias.reduce((a,d)=> a + ((P.reg[g][d]||{}).chuva||0), 0);
+      return {cidade:g, acumulado_mm:+mm.toFixed(1), descricao: mm>=10 ? 'Chuva significativa prevista' : 'Sem chuva relevante'};
+    }).sort((a,b)=>b.acumulado_mm-a.acumulado_mm);
+    DATA.clima[p] = {vivo:true, dias, cidades:regs, chuva7d,
+      serie: regs.map(g => ({regiao:g, tmax:dias.map(d=>(P.reg[g][d]||{}).tmax??null), chuva:dias.map(d=>(P.reg[g][d]||{}).chuva??null)}))};
+  });
+  return l.length;
+}
+
+/* Share Brasil: tabela comexstat (etl_comexstat.py, API do MDIC, NCM 0804.40.00).
+   Mesma conta do DAX: Total Containers = CEILING(SUM(kg)/23760) NO NIVEL da agregacao
+   (celula pais x mes, total do mes, total do pais), nao soma de celulas arredondadas. */
+async function carregaComex(){
+  const ano = new Date().getFullYear();
+  let l = await sbFetch('comexstat', {select:'ano,mes,pais_destino,peso_kg', ano:'eq.'+ano});
+  let a = ano;
+  if(!l.length){ a = ano-1; l = await sbFetch('comexstat', {select:'ano,mes,pais_destino,peso_kg', ano:'eq.'+a}); }
+  if(!l.length) throw new Error('tabela vazia');
+  const ctn = kg => kg>0 ? Math.ceil(kg/23760) : 0;
+  const meses = Array.from(new Set(l.map(r=>+r.mes))).sort((x,y)=>x-y);
+  const kgPM = {}, kgM = {}, kgP = {};
+  let kgT = 0;
+  l.forEach(r => { const kg = +r.peso_kg||0, m = +r.mes, p = r.pais_destino;
+    (kgPM[p] = kgPM[p]||{})[m] = ((kgPM[p]||{})[m]||0) + kg;
+    kgM[m] = (kgM[m]||0) + kg; kgP[p] = (kgP[p]||0) + kg; kgT += kg; });
+  const totM = {}; meses.forEach(m => totM[m] = ctn(kgM[m]));
+  const totT = ctn(kgT);
+  const paises = Object.keys(kgP).map(p => {
+    const por_mes = {};
+    meses.forEach(m => { const k = (kgPM[p]||{})[m];
+      if(k!=null){ const c = ctn(k); por_mes[m] = {containers:c, pct: totM[m] ? +(c/totM[m]).toFixed(4) : null}; } });
+    const c = ctn(kgP[p]);
+    return {pais:p, por_mes, total:{containers:c, pct: totT ? +(c/totT).toFixed(4) : null}};
+  }).sort((x,y)=>y.total.containers-x.total.containers);
+  const total_geral = {por_mes:{}, total:{containers:totT, pct:1}};
+  meses.forEach(m => total_geral.por_mes[m] = {containers:totM[m], pct:1});
+  // DAX "% Mes Anterior": ultimo mes publicado contra o anterior, por pais
+  const ult = meses[meses.length-1], ant = meses.length>1 ? meses[meses.length-2] : null;
+  const pct_mes_anterior = ant==null ? [] : paises.map(p => {
+      const c1 = ctn((kgPM[p.pais]||{})[ult]||0), c0 = ctn((kgPM[p.pais]||{})[ant]||0);
+      return {pais:p.pais, v: c0 ? (c1-c0)/c0 : null};
+    }).filter(x=>x.v!=null).sort((x,y)=>y.v-x.v)
+      .map(x=>({pais:x.pais, pct: Math.round(x.v*100)+'%'}));
+  DATA.share = {vivo:true, ano:a, meses, paises, total_geral, pct_mes_anterior,
+    periodo: MESA[meses[0]].toLowerCase()+' a '+MESA[ult].toLowerCase()+'/'+a, ult, ant};
   return l.length;
 }
 
@@ -975,6 +1029,7 @@ async function carregarSupabase(){
     bloco('logistica_rotas', carregaRotas),
     bloco('janela_producao', carregaJanela),
     bloco('clima',           carregaClima),
+    bloco('comexstat',       carregaComex),
   ]);
   const vivos = r.filter(Boolean).length;
   if(!vivos) FONTE_DADOS = { modo:'embutido', detalhe:'nenhuma tabela respondeu', em:null };
@@ -1533,15 +1588,21 @@ function chartEuropaSnapshot(){
 const PAISES_NL = ['Brasil','Chile','Marrocos','Israel','Colômbia','Espanha','Peru'];
 let paisAtual = 'Brasil';
 
+function climaDe(pais, snap){
+  const v = DATA.clima && DATA.clima[pais];
+  if(v) return {chuva:v.chuva7d, clima:v};
+  return {chuva: snap?snap.chuva7d:null, clima: snap?snap.clima:null};
+}
+
 function blocoNL(pais){
   const k = pais.toLowerCase().replace(/ô/g,'o').replace(/[^a-z]/g,'');
   const vivo = DATA.news[k], snap = SNAP.newsletters[pais];
   if(vivo) return {origem:'coletor', dataRef:vivo.cambio.data, cambio:vivo.cambio,
     tabelas:[{titulo:'Vis&atilde;o geral',linhas:vivo.geral},{titulo:'Regula&ccedil;&atilde;o',linhas:vivo.regulacao},{titulo:'Log&iacute;stica',linhas:vivo.logistica}].filter(t=>t.linhas&&t.linhas.length),
-    chuva: snap?snap.chuva7d:null, clima: snap?snap.clima:null};
+    chuva: climaDe(pais, snap).chuva, clima: climaDe(pais, snap).clima};
   return {origem:'pbi', dataRef:SNAP.meta.exportado_em, cambio:snap.cambio,
     tabelas:(snap.tabelas||[]).map(t=>({titulo:esc(t.titulo),linhas:t.linhas})),
-    chuva:snap.chuva7d, clima:snap.clima};
+    chuva: climaDe(pais, snap).chuva, clima: climaDe(pais, snap).clima};
 }
 
 RENDER.news = function(){
@@ -1584,7 +1645,13 @@ function corpoNL(pais){
       '</tbody></table></div>', 'chart-card');
   });
 
-  if(b.clima){
+  if(b.clima && b.clima.vivo){
+    const dd = b.clima.dias, ini = dtBR(dd[0]), fim = dtBR(dd[dd.length-1]);
+    h += '<div class="two-col">'+
+      chartCard('Temperatura m&aacute;xima prevista', 'chartClimaTemp', '<span class="badge">&ordm;C &middot; '+ini+' a '+fim+'</span>')+
+      chartCard('Precipita&ccedil;&atilde;o prevista', 'chartClimaChuva', '<span class="badge">mm/dia &middot; Open-Meteo</span>')+
+    '</div>';
+  } else if(b.clima){
     h += card('<div class="chart-header"><span class="chart-title">Clima &mdash; regi&otilde;es produtoras monitoradas</span></div>'+
       '<div class="filter-bar">'+(b.clima.cidades||[]).map(c=>'<span class="ntag">'+esc(c)+'</span>').join('')+'</div>'+
       aviso('Os gr&aacute;ficos de <b>Temp &ordm;C</b> e <b>Precipita&ccedil;&atilde;o (mm)</b> vinham de consulta direta a API de clima dentro do Power BI (<code>Weather_Avocado</code> / <code>Weather_Local</code>). N&atilde;o existe arquivo desses dados no projeto e os r&oacute;tulos do PDF n&atilde;o permitem reassociar valor &rarr; cidade &rarr; dia. Cobertura no relat&oacute;rio: '+((b.clima.dias||[]).length)+' dias, '+((b.clima.cidades||[]).length)+' cidades. O BI Lim&atilde;o j&aacute; tem <code>etl_clima_openweather.py</code> resolvendo exatamente isso.'), 'chart-card');
@@ -1593,6 +1660,22 @@ function corpoNL(pais){
     h += aviso('N&atilde;o existe coletor de not&iacute;cias para <b>'+esc(pais)+'</b> no projeto &mdash; s&oacute; Brasil e Chile t&ecirc;m <code>news_*.py</code>. O conte&uacute;do acima &eacute; o snapshot do export de 15/06/2026 e n&atilde;o se atualiza.');
   }
   $('news-body').innerHTML = h;
+  if(b.clima && b.clima.vivo) climaCharts(b.clima);
+}
+
+function climaCharts(c){
+  const labels = c.dias.map(d => d.slice(8,10)+'/'+d.slice(5,7));
+  const ds = (campo, tipo) => c.serie.map((s,i) => ({label:s.regiao, data:s[campo],
+    borderColor:PALETTE[i%11], backgroundColor:PALETTE[i%11], borderWidth:2, pointRadius:2,
+    tension:.3, spanGaps:false, borderRadius:3, maxBarThickness:14}));
+  mk('chartClimaTemp', {type:'line', data:{labels, datasets:ds('tmax')},
+    options:{plugins:{legend:{display:true, position:'bottom', labels:{boxWidth:10, font:{size:10}}},
+      tooltip:{callbacks:{label:x=>x.dataset.label+': '+nf(x.parsed.y,1)+' \u00baC'}}},
+      scales:{x:{grid:NOGRID}, y:{grid:GRID}}}});
+  mk('chartClimaChuva', {type:'bar', data:{labels, datasets:ds('chuva')},
+    options:{plugins:{legend:{display:true, position:'bottom', labels:{boxWidth:10, font:{size:10}}},
+      tooltip:{callbacks:{label:x=>x.dataset.label+': '+nf(x.parsed.y,1)+' mm'}}},
+      scales:{x:{grid:NOGRID}, y:{grid:GRID, beginAtZero:true}}}});
 }
 
 /* ══ LOGISTICA ═══════════════════════════════════════════════ */
@@ -1747,7 +1830,8 @@ const MESN = {1:'Janeiro',2:'Fevereiro',3:'Mar&ccedil;o',4:'Abril',5:'Maio',6:'J
 const MESA = {1:'Jan',2:'Fev',3:'Mar',4:'Abr',5:'Mai',6:'Jun',7:'Jul',8:'Ago',9:'Set',10:'Out',11:'Nov',12:'Dez'};
 
 RENDER.share = function(){
-  const S = SNAP.share_brasil, tg = S.total_geral;
+  const S = DATA.share || SNAP.share_brasil, tg = S.total_geral;
+  const per = S.vivo ? S.periodo : 'jan a mai/2026';
   const cel = (o,m) => o[m] || o[String(m)] || {};
   const top = S.paises.slice().filter(p=>p.total.containers).sort((a,b)=>b.total.containers-a.total.containers);
   const mesPico = S.meses.reduce((a,m)=> (cel(tg.por_mes,m).containers||0) > (cel(tg.por_mes,a).containers||0) ? m : a, S.meses[0]);
@@ -1770,33 +1854,35 @@ RENDER.share = function(){
 
   $('page-share').innerHTML =
     pageHeader('Log&iacute;stica &middot; Comexstat', 'Share Brasil',
-               'Containers exportados por pa&iacute;s de destino e m&ecirc;s &mdash; jan a mai/2026.')+
+               'Containers exportados por pa&iacute;s de destino e m&ecirc;s &mdash; '+per+'.')+
     '<div class="kpi-grid">'+
-      kpi('Containers acumulados', ni(tg.total.containers), 'jan a mai/2026')+
+      kpi('Containers acumulados', ni(tg.total.containers), per)+
       kpi('Destinos ativos', String(top.length), 'de '+S.paises.length+' pa&iacute;ses na matriz')+
       kpi('Principal destino', esc(top[0].pais.replace(' (Holanda)','')), ni(top[0].total.containers)+' ctn &middot; '+nf(top[0].total.pct*100,0)+'%', null, 'kpi-value-sm')+
       kpi('M&ecirc;s de pico', MESN[mesPico], ni(cel(tg.por_mes,mesPico).containers)+' containers', null, 'kpi-value-sm')+
     '</div>'+
     '<div class="two-col">'+
-      chartCard('Containers exportados por m&ecirc;s', 'chartShareMes', '<span class="badge">2026</span>')+
+      chartCard('Containers exportados por m&ecirc;s', 'chartShareMes', '<span class="badge">'+(S.ano||2026)+'</span>')+
       chartCard('Share por destino', 'chartShareDest', '<span class="badge">acumulado</span>')+
     '</div>'+
     card('<div class="chart-header"><span class="chart-title">Containers e % por pa&iacute;s de destino &times; m&ecirc;s</span></div>'+
       '<div class="table-wrap">'+tbl+'</div>', 'chart-card')+
     '<div class="two-col">'+
-      card('<div class="chart-header"><span class="chart-title">% m&ecirc;s anterior</span></div>'+
+      card('<div class="chart-header"><span class="chart-title">% m&ecirc;s anterior</span>'+(S.vivo&&S.ant?'<span class="badge">'+MESA[S.ult]+' vs '+MESA[S.ant]+'</span>':'')+'</div>'+
         '<div class="table-wrap"><table class="table-compacta"><thead><tr><th>Pa&iacute;s</th><th style="text-align:right">% m&ecirc;s anterior</th></tr></thead><tbody>'+
         S.pct_mes_anterior.map(x=>'<tr><td style="color:var(--text);font-weight:500">'+esc(x.pais)+'</td><td style="text-align:right">'+esc(x.pct)+'</td></tr>').join('')+
         '</tbody></table></div>')+
       card('<div class="chart-header"><span class="chart-title">Origem do dado</span></div>'+
-        '<div class="fontes-list">A tabela <code>Comexstat</code> do Power BI n&atilde;o tem arquivo nem coletor neste projeto. Os n&uacute;meros vieram do export PDF do relat&oacute;rio (15/06/2026).</div>'+
-        aviso('No export, a matriz e a tabela de % m&ecirc;s anterior aparecem <b>roladas</b>: apenas as linhas vis&iacute;veis foram capturadas ('+S.paises.length+' pa&iacute;ses na matriz, '+S.pct_mes_anterior.length+' em % m&ecirc;s anterior). O BI Lim&atilde;o j&aacute; tem <code>etl_comexstat.py</code> &mdash; adaptar para o NCM 0804.40.00 resolve.'))+
+        (S.vivo
+          ? '<div class="fontes-list">API p&uacute;blica do MDIC (Comexstat), exporta&ccedil;&atilde;o do NCM <b>0804.40.00</b> por pa&iacute;s de destino, coletada todo dia &uacute;til por <code>etl_comexstat.py</code>. Container = 23.760 kg l&iacute;quidos, arredondado para cima em cada n&iacute;vel, como a medida <code>Total Containers</code> do Power BI.</div>'
+          : '<div class="fontes-list">Snapshot do export PDF do relat&oacute;rio (15/06/2026): a tabela <code>comexstat</code> n&atilde;o respondeu.</div>'+
+            aviso('No export, a matriz e a tabela de % m&ecirc;s anterior aparecem <b>roladas</b>: apenas as linhas vis&iacute;veis foram capturadas.')))+
     '</div>';
   RENDER.shareCharts();
 };
 
 RENDER.shareCharts = function(){
-  const S = SNAP.share_brasil, tg = S.total_geral;
+  const S = DATA.share || SNAP.share_brasil, tg = S.total_geral;
   const cel = (o,m) => o[m] || o[String(m)] || {};
   mk('chartShareMes', {type:'bar', plugins:[barLabels], data:{labels:S.meses.map(m=>MESA[m]),
       datasets:[{data:S.meses.map(m=>cel(tg.por_mes,m).containers||0), backgroundColor:'#8DC63F', hoverBackgroundColor:'#A5D95C', borderRadius:4, maxBarThickness:48}]},
@@ -1822,15 +1908,15 @@ const DEPARA = [
   ['Transit Time (global)','logistica','Pa&iacute;s, Pa&iacute;s Destino, Mediana / TT M&eacute;dio','TFRUITS Estudo de rotas.xlsx','ok'],
   ['Transit Time (Brasil)','logistica_brasil','Modal, Porto, M&eacute;dia de Transit time','TFRUITS Estudo de rotas Brasil_v2.xlsx','ok'],
   ['Produ&ccedil;&atilde;o Global','janela_avocado_ordenada_produca + DimMes','Pa&iacute;s, MesNome, Soma de N&iacute;velProdu&ccedil;&atilde;o','janela_avocado_ordenada_producao_ordempais.csv (13 de 15 pa&iacute;ses)','parcial'],
-  ['Share Brasil','Comexstat','Pa&iacute;s, M&ecirc;s, Containers, %','nenhum arquivo nem coletor','falta'],
+  ['Share Brasil','Comexstat','Pa&iacute;s, M&ecirc;s, Containers, %','comexstat no Supabase &mdash; <code>etl_comexstat.py</code> (API MDIC, NCM 0804.40.00), mesma conta de containers do DAX','validado'],
   ['Newsletter Brasil','historico_brasil, historico_brasil_cambio','Data, Tag, Impacto, Descri&ccedil;&atilde;o, Fonte','news_brasil.csv + news_brasil_cambio.csv','ok'],
   ['Newsletter Chile','historico_chile (+ regulacao, logistica, cambio)','idem','news_chile.csv + regulacao_chile.csv + logistica_chile.csv + news_chile_cambio.csv','ok'],
-  ['Newsletter Marrocos','historico_marrocos*','idem','nenhum coletor','falta'],
-  ['Newsletter Israel','historico_israel*','idem','nenhum coletor','falta'],
-  ['Newsletter Col&ocirc;mbia','historico_colombia*','idem','nenhum coletor','falta'],
-  ['Newsletter Espanha','historico_espanha*','idem','nenhum coletor','falta'],
-  ['Newsletter Peru','historico_peru*','idem','nenhum coletor','falta'],
-  ['Clima (todas as newsletters)','Weather_Avocado, Weather_Local','Cidade, Temp, Chuva, Acumulado 7 dias','API consultada dentro do PBI &mdash; nenhum arquivo','falta']
+  ['Newsletter Marrocos','historico_marrocos*','idem','news + cambio no Supabase &mdash; <code>etl_news.py</code> (SerpAPI 2x/semana, c&acirc;mbio di&aacute;rio)','ok'],
+  ['Newsletter Israel','historico_israel*','idem','news + cambio no Supabase &mdash; <code>etl_news.py</code> (SerpAPI 2x/semana, c&acirc;mbio di&aacute;rio)','ok'],
+  ['Newsletter Col&ocirc;mbia','historico_colombia*','idem','news + cambio no Supabase &mdash; <code>etl_news.py</code> (SerpAPI 2x/semana, c&acirc;mbio di&aacute;rio)','ok'],
+  ['Newsletter Espanha','historico_espanha*','idem','news + cambio no Supabase &mdash; <code>etl_news.py</code> (SerpAPI 2x/semana, c&acirc;mbio di&aacute;rio)','ok'],
+  ['Newsletter Peru','historico_peru*','idem','news + cambio no Supabase &mdash; <code>etl_news.py</code> (SerpAPI 2x/semana, c&acirc;mbio di&aacute;rio)','ok'],
+  ['Clima (todas as newsletters)','Weather_Avocado, Weather_Local','Cidade, Temp, Chuva, Acumulado 7 dias','clima no Supabase &mdash; <code>etl_clima.py</code> (Open-Meteo, mesmas 47 regi&otilde;es e r&oacute;tulos do PBI)','ok']
 ];
 const ST = {validado:['ntag val','Validado'], ok:['ntag','Fonte no projeto'], parcial:['ntag medio','Parcial'], falta:['ntag alto','Sem fonte']};
 
@@ -1856,19 +1942,14 @@ RENDER.fontes = function(){
       '</tbody></table></div>', 'chart-card')+
     '<div class="two-col">'+
       card('<div class="chart-header"><span class="chart-title">Pr&oacute;ximos passos sugeridos</span></div>'+
-        '<div class="cirad-sec"><h4>1. Clima</h4><ul>'+
-        '<li>Reaproveitar <code>etl_clima_openweather.py</code> do BI Lim&atilde;o para as regi&otilde;es produtoras dos 7 pa&iacute;ses.</li></ul></div>'+
-        '<div class="cirad-sec"><h4>2. Share Brasil</h4><ul>'+
-        '<li>Adaptar <code>etl_comexstat.py</code> do BI Lim&atilde;o para o NCM 0804.40.00 (abacate).</li></ul></div>'+
-        '<div class="cirad-sec"><h4>3. Newsletters faltantes</h4><ul>'+
-        '<li>Replicar <code>news_chile.py</code> e as variantes de regula&ccedil;&atilde;o/log&iacute;stica para Marrocos, Israel, Col&ocirc;mbia, Espanha e Peru.</li>'+
-        '<li>C&acirc;mbio: <code>yfinance</code> com MAD=X, ILS=X, COP=X, EUR=X, PEN=X.</li></ul></div>'+
-        '<div class="cirad-sec"><h4>4. Produ&ccedil;&atilde;o e Uruguai</h4><ul>'+
+        '<div class="cirad-sec"><h4>1. Coletores</h4><ul>'+
+        '<li>Clima, Comexstat, not&iacute;cias e c&acirc;mbio passaram a ter coletor autom&aacute;tico (out/2026).</li></ul></div>'+
+        '<div class="cirad-sec"><h4>2. Produ&ccedil;&atilde;o e Uruguai</h4><ul>'+
         '<li>Acrescentar Chile e EUA (Canad&aacute;) ao CSV da janela de produ&ccedil;&atilde;o.</li>'+
         '<li>Estender a s&eacute;rie do Uruguai para 2025&ndash;2026.</li></ul></div>', 'chart-card')+
       card('<div class="chart-header"><span class="chart-title">Arquivos lidos nesta vers&atilde;o</span></div>'+
         '<div class="fontes-list">'+arqs.map(a=>'<code>'+esc(a)+'</code>').join('<br>')+'</div>'+
-        aviso('Snapshot do export PDF (15/06/2026) alimenta: newsletters de Marrocos, Israel, Col&ocirc;mbia, Espanha e Peru; clima; Comexstat; resumo CIRAD; refer&ecirc;ncia EU.'), 'chart-card')+
+        aviso('O snapshot do export PDF (15/06/2026) s&oacute; aparece quando uma tabela do Supabase n&atilde;o responde.'), 'chart-card')+
     '</div>';
 };
 

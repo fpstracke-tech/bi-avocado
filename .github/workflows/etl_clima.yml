@@ -1,0 +1,92 @@
+name: ETL Clima — Open-Meteo
+
+on:
+  schedule:
+    # 10:15 UTC = 07:15 BRT, todo dia. A previsão muda diariamente e o painel
+    # mostra hoje até hoje+7; rodar cedo deixa o dia já atualizado no expediente.
+    - cron: '15 10 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Só mostrar o que faria, sem gravar no Supabase'
+        type: boolean
+        required: false
+        default: false
+
+concurrency:
+  group: etl-clima
+  cancel-in-progress: false
+
+jobs:
+  etl:
+    name: Clima (Open-Meteo → Supabase clima)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      issues: write
+      contents: read
+
+    env:
+      SUPABASE_URL:     ${{ secrets.SUPABASE_URL }}
+      SUPABASE_KEY:     ${{ secrets.SUPABASE_KEY }}
+      PYTHONIOENCODING: utf-8
+      PYTHONUNBUFFERED: '1'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Instalar dependências
+        run: pip install --upgrade pip && pip install -r requirements.txt
+
+      - name: Conferir secrets
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_KEY" ]; then
+            echo "::error::SUPABASE_URL ou SUPABASE_KEY não configurados."
+            exit 1
+          fi
+
+      - name: ETL Clima
+        run: |
+          args=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then args="--dry-run"; fi
+          python etl_clima.py $args
+      - name: Abrir issue em caso de falha
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prefixo = 'Falha ETL Clima';
+            const run = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            // uma issue aberta por ETL: falha repetida vira comentário, não issue nova
+            const abertas = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo, state: 'open', labels: 'etl-falha' });
+            const ja = abertas.data.find(i => i.title.startsWith(prefixo));
+            if (ja) {
+              await github.rest.issues.createComment({ owner: context.repo.owner,
+                repo: context.repo.repo, issue_number: ja.number, body: `Falhou de novo: ${run}` });
+              return;
+            }
+            await github.rest.issues.create({
+              owner: context.repo.owner, repo: context.repo.repo,
+              title: `${prefixo} — ${new Date().toISOString().slice(0,16).replace('T',' ')} UTC`,
+              labels: ['etl-falha', 'clima'],
+              body: [
+                '**ETL:** Clima (Open-Meteo) → Supabase `clima`',
+                '',
+                'Causas mais comuns:',
+                '1. Open-Meteo sobrecarregado ("The service is overloaded"): o script já tenta 5 vezes; rodar de novo.',
+                '2. Coluna faltando (PGRST204): rodar `supabase_schema_v5_clima_comex.sql` no SQL Editor.',
+                '3. Secret `SUPABASE_KEY` expirado ou rotacionado.',
+                '',
+                'Para reproduzir local: `python etl_clima.py --dry-run`',
+                '',
+                `**Run:** ${run}`,
+              ].join('\n'),
+            });

@@ -1,0 +1,93 @@
+name: ETL Comexstat — exportação de abacate
+
+on:
+  schedule:
+    # 11:30 UTC = 08:30 BRT, segunda a sexta. O MDIC publica o mês anterior
+    # por volta do dia 5 e revisa meses passados; rodar todo dia útil é barato
+    # (2 chamadas) e pega a publicação no mesmo dia.
+    - cron: '30 11 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Só mostrar o que faria, sem gravar no Supabase'
+        type: boolean
+        required: false
+        default: false
+
+concurrency:
+  group: etl-comexstat
+  cancel-in-progress: false
+
+jobs:
+  etl:
+    name: Comexstat (MDIC → Supabase comexstat)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      issues: write
+      contents: read
+
+    env:
+      SUPABASE_URL:     ${{ secrets.SUPABASE_URL }}
+      SUPABASE_KEY:     ${{ secrets.SUPABASE_KEY }}
+      PYTHONIOENCODING: utf-8
+      PYTHONUNBUFFERED: '1'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Instalar dependências
+        run: pip install --upgrade pip && pip install -r requirements.txt
+
+      - name: Conferir secrets
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_KEY" ]; then
+            echo "::error::SUPABASE_URL ou SUPABASE_KEY não configurados."
+            exit 1
+          fi
+
+      - name: ETL Comexstat
+        run: |
+          args=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then args="--dry-run"; fi
+          python etl_comexstat.py $args
+      - name: Abrir issue em caso de falha
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prefixo = 'Falha ETL Comexstat';
+            const run = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            // uma issue aberta por ETL: falha repetida vira comentário, não issue nova
+            const abertas = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo, state: 'open', labels: 'etl-falha' });
+            const ja = abertas.data.find(i => i.title.startsWith(prefixo));
+            if (ja) {
+              await github.rest.issues.createComment({ owner: context.repo.owner,
+                repo: context.repo.repo, issue_number: ja.number, body: `Falhou de novo: ${run}` });
+              return;
+            }
+            await github.rest.issues.create({
+              owner: context.repo.owner, repo: context.repo.repo,
+              title: `${prefixo} — ${new Date().toISOString().slice(0,16).replace('T',' ')} UTC`,
+              labels: ['etl-falha', 'comexstat'],
+              body: [
+                '**ETL:** Comexstat (NCM 0804.40.00) → Supabase `comexstat`',
+                '',
+                'Causas mais comuns:',
+                '1. API do MDIC sobrecarregada ou fora do ar: o script tenta 6 vezes com espera; rodar de novo.',
+                '2. Mudança no formato da resposta (`data.list`).',
+                '3. Secret `SUPABASE_KEY` expirado ou rotacionado.',
+                '',
+                'Para reproduzir local: `python etl_comexstat.py --dry-run`',
+                '',
+                `**Run:** ${run}`,
+              ].join('\n'),
+            });

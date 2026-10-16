@@ -1,0 +1,5 @@
+# Vercel publica só o dashboard. ETLs, SQL e workflows ficam fora do site.
+/*
+!index.html
+!bi_avocado.html
+!bi_avocado_data.json

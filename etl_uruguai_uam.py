@@ -71,6 +71,7 @@ Uso:
     python etl_uruguai_uam.py --dry-run
     python etl_uruguai_uam.py --arquivo b.pdf       # processa um PDF local
     python etl_uruguai_uam.py --desde 2024-10-01    # backfill pelo acervo
+    python etl_uruguai_uam.py --todos               # acervo inteiro (sem janela de 30 dias)
     python etl_uruguai_uam.py --testar-cambio       # só confere a série de câmbio
     python etl_uruguai_uam.py --sem-cache           # ignora o banco
 """
@@ -549,6 +550,15 @@ def main() -> int:
         except ValueError:
             print(f"  ERRO: --desde precisa ser AAAA-MM-DD, veio {desde!r}.")
             return 1
+    # Sem --desde, a rodada diaria olha so os ultimos 30 dias de publicacao.
+    # A API de midia devolve o acervo inteiro (210 PDFs em out/2026, ~25 min
+    # baixando um a um) e o job tem timeout de 25 min: rodar o acervo todo dia
+    # era o que derrubava o Uruguai. Backfill completo: --todos.
+    if desde is None and "--todos" not in sys.argv:
+        from datetime import timedelta
+        desde = (date.today() - timedelta(days=30)).isoformat()
+        print(f"  janela padrao: boletins publicados desde {desde} "
+              f"(--todos para o acervo inteiro)", flush=True)
     limite = None
     if "--limite" in sys.argv:
         limite = int(sys.argv[sys.argv.index("--limite") + 1])

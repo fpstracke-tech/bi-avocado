@@ -34,6 +34,9 @@ BASE_DIR = Path(__file__).parent
 
 ETLS = [
     {"name": "Preços Brasil", "script": "etl_brasil_precos.py", "tag": "precos"},
+    # News + câmbio dos 7 países. Opcional: depende de SERPAPI_KEY, e a falta de
+    # notícia nova não é falha de pipeline.
+    {"name": "News + Câmbio", "script": "etl_news.py", "tag": "news", "optional": True},
 ]
 
 

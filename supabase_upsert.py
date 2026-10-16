@@ -32,7 +32,13 @@ def _load_env():
             line = line.strip()
             if line and not line.startswith("#") and "=" in line:
                 k, v = line.split("=", 1)
-                os.environ[k.strip()] = v.strip()  # força sobrescrita
+                v = v.strip().lstrip("\ufeff")
+                # Aspas em volta do valor sao o erro classico de .env: em shell
+                # elas somem, num arquivo .env elas entram no valor e viram
+                # parte da URL ou da senha. Tira par casado, nao aspa solta.
+                if len(v) >= 2 and v[0] == v[-1] and v[0] in "\"'":
+                    v = v[1:-1]
+                os.environ[k.strip()] = v  # força sobrescrita
 
 _load_env()
 

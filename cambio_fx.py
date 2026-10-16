@@ -367,7 +367,14 @@ def carregar(pais: str, par: str, ano: int, datas: list[str],
         if fx:
             origens.append("Supabase (histórico)")
 
-    faltando = [d for d in datas if fx_da_data(fx, d) is None]
+    # "Faltando" = sem cotação EXATA do dia. Não pode usar fx_da_data aqui:
+    # com a tolerância de 4 dias, a taxa de ontem (vinda do banco) "cobria"
+    # hoje, nenhuma fonte era consultada, e a taxa emprestada era gravada como
+    # se fosse do dia. Na rodada seguinte ela voltava do banco como exata e
+    # cobria o dia seguinte, e assim por diante: a corrente furava o teto de 4
+    # dias. Foi o que congelou USD/ARS em 1.560 e USD/UYU em 39,5004 de
+    # ago/2026 a out/2026. A tolerância só vale DEPOIS de todas as fontes.
+    faltando = [d for d in datas if d not in fx]
     if not faltando:
         print(f"  câmbio: banco cobre os {len(datas)} dias, nenhuma consulta "
               f"externa necessária", flush=True)
@@ -383,13 +390,19 @@ def carregar(pais: str, par: str, ano: int, datas: list[str],
         antes = len(faltando)
         for d, v in novo.items():
             fx.setdefault(d, v)          # o banco vence: só preenche o que falta
-        faltando = [d for d in datas if fx_da_data(fx, d) is None]
+        faltando = [d for d in datas if d not in fx]
         print(f"  câmbio: {rotulo} cobriu {antes - len(faltando)} dia(s)",
               flush=True)
         origens.append(rotulo)
         if not faltando:
             break
 
+    emprestados = [d for d in faltando if fx_da_data(fx, d) is not None]
+    if emprestados:
+        print(f"  câmbio: {len(emprestados)} dia(s) sem cotação própria usam a "
+              f"anterior (até {TOLERANCIA} dias): {emprestados[:5]}"
+              f"{' …' if len(emprestados) > 5 else ''}", flush=True)
+    faltando = [d for d in faltando if fx_da_data(fx, d) is None]
     if faltando:
         print(f"  AVISO: {len(faltando)} dia(s) seguem sem câmbio: "
               f"{faltando[:5]}{' …' if len(faltando) > 5 else ''}", flush=True)

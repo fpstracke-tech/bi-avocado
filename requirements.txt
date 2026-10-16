@@ -5,6 +5,8 @@ beautifulsoup4
 lxml
 xlrd
 pdfplumber
+# desbloqueio do challenge JS da UAM (etl_uruguai_uam.py)
+playwright
 yfinance
 pytesseract
 Pillow

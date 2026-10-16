@@ -312,10 +312,11 @@ def pdf_mais_novo(argv) -> tuple[str, object]:
             raise FileNotFoundError(f"nenhum PDF em {d}")
         print(f"  pasta {d}: {len(pdfs)} PDFs, o mais novo é {pdfs[0].name}")
         return pdfs[0].name, str(pdfs[0])
-    base, auth, achados = boletim.webdav_listar_pdfs()
+    import fonte_boletins
+    achados = fonte_boletins.listar_boletins()
     if not achados:
-        raise FileNotFoundError("nenhum PDF na pasta do ownCloud")
-    return boletim.webdav_baixar(base, auth, achados[0][0])
+        raise FileNotFoundError("nenhum PDF nas pastas de boletim")
+    return achados[0].baixar()
 
 
 # ── MAIN ──────────────────────────────────────────────────────────────────

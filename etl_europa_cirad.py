@@ -58,10 +58,13 @@ FONTES DE ENTRADA
     --todos                       a pasta inteira (backfill)
     --sem-ocr                     só texto, sem OCR (mais rápido no histórico)
 
-Produção: e-mail Microsoft 365 -> Power Automate deposita na pasta do ownCloud
--> este ETL lê por WebDAV. Nenhuma credencial de e-mail entra no GitHub.
+Produção: e-mail Microsoft 365, Power Automate grava o anexo numa pasta do SharePoint,
+este ETL lê pelo Graph (fonte_boletins.py). Nenhuma credencial de e-mail entra no GitHub.
 
+    M365_TENANT_ID / M365_CLIENT_ID / M365_CLIENT_SECRET / M365_SITE / M365_PASTA
+                                    pasta do SharePoint onde o flow grava o anexo
     OWNCLOUD_URL / OWNCLOUD_PASTA / OWNCLOUD_USER / OWNCLOUD_PASS
+                                    acervo antigo (opcional se houver SharePoint)
 
 OCR exige tesseract-ocr no sistema (apt-get install tesseract-ocr).
 """
@@ -754,15 +757,17 @@ def main() -> int:
         entradas = [(p.name, str(p)) for p in sorted(d.rglob("*.pdf"))]
         print(f"  pasta {d}: {len(entradas)} PDFs (incluindo subpastas)")
     else:
-        base, auth, achados = webdav_listar_pdfs()
+        # SharePoint (flow do Power Automate) e/ou ownCloud (acervo antigo)
+        import fonte_boletins
+        achados = fonte_boletins.listar_boletins()
         limite = None if "--todos" in argv else 5
         if "--recentes" in argv:
             limite = int(argv[argv.index("--recentes") + 1])
         if limite and len(achados) > limite:
             print(f"  processando os {limite} mais recentes (--todos para todos)")
             achados = achados[:limite]
-        for href, _ in achados:
-            entradas.append(webdav_baixar(base, auth, href))
+        for b in achados:
+            entradas.append(b.baixar())
 
     if not entradas:
         print("  ERRO: nenhum PDF para processar.")

@@ -1885,8 +1885,39 @@ async function carregaPanorama(){
       ano:+r.ano, mes:+r.mes, peso_kg:+r.peso_kg, valor_usd:+r.valor_usd, usd_kg:+r.usd_kg}));
     n += fob.length;
   } catch(e){ erros.push(e.message); }
+  try {
+    const dst = await sbFetch('v_comexstat_mensal',
+      {select:'ano,mes,pais_destino,peso_kg,valor_fob_usd', ano:'gte.'+(new Date().getFullYear()-1)});
+    P.destino = dst.map(r => ({ano:+r.ano, mes:+r.mes, pais:r.pais_destino, kg:+r.peso_kg, usd:+r.valor_fob_usd}));
+    n += dst.length;
+  } catch(e){ erros.push(e.message); }
   if(!n) throw new Error(erros.join(' | ') || 'sem dados');
   return n;
+}
+
+/* Mercado da aba Precos -> paises de destino da exportacao brasileira.
+   Europa = Uniao Europeia (o CIRAD cota o mercado europeu). */
+const PANO_DESTINOS = {
+  argentina: ['Argentina'], uruguai: ['Uruguai'], chile: ['Chile'],
+  europa: ['Alemanha','Áustria','Bélgica','Bulgária','Chipre','Croácia','Dinamarca','Espanha','França','Grécia',
+           'Irlanda','Itália','Letônia','Lituânia','Luxemburgo','Malta','Países Baixos (Holanda)','Polônia',
+           'Portugal','Suécia','Tcheca, República']
+};
+
+/* FOB/FOT do Brasil para cada mercado: media ponderada dos ultimos 3 meses
+   publicados (um mes so oscila demais em destino de pouco volume) */
+function panoFobDestino(){
+  const d = (DATA.panorama && DATA.panorama.destino) || [];
+  if(!d.length) return {};
+  const fim = Math.max.apply(null, d.map(r=>r.ano*12+r.mes-1)), ini = fim-2;
+  const saida = {};
+  Object.entries(PANO_DESTINOS).forEach(([k, paises]) => {
+    const l = d.filter(r => paises.includes(r.pais) && (r.ano*12+r.mes-1) >= ini);
+    const kg = l.reduce((a,r)=>a+r.kg,0), usd = l.reduce((a,r)=>a+r.usd,0);
+    if(kg >= 1000) saida[k] = {usd_kg: usd/kg, t: kg/1000,
+      periodo: MES_CURTO[ini%12]+' a '+MES_CURTO[fim%12]+'/'+String(Math.floor(fim/12)).slice(2)};
+  });
+  return saida;
 }
 
 const PANO_MERCADOS = [
@@ -1922,7 +1953,7 @@ function panoPontos(series){
 }
 
 function panoSemanal(){
-  const fx = panoFx();
+  const fx = panoFx(), fd = panoFobDestino();
   return PANO_MERCADOS.map(m => {
     const o = DATA.precos[m.key]; if(!o) return null;
     const p = panoPontos(o.series); if(!p) return null;
@@ -1931,7 +1962,7 @@ function panoSemanal(){
     else if(m.key==='europa') usd = fx.eur ? (p.ult.valor/4) / fx.eur.valor : null;
     else usd = p.ult.valor;
     const d = b => b ? (p.ult.valor - b.valor)/b.valor : null;
-    return Object.assign({}, m, {ult:p.ult, usd, d1:d(p.s1), d4:d(p.s4)});
+    return Object.assign({}, m, {ult:p.ult, usd, d1:d(p.s1), d4:d(p.s4), fobBr:fd[m.key]||null});
   }).filter(Boolean);
 }
 
@@ -1965,14 +1996,18 @@ RENDER.panorama = function(){
 
   const tabSem = '<table class="pano-tab"><thead><tr><th>Mercado</th><th>Est&aacute;gio</th><th>Fonte</th><th>Semana</th>'+
     '<th style="text-align:right">Pre&ccedil;o publicado</th><th style="text-align:right">US$/kg</th>'+
-    '<th style="text-align:right">&Delta; 1 sem</th><th style="text-align:right">&Delta; 4 sem</th></tr></thead><tbody>'+
+    '<th style="text-align:right">&Delta; 1 sem</th><th style="text-align:right">&Delta; 4 sem</th>'+
+    '<th style="text-align:right">FOB/FOT Brasil para o mercado</th></tr></thead><tbody>'+
     sem.slice().sort((a,b)=>(b.usd||0)-(a.usd||0)).map(x=>'<tr><td style="color:var(--text);font-weight:600">'+x.label+'</td>'+
       '<td><span class="ntag"'+(x.estagio==='importacao'?' style="color:#F47C20;border-color:rgba(244,124,32,.35)"':'')+'>'+PANO_ESTAGIO[x.estagio]+'</span></td>'+
       '<td>'+x.fonte+'</td>'+
       '<td>S'+x.ult.semana+'/'+x.ult.ano+(atrasada(x)?' <span class="ntag orange">sem atualiza&ccedil;&atilde;o recente</span>':'')+'</td>'+
       '<td class="num">'+x.moeda+' '+nf(x.ult.valor,x.dec)+' <span style="color:var(--text-3);font-size:.65rem">'+x.orig+'</span></td>'+
       '<td class="usd">'+(x.usd!=null?nf(x.usd,2):'&ndash;')+'</td>'+
-      '<td class="num">'+panoDelta(x.d1)+'</td><td class="num">'+panoDelta(x.d4)+'</td></tr>').join('')+
+      '<td class="num">'+panoDelta(x.d1)+'</td><td class="num">'+panoDelta(x.d4)+'</td>'+
+      '<td class="num">'+(x.key==='brasil' ? '<span style="color:var(--text-3)">mercado interno</span>'
+        : x.fobBr ? '<b style="color:var(--text)">US$ '+nf(x.fobBr.usd_kg,2)+'</b> <span style="color:var(--text-3);font-size:.65rem">'+x.fobBr.periodo+' &middot; '+nf(x.fobBr.t,0)+' t</span>'
+        : '<span style="color:var(--text-3)">sem embarque relevante</span>')+'</td></tr>').join('')+
     '</tbody></table>';
 
   const G = panoFobSeries(), gl = Object.values(G);
@@ -1983,6 +2018,7 @@ RENDER.panorama = function(){
     r ? 'por kg &middot; '+panoMes(r)+' &middot; '+nf(r.peso_kg/1000,0)+' t' : 'sem dado ainda', null, 'kpi-value-sm');
 
   const concorrentes = gl.filter(g=>g.r0.fonte==='census').sort((a,b)=>b.vol12-a.vol12);
+  const fimCensus = concorrentes.length ? Math.max.apply(null, concorrentes.map(g=>g.ult.ano*12+g.ult.mes)) : 0;
   const tabFob = gl.length ? '<table class="pano-tab"><thead><tr><th>Origem</th><th>Incoterm</th><th>Via</th><th>Destino</th><th>&Uacute;ltimo m&ecirc;s</th>'+
     '<th style="text-align:right">US$/kg</th><th style="text-align:right">Volume</th><th style="text-align:right">&Delta; m&ecirc;s anterior</th></tr></thead><tbody>'+
     gl.slice().sort((a,b)=>(a.r0.fonte===b.r0.fonte?0:a.r0.fonte==='comexstat'?-1:1) || b.vol12-a.vol12).map(g=>{
@@ -2002,10 +2038,11 @@ RENDER.panorama = function(){
     '<li><b>Crit&eacute;rio do pre&ccedil;o.</b> Nos mercados de atacado vale o pre&ccedil;o m&aacute;ximo da semana, o mesmo da aba Pre&ccedil;os e do relat&oacute;rio Power BI. Na Europa vale o pre&ccedil;o de refer&ecirc;ncia CIRAD do Hass calibre 18, cotado por caixa de 4 kg e dividido por 4.</li>'+
     '<li><b>Varia&ccedil;&otilde;es.</b> O &Delta; de 1 e 4 semanas &eacute; calculado na moeda em que cada s&eacute;rie &eacute; publicada (real no Brasil, euro na Europa, d&oacute;lar nos demais). Assim a varia&ccedil;&atilde;o mostra o movimento do mercado, sem misturar o efeito do c&acirc;mbio.</li>'+
     '<li><b>Est&aacute;gio da cadeia.</b> <i>Atacado interno</i> &eacute; o pre&ccedil;o de venda dentro do pa&iacute;s, j&aacute; com frete interno, margens e impostos locais. N&atilde;o &eacute; pre&ccedil;o de exporta&ccedil;&atilde;o. <i>Importa&ccedil;&atilde;o</i> &eacute; o pre&ccedil;o do produto j&aacute; no mercado europeu, desembara&ccedil;ado, na venda do importador. Compare mercados do mesmo est&aacute;gio; entre est&aacute;gios diferentes a dist&acirc;ncia inclui log&iacute;stica e margens.</li>'+
-    '<li><b>Por que o semanal n&atilde;o est&aacute; em FOB.</b> As fontes semanais dispon&iacute;veis s&atilde;o de atacado e de importa&ccedil;&atilde;o. Convert&ecirc;-las em FOB exigiria estimar frete, margem e embalagem de cada mercado, e o n&uacute;mero pareceria preciso sem ser. Por isso o FOB aparece no bloco seguinte, com dado oficial de exporta&ccedil;&atilde;o.</li></ul>'+
+    '<li><b>Por que o semanal n&atilde;o est&aacute; em FOB.</b> As fontes semanais dispon&iacute;veis s&atilde;o de atacado e de importa&ccedil;&atilde;o. Convert&ecirc;-las em FOB exigiria estimar frete, margem e embalagem de cada mercado, e o n&uacute;mero pareceria preciso sem ser. Por isso o FOB aparece separado, sempre com dado oficial de exporta&ccedil;&atilde;o.</li>'+
+    '<li><b>FOB/FOT do Brasil para cada mercado.</b> Na tabela e no gr&aacute;fico, cada mercado traz ao lado o pre&ccedil;o m&eacute;dio que o Brasil recebeu ao exportar para ele (Comexstat por pa&iacute;s de destino, m&eacute;dia ponderada dos &uacute;ltimos 3 meses publicados; Europa soma os pa&iacute;ses da Uni&atilde;o Europeia). Esse &eacute; o n&uacute;mero no mesmo incoterm para todos os mercados. A dist&acirc;ncia entre ele e o pre&ccedil;o no mercado cobre frete, seguro, impostos de importa&ccedil;&atilde;o, log&iacute;stica e margens at&eacute; o atacado.</li></ul>'+
     '<h4>Pre&ccedil;o de exporta&ccedil;&atilde;o</h4><ul>'+
     '<li><b>FOB</b> (Free on Board): valor da mercadoria embarcada no porto ou aeroporto de origem, sem frete e seguro internacionais. <b>FOT</b> (Free on Truck): o mesmo conceito no embarque rodovi&aacute;rio, com a mercadoria carregada no caminh&atilde;o, comum nas vendas ao Mercosul.</li>'+
-    '<li><b>Brasil:</b> Comexstat/MDIC, NCM 0804.40.00. Valor FOB declarado na exporta&ccedil;&atilde;o dividido pelo peso l&iacute;quido, m&ecirc;s a m&ecirc;s, separado por via. A via rodovi&aacute;ria &eacute; apresentada como FOT. O m&ecirc;s anterior &eacute; publicado por volta do dia 5.</li>'+
+    '<li><b>Brasil:</b> Comexstat/MDIC, NCM 0804.40.00. Valor FOB declarado na exporta&ccedil;&atilde;o dividido pelo peso l&iacute;quido, m&ecirc;s a m&ecirc;s, separado por via. A via rodovi&aacute;ria &eacute; apresentada como FOT. O m&ecirc;s anterior &eacute; publicado por volta do dia 5. O c&oacute;digo NCM n&atilde;o separa variedades: o FOB do Brasil inclui Hass e abacate tropical, e as vendas de tropical a pa&iacute;ses vizinhos puxam a m&eacute;dia geral para baixo.</li>'+
     '<li><b>Concorrentes:</b> importa&ccedil;&otilde;es dos EUA de abacate Hass (US Census, HTS 0804.40.00.20 e .40) por pa&iacute;s de origem. O valor aduaneiro americano exclui frete, seguro e tarifas, ent&atilde;o equivale ao FOB que o exportador recebeu nos embarques para os EUA. Publica&ccedil;&atilde;o com cerca de 2 meses de defasagem.</li>'+
     '<li><b>Leitura.</b> O FOB &eacute; m&eacute;dia mensal ponderada por volume; o semanal &eacute; pre&ccedil;o de mercado. Use o FOB para tend&ecirc;ncia e posicionamento do Brasil frente aos concorrentes, n&atilde;o para comparar com a semana corrente. Meses com menos de 1 tonelada embarcada ficam de fora, porque uma remessa de amostra distorce a m&eacute;dia.</li></ul>'+
     '</div>', 'chart-card');
@@ -2017,15 +2054,15 @@ RENDER.panorama = function(){
       ord.map(x=>kpi(x.label, 'US$ '+nf(x.usd,2), 'por kg &middot; S'+x.ult.semana+'/'+x.ult.ano+'<br>'+PANO_ESTAGIO[x.estagio], x.d1==null ? null : '<span class="kpi-trend '+(x.d1>=0?'up':'down')+'">'+(x.d1>=0?'&uarr; ':'&darr; ')+nf(Math.abs(x.d1)*100,1)+'% na semana</span>', 'kpi-value-sm')).join('')+
     '</div>'+
     '<div class="region-title">Pre&ccedil;o semanal de mercado</div>'+
-    '<div class="two-col">'+
-      chartCard('US$/kg na semana mais recente', 'chartPanoSem', '<span class="badge">atacado e importa&ccedil;&atilde;o</span>')+
+    '<div>'+
+      chartCard('US$/kg: pre&ccedil;o no mercado e FOB/FOT do Brasil para ele', 'chartPanoSem', '<span class="badge">laranja = importa&ccedil;&atilde;o &middot; verde = atacado</span>')+
       card('<div class="chart-header"><span class="chart-title">Mercados lado a lado</span><span class="badge">'+sem.length+' mercados</span></div><div class="table-wrap">'+tabSem+'</div>', 'chart-card')+
     '</div>'+
     '<div class="region-title">Pre&ccedil;o de exporta&ccedil;&atilde;o (FOB / FOT, mensal)</div>'+
     (gl.length
       ? '<div class="kpi-grid">'+kFob('FOB Brasil &middot; todas as vias', bTodas)+kFob('FOB Brasil &middot; mar&iacute;timo', bMar)+
           kFob('FOB Brasil &middot; a&eacute;reo', bAer)+kFob('FOT Brasil &middot; rodovi&aacute;rio', bFot)+
-          concorrentes.slice(0,4).map(g=>kFob('FOB '+esc(g.ult.origem)+' &middot; aos EUA', g.ult)).join('')+'</div>'+
+          concorrentes.filter(g=>(fimCensus-(g.ult.ano*12+g.ult.mes))<=3).slice(0,4).map(g=>kFob('FOB '+esc(g.ult.origem)+' &middot; aos EUA', g.ult)).join('')+'</div>'+
         chartCard('FOB/FOT em US$/kg, &uacute;ltimos 12 meses', 'chartPanoFob', '<span class="badge">m&eacute;dia mensal ponderada</span>')+
         card('<div class="chart-header"><span class="chart-title">Pre&ccedil;o de exporta&ccedil;&atilde;o por origem</span></div><div class="table-wrap">'+tabFob+'</div>', 'chart-card')
       : card(vazio('Pre&ccedil;o de exporta&ccedil;&atilde;o ainda n&atilde;o carregado. Ele aparece depois da primeira rodada do ETL FOB/FOT.'), 'chart-card'))+
@@ -2033,10 +2070,13 @@ RENDER.panorama = function(){
 
   // grafico semanal: barras horizontais, cor pelo estagio
   mk('chartPanoSem', {type:'bar', plugins:[barLabels],
-    data:{labels:ord.map(x=>x.label), datasets:[{data:ord.map(x=>+x.usd.toFixed(2)),
-      backgroundColor:ord.map(x=>PANO_COR[x.estagio]), borderRadius:6, maxBarThickness:34}]},
-    options:{indexAxis:'x', plugins:{legend:{display:false}, barLabels:{prefix:'US$ ', dec:2},
-      tooltip:{callbacks:{label:c=>'US$ '+nf(c.parsed.y,2)+'/kg'}}},
+    data:{labels:ord.map(x=>x.label), datasets:[
+      {label:'Pre\u00e7o no mercado', data:ord.map(x=>+x.usd.toFixed(2)),
+       backgroundColor:ord.map(x=>PANO_COR[x.estagio]), borderRadius:6, maxBarThickness:30},
+      {label:'FOB/FOT Brasil para o mercado (3 meses)', data:ord.map(x=>x.fobBr?+x.fobBr.usd_kg.toFixed(2):null),
+       backgroundColor:'rgba(255,255,255,.28)', borderRadius:6, maxBarThickness:30}]},
+    options:{indexAxis:'x', plugins:{legend:{display:true, position:'bottom'}, barLabels:{prefix:'', dec:2},
+      tooltip:{callbacks:{label:c=>c.dataset.label+': US$ '+nf(c.parsed.y,2)+'/kg'}}},
       layout:{padding:{top:18}}, scales:{x:{grid:NOGRID}, y:{grid:GRID, beginAtZero:true, ticks:{callback:v=>'US$ '+v}}}}});
 
   // grafico FOB: 12 meses, Brasil + concorrentes com mais volume

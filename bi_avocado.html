@@ -1587,6 +1587,7 @@ function chartEuropaSnapshot(){
 /* ══ NEWSLETTERS ═════════════════════════════════════════════ */
 const PAISES_NL = ['Brasil','Chile','Marrocos','Israel','Colômbia','Espanha','Peru'];
 let paisAtual = 'Brasil';
+let nlTab = 'geral';
 
 function climaDe(pais, snap){
   const v = DATA.clima && DATA.clima[pais];
@@ -1598,7 +1599,7 @@ function blocoNL(pais){
   const k = pais.toLowerCase().replace(/ô/g,'o').replace(/[^a-z]/g,'');
   const vivo = DATA.news[k], snap = SNAP.newsletters[pais];
   if(vivo) return {origem:'coletor', dataRef:vivo.cambio.data, cambio:vivo.cambio,
-    tabelas:[{titulo:'Vis&atilde;o geral',linhas:vivo.geral},{titulo:'Regula&ccedil;&atilde;o',linhas:vivo.regulacao},{titulo:'Log&iacute;stica',linhas:vivo.logistica}].filter(t=>t.linhas&&t.linhas.length),
+    tabelas:[{titulo:'Vis&atilde;o geral',linhas:vivo.geral||[]},{titulo:'Regula&ccedil;&atilde;o',linhas:vivo.regulacao||[]},{titulo:'Log&iacute;stica',linhas:vivo.logistica||[]}],
     chuva: climaDe(pais, snap).chuva, clima: climaDe(pais, snap).clima};
   return {origem:'pbi', dataRef:SNAP.meta.exportado_em, cambio:snap.cambio,
     tabelas:(snap.tabelas||[]).map(t=>({titulo:esc(t.titulo),linhas:t.linhas})),
@@ -1627,23 +1628,15 @@ function corpoNL(pais){
     : '<span class="ntag orange">snapshot Power BI &middot; semana '+SNAP.meta.semana_referencia+'/'+SNAP.meta.ano_referencia+'</span>';
   const dec = b.cambio.valor>100 ? 2 : 4;
 
+  // topo: chuva + cambio, logo abaixo os graficos de clima
   let h = '<div class="col-2-1">'+
     card('<div class="chart-header"><span class="chart-title">Acumulado de chuva 7 dias</span><span class="badge">mm</span></div>'+
       (b.chuva && b.chuva.length
         ? b.chuva.map(c=>'<div class="rain-row"><span class="rr-cty">'+esc(c.cidade)+'</span>'+
             '<span class="rr-mm">'+nf(c.acumulado_mm)+' mm</span><span class="rr-dsc">'+esc(limpa(c.descricao))+'</span></div>').join('')
-        : vazio('Tabela de chuva ausente na p&aacute;gina de '+esc(pais)+' do relat&oacute;rio de origem.')))+
+        : vazio('Sem dados de chuva para '+esc(pais)+'.')))+
     kpi('C&acirc;mbio '+esc(b.cambio.par), nf(b.cambio.valor,dec), dtBR(b.dataRef)+'<br>'+badge)+
   '</div>';
-
-  b.tabelas.forEach(t=>{
-    h += card('<div class="chart-header"><span class="chart-title">'+t.titulo+'</span><span class="badge">'+t.linhas.length+' registro'+(t.linhas.length===1?'':'s')+'</span></div>'+
-      '<div class="table-wrap scroll-y"><table><thead><tr><th>Data</th><th>Tag</th><th>Impacto</th><th>Descri&ccedil;&atilde;o</th><th>Fonte</th></tr></thead><tbody>'+
-      t.linhas.map(l=>'<tr><td>'+dtBR(l.data)+'</td><td><span class="ntag">'+esc(l.tag)+'</span></td>'+
-        '<td><span class="ntag '+impCls(l.impacto)+'">'+esc(l.impacto)+'</span></td>'+
-        '<td class="txt">'+esc(l.texto)+'</td><td class="fonte-cel">'+srcLink(l.fonte)+'</td></tr>').join('')+
-      '</tbody></table></div>', 'chart-card');
-  });
 
   if(b.clima && b.clima.vivo){
     const dd = b.clima.dias, ini = dtBR(dd[0]), fim = dtBR(dd[dd.length-1]);
@@ -1651,15 +1644,33 @@ function corpoNL(pais){
       chartCard('Temperatura m&aacute;xima prevista', 'chartClimaTemp', '<span class="badge">&ordm;C &middot; '+ini+' a '+fim+'</span>')+
       chartCard('Precipita&ccedil;&atilde;o prevista', 'chartClimaChuva', '<span class="badge">mm/dia &middot; Open-Meteo</span>')+
     '</div>';
-  } else if(b.clima){
-    h += card('<div class="chart-header"><span class="chart-title">Clima &mdash; regi&otilde;es produtoras monitoradas</span></div>'+
-      '<div class="filter-bar">'+(b.clima.cidades||[]).map(c=>'<span class="ntag">'+esc(c)+'</span>').join('')+'</div>'+
-      aviso('Os gr&aacute;ficos de <b>Temp &ordm;C</b> e <b>Precipita&ccedil;&atilde;o (mm)</b> vinham de consulta direta a API de clima dentro do Power BI (<code>Weather_Avocado</code> / <code>Weather_Local</code>). N&atilde;o existe arquivo desses dados no projeto e os r&oacute;tulos do PDF n&atilde;o permitem reassociar valor &rarr; cidade &rarr; dia. Cobertura no relat&oacute;rio: '+((b.clima.dias||[]).length)+' dias, '+((b.clima.cidades||[]).length)+' cidades. O BI Lim&atilde;o j&aacute; tem <code>etl_clima_openweather.py</code> resolvendo exatamente isso.'), 'chart-card');
   }
-  if(b.origem==='pbi'){
-    h += aviso('N&atilde;o existe coletor de not&iacute;cias para <b>'+esc(pais)+'</b> no projeto &mdash; s&oacute; Brasil e Chile t&ecirc;m <code>news_*.py</code>. O conte&uacute;do acima &eacute; o snapshot do export de 15/06/2026 e n&atilde;o se atualiza.');
-  }
+
+  // noticias: uma categoria por vez, escolhida nos chips
+  const tabs = b.tabelas.length ? b.tabelas : [{titulo:'Vis&atilde;o geral',linhas:[]}];
+  const chaveDe = t => /Regula/.test(t.titulo) ? 'regulacao' : /Log/.test(t.titulo) ? 'logistica' : 'geral';
+  let tab = tabs.find(t=>chaveDe(t)===nlTab) || tabs[0];
+  h += '<div class="filter-bar chip-row" id="chips-nltab">'+
+    tabs.map(t=>'<button class="filter-chip'+(t===tab?' active':'')+'" data-nltab="'+chaveDe(t)+'">'+t.titulo+' ('+t.linhas.length+')</button>').join('')+
+  '</div><div id="nl-tabela"></div>';
+
+  const tabela = t => t.linhas.length
+    ? card('<div class="chart-header"><span class="chart-title">'+t.titulo+'</span><span class="badge">'+t.linhas.length+' registro'+(t.linhas.length===1?'':'s')+'</span></div>'+
+      '<div class="table-wrap scroll-y"><table><thead><tr><th>Data</th><th>Tag</th><th>Impacto</th><th>Descri&ccedil;&atilde;o</th><th>Fonte</th></tr></thead><tbody>'+
+      t.linhas.map(l=>'<tr><td>'+dtBR(l.data)+'</td><td><span class="ntag">'+esc(l.tag)+'</span></td>'+
+        '<td><span class="ntag '+impCls(l.impacto)+'">'+esc(l.impacto)+'</span></td>'+
+        '<td class="txt">'+esc(l.texto)+'</td><td class="fonte-cel">'+srcLink(l.fonte)+'</td></tr>').join('')+
+      '</tbody></table></div>', 'chart-card')
+    : card(vazio('Sem registros de '+t.titulo.toLowerCase()+' para '+esc(pais)+'.'), 'chart-card');
+
   $('news-body').innerHTML = h;
+  $('nl-tabela').innerHTML = tabela(tab);
+  $('chips-nltab').addEventListener('click', ev=>{
+    const c = ev.target.closest('.filter-chip'); if(!c) return;
+    nlTab = c.dataset.nltab;
+    document.querySelectorAll('#chips-nltab .filter-chip').forEach(x=>x.classList.toggle('active', x===c));
+    $('nl-tabela').innerHTML = tabela(tabs.find(t=>chaveDe(t)===nlTab) || tabs[0]);
+  });
   if(b.clima && b.clima.vivo) climaCharts(b.clima);
 }
 
@@ -1740,7 +1751,6 @@ RENDER.logistica = function(){
       kpi('TT maior', nf(G.cards.tt_maior,2), 'dias &middot; rota mais lenta')+
       kpi('Portos de origem', String(new Set(G.rotas.map(r=>r.porto_origem)).size), 'em '+new Set(G.rotas.map(r=>r.pais)).size+' pa&iacute;ses')+
     '</div>'+
-    aviso('O relat&oacute;rio Power BI mostra TT menor <b>4</b> e maior <b>37</b>. Na planilha os extremos s&atilde;o <b>3</b> (San Antonio &rarr; Buenos Aires) e <b>39</b> (Buenaventura &rarr; Buenos Aires) &mdash; e a m&eacute;dia 16,63 s&oacute; fecha incluindo os dois. Prov&aacute;vel filtro manual de outlier nos cards do PBI.')+
     '<div class="region-title">Global</div>'+
     '<div class="col-2-1">'+
       card('<div class="chart-header"><span class="chart-title">M&eacute;dia de TT estimado &mdash; mediana origem &times; destino</span><span class="badge">dias</span></div><div class="mtx-wrap">'+mtxG+'</div>', 'chart-card')+
@@ -1799,7 +1809,7 @@ RENDER.producao = function(){
   const mtx = '<table class="mtx"><thead><tr><th class="rowh">Pa&iacute;s</th>'+
     P.meses.map(m=>'<th>'+(MES_ABR[m]||esc(m))+'</th>').join('')+'<th>Meses</th></tr></thead><tbody>'+
     P.paises.map(p=>'<tr><th class="rowh">'+esc(p.pais)+'</th>'+
-      p.niveis.map((n,i)=> n ? '<td><div class="mcell" style="background:'+NIV_COR[n]+';color:'+NIV_TXT[n]+'" title="'+esc(p.pais)+' &mdash; '+esc(P.meses[i])+': n&iacute;vel '+n+'">'+n+'</div></td>'
+      p.niveis.map((n,i)=> n ? '<td><div class="mcell" style="background:'+NIV_COR[n]+';color:'+NIV_TXT[n]+'" title="'+esc(p.pais)+' &mdash; '+esc(P.meses[i])+': n&iacute;vel '+n+'">&nbsp;</div></td>'
                               : '<td><div class="mcell vazio">&nbsp;</div></td>').join('')+
       '<td><div class="mcell neutra">'+p.niveis.filter(n=>n>0).length+'</div></td></tr>').join('')+
     '<tr><th class="rowh" style="color:var(--text-3);font-weight:400">Pa&iacute;ses ativos</th>'+
@@ -1821,8 +1831,7 @@ RENDER.producao = function(){
       kpi('Maior for&ccedil;a acumulada', esc(forte.pais), 'soma de n&iacute;veis = '+forte.forca, null, 'kpi-value-sm')+
     '</div>'+
     card('<div class="chart-header"><span class="chart-title">Janela de produ&ccedil;&atilde;o mundial Avocado Hass</span><span class="badge">n&iacute;vel 1&ndash;3</span></div>'+
-      '<div class="mtx-wrap">'+mtx+'</div>'+
-      aviso('O relat&oacute;rio Power BI lista 15 linhas, mas o <code>janela_avocado_ordenada_producao_ordempais.csv</code> tem '+P.paises.length+': faltam <b>Chile</b> (OrdemPais 5) e <b>EUA (Canad&aacute;)</b> (OrdemPais 15). Provavelmente foram digitados direto no modelo do PBI &mdash; vale acrescentar as duas linhas ao CSV.'), 'chart-card');
+      '<div class="mtx-wrap">'+mtx+'</div>', 'chart-card');
 };
 
 /* ══ SHARE BRASIL ════════════════════════════════════════════ */

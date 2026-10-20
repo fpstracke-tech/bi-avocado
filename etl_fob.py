@@ -17,7 +17,8 @@ comércio exterior, que são mensais:
    caminhão na fronteira (Argentina, Uruguai, Paraguai).
 
 2. Concorrentes (US Census, chave gratuita em CENSUS_API_KEY)
-   Importações dos EUA de HS 080440 por país de origem. O "customs value"
+   Importações dos EUA de abacate Hass (HTS 0804.40.00.20 orgânico e
+   0804.40.00.40 convencional) por país de origem. O "customs value"
    exclui frete, seguro e tarifas americanas, isto é, é o valor no porto de
    origem: o FOB do exportador. Dá México, Peru, Chile, Colômbia, República
    Dominicana e os demais que embarcam para os EUA.
@@ -45,7 +46,7 @@ import supabase_upsert
 COMEX_API = "https://api-comexstat.mdic.gov.br/general"
 NCM = "08044000"
 CENSUS_API = "https://api.census.gov/data/timeseries/intltrade/imports/hs"
-HS6 = "080440"
+HS10_HASS = {"0804400020", "0804400040"}   # Hass orgânico e Hass convencional
 
 # Origens que valem para o painel, nome do Census -> nome em português.
 # Lista fechada de propósito: o Census também devolve agregados (regiões,
@@ -128,8 +129,9 @@ def linhas_brasil(desde: int, ate: int, agora: str) -> list[dict]:
 
 def census_periodo(desde: int, chave: str, tentativas: int = 4) -> list[list[str]]:
     params = {
-        "get": "CTY_CODE,CTY_NAME,GEN_VAL_MO,GEN_QY1_MO,UNIT_QY1",
-        "I_COMMODITY": HS6, "COMM_LVL": "HS6",
+        # no nível HS6 o Census não publica quantidade; no HS10 publica em kg
+        "get": "CTY_NAME,GEN_VAL_MO,GEN_QY1_MO,UNIT_QY1",
+        "I_COMMODITY": "08044000*", "COMM_LVL": "HS10", "CTY_CODE": "*",
         "time": f"from {desde}-01", "key": chave,
     }
     ultimo = None
@@ -164,10 +166,10 @@ def linhas_census(desde: int, agora: str) -> list[dict]:
     cab, dados = tabela[0], tabela[1:]
     ix = {c: i for i, c in enumerate(cab)}
 
-    saida, unidades = [], set()
+    soma, unidades = {}, set()
     for row in dados:
         nome = (row[ix["CTY_NAME"]] or "").strip().upper()
-        if nome not in CENSUS_PAISES:
+        if nome not in CENSUS_PAISES or row[ix["I_COMMODITY"]] not in HS10_HASS:
             continue
         unidades.add(row[ix["UNIT_QY1"]])
         try:
@@ -176,10 +178,15 @@ def linhas_census(desde: int, agora: str) -> list[dict]:
             kg = float(row[ix["GEN_QY1_MO"]] or 0)
         except (ValueError, KeyError):
             continue
-        saida.append({"fonte": "census", "origem": CENSUS_PAISES[nome], "destino": "EUA",
-                      "via": "TODAS", "incoterm": "FOB", "ano": ano, "mes": mes,
-                      "peso_kg": round(kg, 2), "valor_usd": round(valor, 2),
-                      "extracted_at": agora})
+        t = soma.setdefault((CENSUS_PAISES[nome], ano, mes), [0.0, 0.0])
+        t[0] += kg
+        t[1] += valor
+
+    saida = [{"fonte": "census", "origem": origem, "destino": "EUA",
+              "via": "TODAS", "incoterm": "FOB", "ano": ano, "mes": mes,
+              "peso_kg": round(kg, 2), "valor_usd": round(valor, 2),
+              "extracted_at": agora}
+             for (origem, ano, mes), (kg, valor) in soma.items() if kg > 0]
 
     # o preço por kg só faz sentido se a quantidade vier em kg
     if unidades - {"KG"}:

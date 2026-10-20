@@ -1,0 +1,95 @@
+name: ETL FOB/FOT — preço de exportação mensal
+
+on:
+  schedule:
+    # 11:45 UTC = 08:45 BRT, segunda a sexta. Comexstat publica o mês anterior
+    # por volta do dia 5; o Census, por volta do dia 5 do segundo mês seguinte.
+    # Rodar todo dia útil custa 3 chamadas e pega as duas publicações.
+    - cron: '45 11 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Só mostrar o que faria, sem gravar no Supabase'
+        type: boolean
+        required: false
+        default: false
+
+concurrency:
+  group: etl-fob
+  cancel-in-progress: false
+
+jobs:
+  etl:
+    name: FOB/FOT (Comexstat + US Census → Supabase fob_mensal)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      issues: write
+      contents: read
+
+    env:
+      SUPABASE_URL:     ${{ secrets.SUPABASE_URL }}
+      SUPABASE_KEY:     ${{ secrets.SUPABASE_KEY }}
+      CENSUS_API_KEY:   ${{ secrets.CENSUS_API_KEY }}
+      PYTHONIOENCODING: utf-8
+      PYTHONUNBUFFERED: '1'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Instalar dependências
+        run: pip install --upgrade pip && pip install -r requirements.txt
+
+      - name: Conferir secrets
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_KEY" ]; then
+            echo "::error::SUPABASE_URL ou SUPABASE_KEY não configurados."
+            exit 1
+          fi
+
+      - name: ETL FOB/FOT
+        run: |
+          args=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then args="--dry-run"; fi
+          python etl_fob.py $args
+      - name: Abrir issue em caso de falha
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prefixo = 'Falha ETL FOB/FOT';
+            const run = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            // uma issue aberta por ETL: falha repetida vira comentário, não issue nova
+            const abertas = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo, state: 'open', labels: 'etl-falha' });
+            const ja = abertas.data.find(i => i.title.startsWith(prefixo));
+            if (ja) {
+              await github.rest.issues.createComment({ owner: context.repo.owner,
+                repo: context.repo.repo, issue_number: ja.number, body: `Falhou de novo: ${run}` });
+              return;
+            }
+            await github.rest.issues.create({
+              owner: context.repo.owner, repo: context.repo.repo,
+              title: `${prefixo} — ${new Date().toISOString().slice(0,16).replace('T',' ')} UTC`,
+              labels: ['etl-falha', 'fob'],
+              body: [
+                '**ETL:** FOB/FOT (Comexstat NCM 0804.40.00 + US Census Hass HTS 0804.40.00.20/.40) → Supabase `fob_mensal`',
+                '',
+                'Causas mais comuns:',
+                '1. API do MDIC sobrecarregada: o script tenta 6 vezes com espera; rodar de novo.',
+                '2. `CENSUS_API_KEY` inválida, não ativada pelo link do e-mail, ou expirada.',
+                '3. Tabela `fob_mensal` inexistente: rodar `supabase_schema_v6_fob.sql`.',
+                '4. Secret `SUPABASE_KEY` expirado ou rotacionado.',
+                '',
+                'Para reproduzir local: `python etl_fob.py --dry-run`',
+                '',
+                `**Run:** ${run}`,
+              ].join('\n'),
+            });

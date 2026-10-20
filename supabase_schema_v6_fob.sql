@@ -7,7 +7,8 @@
 --   comexstat  Brasil, exportação de abacate (NCM 0804.40.00) por via de
 --              transporte. Valor FOB declarado em US$ e kg líquido.
 --              Via rodoviária = FOT (mesmo valor, entregue no caminhão).
---   census     Importações dos EUA (HS 080440) por país de origem.
+--   census     Importações dos EUA de abacate Hass (HTS 0804.40.00.20 e .40)
+--              por país de origem.
 --              "Customs value" exclui frete, seguro e tarifas americanas:
 --              é o valor no porto de origem, ou seja, FOB do exportador.
 -- ═══════════════════════════════════════════════════════════════════════════

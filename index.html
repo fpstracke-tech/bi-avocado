@@ -342,6 +342,15 @@
   .mcell { border-radius: .45rem; padding: .5rem .3rem; font-size: .7rem; font-weight: 600; font-variant-numeric: tabular-nums; min-width: 2.6rem; }
   .mcell.vazio { background: rgba(255,255,255,.025); color: var(--text-3); }
   .mcell.neutra { background: rgba(255,255,255,.05); color: var(--green); }
+  .mcell.vazio2 { background: transparent; box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); }
+  table.mtx th.agora { color: var(--orange); }
+  table.mtx th.agora::after { content: ''; display: block; width: 4px; height: 4px; border-radius: 50%; background: var(--orange); margin: .25rem auto 0; }
+  table.mtx td.agora .mcell { outline: 1.5px solid rgba(224,90,26,.55); outline-offset: 1px; }
+  table.mtx tr.destaque th.rowh { color: var(--orange); font-weight: 700; }
+  table.mtx tr.destaque th.rowh { box-shadow: inset 3px 0 0 var(--orange); padding-left: .55rem; }
+  table.mtx tr.oferta th.rowh { color: var(--text-3); font-weight: 400; padding-top: .6rem; }
+  table.mtx tr.oferta td { padding-top: .5rem; }
+  .mcell.ofer { padding: .3rem .3rem; }
   .mlegend { display: flex; align-items: center; gap: 1.1rem; flex-wrap: wrap; margin-top: 1rem; font-size: .65rem; color: var(--text-3); }
   .mlegend .it { display: flex; align-items: center; gap: .4rem; }
   .mlegend .sw { width: 1.4rem; height: .7rem; border-radius: .2rem; }
@@ -1794,7 +1803,7 @@ function tabelaRotas(){
 }
 
 /* ══ PRODUCAO GLOBAL ═════════════════════════════════════════ */
-const NIV_COR = {3:'#8DC63F', 2:'rgba(141,198,63,.60)', 1:'rgba(141,198,63,.26)'};
+const NIV_COR = {3:'#8DC63F', 2:'#5F8E2E', 1:'#3A5524'};
 const NIV_TXT = {3:'#000000', 2:'#FFFFFF', 1:'#ADADAD'};
 const MES_ABR = {'Janeiro':'Jan','Fevereiro':'Fev','Março':'Mar','Abril':'Abr','Maio':'Mai','Junho':'Jun','Julho':'Jul','Agosto':'Ago','Setembro':'Set','Outubro':'Out','Novembro':'Nov','Dezembro':'Dez'};
 
@@ -1806,20 +1815,28 @@ RENDER.producao = function(){
   const longa = resumo.slice().sort((a,b)=>b.meses-a.meses)[0];
   const forte = resumo.slice().sort((a,b)=>b.forca-a.forca)[0];
 
+  const mesAtual = new Date().getMonth();           // P.meses vem de Janeiro a Dezembro
+  const ofertaMes = P.meses.map((m,i)=>P.paises.reduce((a,p)=>a+(p.niveis[i]||0),0));
+  const ofertaMax = Math.max.apply(null, ofertaMes), ofertaMin = Math.min.apply(null, ofertaMes);
+  const ofertaA = t => (0.15 + 0.85*(t-ofertaMin)/((ofertaMax-ofertaMin)||1)).toFixed(2);
+  const ag = i => i===mesAtual ? ' class="agora"' : '';
+
   const mtx = '<table class="mtx"><thead><tr><th class="rowh">Pa&iacute;s</th>'+
-    P.meses.map(m=>'<th>'+(MES_ABR[m]||esc(m))+'</th>').join('')+'<th>Meses</th></tr></thead><tbody>'+
-    P.paises.map(p=>'<tr><th class="rowh">'+esc(p.pais)+'</th>'+
-      p.niveis.map((n,i)=> n ? '<td><div class="mcell" style="background:'+NIV_COR[n]+';color:'+NIV_TXT[n]+'" title="'+esc(p.pais)+' &mdash; '+esc(P.meses[i])+': n&iacute;vel '+n+'">&nbsp;</div></td>'
-                              : '<td><div class="mcell vazio">&nbsp;</div></td>').join('')+
+    P.meses.map((m,i)=>'<th'+ag(i)+'>'+(MES_ABR[m]||esc(m))+'</th>').join('')+'<th>Meses</th></tr></thead><tbody>'+
+    P.paises.map(p=>'<tr'+(/^brasil$/i.test(p.pais)?' class="destaque"':'')+'><th class="rowh">'+esc(p.pais)+'</th>'+
+      p.niveis.map((n,i)=> n ? '<td'+ag(i)+'><div class="mcell" style="background:'+NIV_COR[n]+'" title="'+esc(p.pais)+' &mdash; '+esc(P.meses[i])+': n&iacute;vel '+n+'">&nbsp;</div></td>'
+                              : '<td'+ag(i)+'><div class="mcell vazio2" title="'+esc(p.pais)+' &mdash; '+esc(P.meses[i])+': sem produ&ccedil;&atilde;o">&nbsp;</div></td>').join('')+
       '<td><div class="mcell neutra">'+p.niveis.filter(n=>n>0).length+'</div></td></tr>').join('')+
-    '<tr><th class="rowh" style="color:var(--text-3);font-weight:400">Pa&iacute;ses ativos</th>'+
-      ativosMes.map(t=>'<td><div class="mcell neutra">'+t+'</div></td>').join('')+'<td></td></tr>'+
+    '<tr class="oferta"><th class="rowh">Oferta global</th>'+
+      ofertaMes.map((t,i)=>'<td'+ag(i)+'><div class="mcell ofer" style="background:rgba(141,198,63,'+ofertaA(t)+')" title="'+esc(P.meses[i])+': '+ativosMes[i]+' pa&iacute;ses, soma de n&iacute;veis '+t+'">&nbsp;</div></td>').join('')+'<td></td></tr>'+
     '</tbody></table>'+
     '<div class="mlegend">'+
-      '<div class="it"><span class="sw" style="background:'+NIV_COR[3]+'"></span>3 &mdash; pico de safra</div>'+
-      '<div class="it"><span class="sw" style="background:'+NIV_COR[2]+'"></span>2 &mdash; safra m&eacute;dia</div>'+
-      '<div class="it"><span class="sw" style="background:'+NIV_COR[1]+'"></span>1 &mdash; safra inicial / residual</div>'+
-      '<div class="it"><span class="sw" style="background:rgba(255,255,255,.025)"></span>sem produ&ccedil;&atilde;o</div></div>';
+      '<div class="it"><span class="sw" style="background:'+NIV_COR[3]+'"></span>pico de safra</div>'+
+      '<div class="it"><span class="sw" style="background:'+NIV_COR[2]+'"></span>safra m&eacute;dia</div>'+
+      '<div class="it"><span class="sw" style="background:'+NIV_COR[1]+'"></span>safra inicial / residual</div>'+
+      '<div class="it"><span class="sw" style="box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)"></span>sem produ&ccedil;&atilde;o</div>'+
+      '<div class="it"><span class="sw" style="background:linear-gradient(90deg,rgba(141,198,63,.15),#8DC63F)"></span>oferta global: menor a maior no ano</div>'+
+      '<div class="it"><span class="sw" style="outline:1.5px solid rgba(224,90,26,.55);outline-offset:1px"></span>m&ecirc;s atual</div></div>';
 
   $('page-producao').innerHTML =
     pageHeader('Produ&ccedil;&atilde;o &middot; Janela mundial Hass', 'Janela de Produ&ccedil;&atilde;o Global',

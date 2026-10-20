@@ -17,8 +17,9 @@ Ordem das fontes:
 As duas devolvem a mesma coisa: lista de Boletim(nome, quando, baixar), do
 mais novo para o mais velho. `baixar()` devolve (nome, BytesIO).
 
-    M365_SITE   "tfruits.sharepoint.com:/sites/TFruits"   (host:/caminho do site)
-    M365_PASTA  "BI Avocado/CIRAD"                        (dentro da biblioteca padrão)
+    M365_SITE   "tfruitscombr.sharepoint.com:/sites/TFruits"   (host:/caminho do site)
+    M365_PASTA  "TFruits PowerBI:/BI Avocado/CIRAD"            (biblioteca:/caminho)
+                "BI Avocado/CIRAD"                             (sem ":/" = biblioteca padrão)
 """
 from __future__ import annotations
 
@@ -102,13 +103,36 @@ def _quando(iso: str | None) -> datetime | None:
         return None
 
 
+def _drive_e_pasta(site: str, pasta_cfg: str, h: dict) -> tuple[str, str]:
+    """
+    "Biblioteca:/caminho" -> (drive da biblioteca pelo nome, caminho)
+    "caminho"             -> (drive padrão do site, caminho)
+    """
+    if ":/" in pasta_cfg:
+        biblioteca, caminho = pasta_cfg.split(":/", 1)
+        biblioteca = biblioteca.strip()
+        drives = _req("GET", f"{GRAPH}/sites/{site}/drives?$select=id,name,webUrl",
+                      headers=h).json().get("value", [])
+        alvo = biblioteca.lower()
+        for d in drives:
+            url_final = requests.utils.unquote((d.get("webUrl") or "").rstrip("/").split("/")[-1])
+            if (d.get("name") or "").lower() == alvo or url_final.lower() == alvo:
+                return d["id"], caminho.strip("/")
+        nomes = ", ".join(sorted(d.get("name") or "?" for d in drives))
+        raise LookupError(f"biblioteca '{biblioteca}' não existe no site (há: {nomes})")
+
+    drive = _req("GET", f"{GRAPH}/sites/{site}/drive?$select=id", headers=h).json()["id"]
+    return drive, pasta_cfg.strip("/")
+
+
 def listar_sharepoint() -> list[Boletim]:
     cfg = _env(*M365_VARS)
     h = {"Authorization": f"Bearer {_token(cfg)}"}
 
     site = _req("GET", f"{GRAPH}/sites/{cfg['M365_SITE']}", headers=h).json()["id"]
-    pasta = requests.utils.quote(cfg["M365_PASTA"].strip("/"))
-    url = (f"{GRAPH}/sites/{site}/drive/root:/{pasta}:/children"
+    drive, caminho = _drive_e_pasta(site, cfg["M365_PASTA"], h)
+    pasta = requests.utils.quote(caminho)
+    url = (f"{GRAPH}/drives/{drive}/root:/{pasta}:/children"
            f"?$select=id,name,lastModifiedDateTime,file&$top=200")
 
     itens = []
@@ -124,7 +148,7 @@ def listar_sharepoint() -> list[Boletim]:
             continue
 
         def baixar(item_id=it["id"], nome=nome):
-            r = _req("GET", f"{GRAPH}/sites/{site}/drive/items/{item_id}/content",
+            r = _req("GET", f"{GRAPH}/drives/{drive}/items/{item_id}/content",
                      headers=h, timeout=300)
             if not r.content.startswith(b"%PDF"):
                 raise ValueError(f"{nome}: conteúdo não é PDF")

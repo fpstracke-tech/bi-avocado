@@ -287,6 +287,40 @@ def bloco_cirad(S) -> int:
     return len(desta)
 
 
+def compacta_saaga(linhas: list[dict], meta: dict) -> dict:
+    """SAAGA em formato de array para caber no HTML: ~1.700 linhas por edição.
+    l = [ano, semana, i_origem, variedade (0 Hass / 1 Green), mil caixas,
+         realizado (1/0), estimativa inicial]"""
+    origens = sorted({r["origem"] for r in linhas})
+    ix = {o: i for i, o in enumerate(origens)}
+    return {"meta": meta, "origens": origens, "l": [
+        [int(r["ano"]), int(r["semana"]), ix[r["origem"]], 0 if r["variedade"] == "Hass" else 1,
+         num(r.get("caixas_mil")), 1 if r["status"] == "realizado" else 0,
+         num(r.get("estimativa_inicial"))] for r in linhas]}
+
+
+def bloco_saaga(D) -> int:
+    """Oferta na Europa (SAAGA). Bloco novo da V2: se a tabela ainda não foi
+    criada no banco (schema v7), mantém o que já está embutido em vez de
+    derrubar o embutido inteiro."""
+    try:
+        l = sb("saaga_oferta_europa", {
+            "select": "ano,semana,origem,variedade,caixas_mil,status,estimativa_inicial,"
+                      "edicao_semana,atualizado_em,arquivo",
+            "order": "ano.asc,semana.asc"})
+    except Exception as e:  # noqa: BLE001
+        print(f"  AVISO saaga: {e} — mantendo o embutido atual")
+        return 0
+    if not l:
+        print("  AVISO saaga: tabela vazia — mantendo o embutido atual")
+        return 0
+    u = max(l, key=lambda r: (r.get("atualizado_em") or "", r.get("edicao_semana") or 0))
+    meta = {"arquivo": u.get("arquivo"), "edicao_semana": u.get("edicao_semana"),
+            "atualizado_em": u.get("atualizado_em"), "ano": max(int(r["ano"]) for r in l)}
+    D["saaga"] = compacta_saaga(l, meta)
+    return len(l)
+
+
 # ── ARQUIVO ───────────────────────────────────────────────────────────────
 RE_BLOCO = r"^const {nome} = (\{{.*\}});$"
 
@@ -343,6 +377,7 @@ def main() -> int:
 
     for nome, fn, arg in (("brasil", bloco_brasil, DATA), ("origens", bloco_origens, DATA),
                           ("europa", bloco_europa, DATA), ("news", bloco_news, DATA),
+                          ("saaga", bloco_saaga, DATA),
                           ("cirad", bloco_cirad, SNAP)):
         # sem try/except de propósito: embutido pela metade é pior que embutido
         # velho, porque metade dele passaria a contradizer a outra

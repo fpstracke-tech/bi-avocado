@@ -1,0 +1,94 @@
+name: ETL SAAGA — oferta semanal na Europa
+
+on:
+  schedule:
+    # 12:10 UTC = 09:10 BRT, segunda a sexta. A SAAGA publica o Excel uma vez
+    # por semana em dia variável; o upsert é idempotente, rodar todo dia útil
+    # pega a edição nova no mesmo dia.
+    - cron: '10 12 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Só mostrar o que faria, sem gravar no Supabase'
+        type: boolean
+        required: false
+        default: false
+
+concurrency:
+  group: etl-saaga
+  cancel-in-progress: false
+
+jobs:
+  etl:
+    name: SAAGA (avocado.co.za → Supabase saaga_oferta_europa)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      issues: write
+      contents: read
+
+    env:
+      SUPABASE_URL:     ${{ secrets.SUPABASE_URL }}
+      SUPABASE_KEY:     ${{ secrets.SUPABASE_KEY }}
+      PYTHONIOENCODING: utf-8
+      PYTHONUNBUFFERED: '1'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Instalar dependências
+        run: pip install --upgrade pip && pip install -r requirements.txt
+
+      - name: Conferir secrets
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_KEY" ]; then
+            echo "::error::SUPABASE_URL ou SUPABASE_KEY não configurados."
+            exit 1
+          fi
+
+      - name: ETL SAAGA
+        run: |
+          args=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then args="--dry-run"; fi
+          python etl_saaga.py $args
+      - name: Abrir issue em caso de falha
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prefixo = 'Falha ETL SAAGA';
+            const run = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            // uma issue aberta por ETL: falha repetida vira comentário, não issue nova
+            const abertas = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo, state: 'open', labels: 'etl-falha' });
+            const ja = abertas.data.find(i => i.title.startsWith(prefixo));
+            if (ja) {
+              await github.rest.issues.createComment({ owner: context.repo.owner,
+                repo: context.repo.repo, issue_number: ja.number, body: `Falhou de novo: ${run}` });
+              return;
+            }
+            await github.rest.issues.create({
+              owner: context.repo.owner, repo: context.repo.repo,
+              title: `${prefixo} — ${new Date().toISOString().slice(0,16).replace('T',' ')} UTC`,
+              labels: ['etl-falha', 'saaga'],
+              body: [
+                '**ETL:** SAAGA EU-UK-SUPPLY (Excel semanal) → Supabase `saaga_oferta_europa`',
+                '',
+                'Causas mais comuns:',
+                '1. Página avocado.co.za/export-market sem link .xlsx (mudou o nome do arquivo ou o site caiu).',
+                '2. Layout do Excel mudou: aba Data <ano> sem a linha G/Sk / Hass / Total.',
+                '3. Tabela não criada: rodar supabase_schema_v7_saaga.sql no SQL Editor.',
+                '4. Secret `SUPABASE_KEY` expirado ou rotacionado.',
+                '',
+                'Para reproduzir local: `python etl_saaga.py --dry-run`',
+                '',
+                `**Run:** ${run}`,
+              ].join('\n'),
+            });
